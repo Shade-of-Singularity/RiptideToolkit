@@ -1,2 +1,20 @@
 # RiptideToolkit
-Community Toolkit for RiptideNetworking. Supports C# modding.
+Community Toolkit for [RiptideNetworking](https://github.com/RiptideNetworking/Riptide).
+Makes Riptide support community modding.
+Also gives new ways for handling messages, and general ease-of-use.
+
+Deeveloped with high performance in mind.
+
+## Modding Support
+`...`
+
+## Additional Message Handlers
+`...`
+
+## Performance
+`...`
+
+# Contributions (for CV)
+**DarkJune**: Performance Engineering & System Engineering.
+
+That's the end of the list for now. Have a nice timezone!
