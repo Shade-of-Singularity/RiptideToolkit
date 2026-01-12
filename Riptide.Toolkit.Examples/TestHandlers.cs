@@ -27,7 +27,7 @@ namespace Riptide.Toolkit.Examples
             Debug.Log($"Client-side {nameof(SendChunkHandler)} was fired with data: {chunk}");
         }
 
-        [AdvancedMessage]
+        [AdvancedMessage(typeof(DefaultGroup), typeof(ReceiveInventory))]
         public static void ValidateChunkHandler(ValidateChunk chunk)
         {
             Debug.Log($"Client-side {nameof(ValidateChunkHandler)} was fired with data: {chunk}");

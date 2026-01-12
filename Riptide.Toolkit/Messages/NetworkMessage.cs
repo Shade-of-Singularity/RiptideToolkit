@@ -154,7 +154,7 @@ namespace Riptide.Toolkit.Messages
         /// <returns>Newly created message.</returns>
         public static Message Message(MessageSendMode mode)
         {
-            return global::Riptide.Message.Create(mode, MessageID);
+            return Riptide.Message.Create(mode, MessageID);
         }
 
 
@@ -173,16 +173,16 @@ namespace Riptide.Toolkit.Messages
         /// <summary>
         /// Packs <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> into a message, including its <see cref="MessageID"/> in the data.
         /// </summary>
-        /// <param name="mode"><see cref="global::Riptide"/> Send mode of the <see cref="global::Riptide.Message"/>.</param>
-        /// <returns>Fully prepared <see cref="global::Riptide.Message"/>, ready to be sent to another party.</returns>
-        public Message Pack(MessageSendMode mode) => Write(global::Riptide.Message.Create(mode, MessageID));
+        /// <param name="mode"><see cref="Riptide"/> Send mode of the <see cref="Riptide.Message"/>.</param>
+        /// <returns>Fully prepared <see cref="Riptide.Message"/>, ready to be sent to another party.</returns>
+        public Message Pack(MessageSendMode mode) => Write(Riptide.Message.Create(mode, MessageID));
 
         /// <summary>
         /// Packs <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> into a message, including its <see cref="MessageID"/> in the data,
         /// and immediately <see cref="Release()"/>s it afterwards.
         /// </summary>
-        /// <param name="mode"><see cref="global::Riptide"/> Send mode of the <see cref="global::Riptide.Message"/>.</param>
-        /// <returns>Fully prepared <see cref="global::Riptide.Message"/>, ready to be sent to another party.</returns>
+        /// <param name="mode"><see cref="Riptide"/> Send mode of the <see cref="Riptide.Message"/>.</param>
+        /// <returns>Fully prepared <see cref="Riptide.Message"/>, ready to be sent to another party.</returns>
         public Message PackRelease(MessageSendMode mode)
         {
             Message result = Pack(mode);
