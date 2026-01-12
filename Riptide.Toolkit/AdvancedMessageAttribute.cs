@@ -11,7 +11,6 @@
 
 using Riptide.Toolkit.Messages;
 using System;
-using System.Text.RegularExpressions;
 
 namespace Riptide.Toolkit
 {

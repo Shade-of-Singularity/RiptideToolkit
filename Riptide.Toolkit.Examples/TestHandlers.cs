@@ -9,7 +9,6 @@
 /// 
 /// ]]>
 
-using Riptide;
 using UnityEngine;
 
 namespace Riptide.Toolkit.Examples
