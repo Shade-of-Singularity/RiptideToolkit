@@ -15,6 +15,6 @@ Deeveloped with high performance in mind.
 `...`
 
 # Contributions (for CV)
-**DarkJune**: Performance Engineering & System Engineering.
+**[SoG](https://github.com/Shade-of-Singularity), [DarkJune](https://github.com/DarkJune0122)**: Performance Engineering & System Engineering.
 
 That's the end of the list for now. Have a nice timezone!
