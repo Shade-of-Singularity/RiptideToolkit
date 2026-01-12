@@ -144,6 +144,14 @@ namespace Riptide.Toolkit
         public static ServerHandlers ServerHandlers(byte group = 0) => m_ServerHandlers[group];
 
         /// <summary>
+        /// Retrieves next mod id for internal usage.
+        /// </summary>
+        public static ushort NextModID()
+        {
+            throw new NotImplementedException("Mod ID retrieval is not implemented yet.");
+        }
+
+        /// <summary>
         /// Retrieves next group ID for networking with <see cref="Toolkit"/>.
         /// </summary>
         public static byte NextGroupID()
@@ -232,8 +240,11 @@ namespace Riptide.Toolkit
 
         private static void RegisterHandlers(MethodInfo method)
         {
+            // TODO: Update, so it works better.
+            if (!method.IsDefined(typeof(AdvancedMessageAttribute))) return;
+
+            // TODO: Analyze multiple attributes.
             AdvancedMessageAttribute attribute = method.GetCustomAttribute<AdvancedMessageAttribute>();
-            if (attribute is null) return;
 
             // Differentiates client-side and server-side message handlers by the parameter types they specify.
             ParameterInfo[] parameters = method.GetParameters();

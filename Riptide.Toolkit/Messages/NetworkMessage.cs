@@ -66,7 +66,7 @@ namespace Riptide.Toolkit.Messages
         /// <summary>
         /// <see cref="NetworkGroup{TGroup}"/> this <see cref="NetworkMessage{TMessage, TGroup, TLoad}"/> belongs to.
         /// </summary>
-        public static byte GroupID => NetworkGroup<TGroup>.GroupID;
+        [GroupID] public static byte GroupID => NetworkGroup<TGroup>.GroupID;
 
 
 
@@ -79,7 +79,7 @@ namespace Riptide.Toolkit.Messages
         /// <summary>
         /// Message ID of this <see cref="NetworkMessage{TMessage, TGroup, TLoad}"/>.
         /// </summary>
-        public static readonly ushort MessageID = NetworkIndex.NextMessageID(GroupID);
+        [MessageID] public static readonly ushort MessageID = NetworkIndex.NextMessageID(GroupID);
 
 
 

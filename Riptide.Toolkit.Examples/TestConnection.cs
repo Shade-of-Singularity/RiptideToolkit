@@ -15,6 +15,8 @@ using UnityEngine;
 
 namespace Riptide.Toolkit.Examples
 {
+    // TODO: Remove UnityEngine reference.
+    // TODO: Move to Basics example class.
     public static class TestConnection
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[

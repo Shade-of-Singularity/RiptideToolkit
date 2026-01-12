@@ -1,0 +1,27 @@
+﻿namespace Riptide.Toolkit.Examples
+{
+    /// <summary>
+    /// Example mod which defines an <see cref="BaseMod{T}.ModID"/> field or property with <see cref="ModIDAttribute"/>.
+    /// </summary>
+    public sealed class ExampleMod : BaseMod<ExampleMod>
+    {
+        /// <inheritdoc/>
+        protected override void RegisterMessages()
+        {
+            // TODO: Register custom message handlers.
+            // TODO: Register response handlers.
+        }
+
+        /// <inheritdoc/>
+        protected override void Initialize()
+        {
+            // Initialize systems, subscribe to events, construct objects and classes here.
+        }
+
+        /// <inheritdoc/>
+        protected override void Unload()
+        {
+            // Save stuff, use non-async stuff and dispose objects here.
+        }
+    }
+}

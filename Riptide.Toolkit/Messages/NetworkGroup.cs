@@ -18,7 +18,7 @@ namespace Riptide.Toolkit.Messages
     /// TODO: Add non-generic listing if needed.
     public abstract class NetworkGroup<TGroup> : NetworkGroup where TGroup : NetworkGroup<TGroup>
     {
-        public static readonly byte GroupID = NetworkIndex.NextGroupID();
+        [GroupID] public static readonly byte GroupID = NetworkIndex.NextGroupID();
     }
 
     /// <summary>
