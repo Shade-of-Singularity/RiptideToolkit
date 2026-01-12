@@ -1,21 +1,17 @@
-﻿/// - - -    Copyright (c) 2026     - - -     SoG, DarkJune     - - - <![CDATA[
+﻿/// - - Shade of Singularity Community - - - Tom Weiland & Riptide Community, 2026 - - <![CDATA[
 /// 
 /// Licensed under the MIT License. Permission is hereby granted, free of charge,
 /// to any person obtaining a copy of this software and associated documentation
 /// files to deal in the Software without restriction. Full license terms are
 /// available in the LICENSE.md file located at the following repository path:
 ///   
-///                 "Eclipse/Eclipse.Riptide/LICENSE.md"
-/// 
-/// Note: Eclipse.Riptide and Eclipse are licensed under different licenses.
-/// See "Eclipse/LICENSE.md" for details.
+///                        "RiptideToolkit/LICENSE.md"
 /// 
 /// ]]>
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 
-namespace Eclipse.Riptide.Handlers
+namespace Riptide.Toolkit.Handlers
 {
     /// <summary>
     /// Collection of all network message handlers.
@@ -49,7 +45,7 @@ namespace Eclipse.Riptide.Handlers
             // if (id > m_Handlers.Length) throw new ArgumentOutOfRangeException(nameof(id));
             return m_Handlers[id];
         }
-        
+
         public bool Has(ushort id)
         {
             NetworkIndex.Initialize();
@@ -57,12 +53,12 @@ namespace Eclipse.Riptide.Handlers
             return m_Handlers[id] != null;
         }
 
-        public bool TryGet(ushort id, [NotNullWhen(true)] out THandler hander)
+        public bool TryGet(ushort id, out THandler hander)
         {
             NetworkIndex.Initialize();
             if (id > m_Handlers.Length)
             {
-                hander = default!;
+                hander = default;
                 return false;
             }
 
@@ -84,12 +80,24 @@ namespace Eclipse.Riptide.Handlers
             public static void SetHandlers(MessageHandlers<THandler> handlers, THandler[] value) => handlers.m_Handlers = value;
             public static ushort GetCapacity(MessageHandlers<THandler> handlers) => (ushort)handlers.m_Handlers.Length;
             public static void Resize(MessageHandlers<THandler> handlers, ushort size) => Array.Resize(ref handlers.m_Handlers, size);
-            public static void Clear(MessageHandlers<THandler> handlers) => Array.Fill(handlers.m_Handlers, default);
+            public static void Clear(MessageHandlers<THandler> handlers)
+            {
+                var array = handlers.m_Handlers;
+                for (int i = 0; i < array.Length; i++)
+                {
+                    array[i] = default;
+                }
+            }
+
             public static void Reset(MessageHandlers<THandler> handlers, ushort size)
             {
-                if (handlers.m_Handlers.Length == size)
+                var array = handlers.m_Handlers;
+                if (array.Length == size)
                 {
-                    Array.Fill(handlers.m_Handlers, default);
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        array[i] = default;
+                    }
                 }
                 else
                 {
@@ -113,7 +121,7 @@ namespace Eclipse.Riptide.Handlers
                 if (messageID < handlers.m_Handlers.Length)
                 {
                     // Resets only if target id is even present.
-                    handlers.m_Handlers[messageID] = default!;
+                    handlers.m_Handlers[messageID] = default;
                 }
             }
 

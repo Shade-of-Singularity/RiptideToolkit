@@ -1,25 +1,21 @@
-﻿/// - - -    Copyright (c) 2026     - - -     SoG, DarkJune     - - - <![CDATA[
+﻿/// - - Shade of Singularity Community - - - Tom Weiland & Riptide Community, 2026 - - <![CDATA[
 /// 
 /// Licensed under the MIT License. Permission is hereby granted, free of charge,
 /// to any person obtaining a copy of this software and associated documentation
 /// files to deal in the Software without restriction. Full license terms are
 /// available in the LICENSE.md file located at the following repository path:
 ///   
-///                 "Eclipse/Eclipse.Riptide/LICENSE.md"
-/// 
-/// Note: Eclipse.Riptide and Eclipse are licensed under different licenses.
-/// See "Eclipse/LICENSE.md" for details.
+///                        "RiptideToolkit/LICENSE.md"
 /// 
 /// ]]>
 
-using Eclipse.Riptide.Handlers;
-using Eclipse.Riptide.Messages;
-using Riptide;
+using Riptide.Toolkit.Handlers;
+using Riptide.Toolkit.Messages;
+using Riptide.Utils;
 using System;
 using System.Reflection;
-using UnityEngine;
 
-namespace Eclipse.Riptide
+namespace Riptide.Toolkit
 {
     /// <summary>
     /// Helps with message indexing.
@@ -32,6 +28,11 @@ namespace Eclipse.Riptide
         /// .                                                 Constants
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        /// <summary>
+        /// Prefix for all logs sent from this class.
+        /// </summary>
+        public const string LogPrefix = "[" + nameof(NetworkIndex) + "]";
+
         /// <summary>
         /// How many groups can be generated.
         /// </summary>
@@ -94,7 +95,10 @@ namespace Eclipse.Riptide
 
             // Makes sure that system messages are left untouched.
             const uint StartingID = (uint)SystemMessageID.Amount;
-            Array.Fill(m_NextMessageIDs, StartingID);
+            for (int i = 0; i < m_NextMessageIDs.Length; i++)
+            {
+                m_NextMessageIDs[i] = StartingID;
+            }
         }
 
 
@@ -110,7 +114,7 @@ namespace Eclipse.Riptide
         /// </summary>
         /// <remarks>
         /// Using this method outside of initialization sequence is dangerous.
-        /// In <see cref="Eclipse"/>, it might be used only once after <see cref="Engine"/> loads-in mod assemblies.
+        /// In <see cref="Riptide"/>, it might be used only once after <see cref="Engine"/> loads-in mod assemblies.
         /// </remarks>
         public static void Invalidate() => m_IsInitialized = false;
         public static void Initialize()
@@ -140,7 +144,7 @@ namespace Eclipse.Riptide
         public static ServerHandlers ServerHandlers(byte group = 0) => m_ServerHandlers[group];
 
         /// <summary>
-        /// Retrieves next group ID for networking with <see cref="Riptide"/>.
+        /// Retrieves next group ID for networking with <see cref="Toolkit"/>.
         /// </summary>
         public static byte NextGroupID()
         {
@@ -208,7 +212,7 @@ namespace Eclipse.Riptide
                 }
 
                 // Simplifications:
-                static void FetchHandlers(Assembly assembly)
+                void FetchHandlers(Assembly assembly)
                 {
                     foreach (var type in assembly.GetTypes())
                     {
@@ -221,14 +225,14 @@ namespace Eclipse.Riptide
             }
             catch (Exception ex)
             {
-                Debug.LogException(ex);
-                Debug.LogError("Could not update message handlers gracefully! Networking is likely broken at this point.");
+                RiptideLogger.Log(LogType.Error, $"{LogPrefix} Could not update message handlers gracefully! Networking is likely broken at this point.");
+                RiptideLogger.Log(LogType.Error, $"{ex}\n{ex.StackTrace}");
             }
         }
 
         private static void RegisterHandlers(MethodInfo method)
         {
-            EclipseMessageAttribute attribute = method.GetCustomAttribute<EclipseMessageAttribute>();
+            AdvancedMessageAttribute attribute = method.GetCustomAttribute<AdvancedMessageAttribute>();
             if (attribute is null) return;
 
             // Differentiates client-side and server-side message handlers by the parameter types they specify.
@@ -241,9 +245,9 @@ namespace Eclipse.Riptide
                 // Likely client-side method - they only have the NetworkMessage in parameters.
                 case 1:
                     dataType = parameters[0].ParameterType;
-                    if (attribute.MessageType != null)
+                    if (attribute.Message != null)
                     {
-                        messageType = attribute.MessageType;
+                        messageType = attribute.Message;
                     }
                     else if (typeof(NetworkMessage).IsAssignableFrom(dataType))
                     {
@@ -251,7 +255,7 @@ namespace Eclipse.Riptide
                     }
                     else
                     {
-                        throw new Exception($"Message handler ({method.Name}) is likely client-side, but has unsupported parameter {parameters[0].Name} ({dataType.Name}). Make sure that parameter is either {nameof(Riptide)}.{nameof(Message)} or {nameof(Messages)}.{nameof(NetworkMessage)}.");
+                        throw new Exception($"Message handler ({method.Name}) is likely client-side, but has unsupported parameter {parameters[0].Name} ({dataType.Name}). Make sure that parameter is either {nameof(Toolkit)}.{nameof(Message)} or {nameof(Messages)}.{nameof(NetworkMessage)}.");
                     }
 
                     // Retrieves generic base class for messages, which contains GroupID and MessageID.
@@ -267,7 +271,7 @@ namespace Eclipse.Riptide
                     messageID = (ushort)messageType.GetField(nameof(ReflectionMessage.MessageID)).GetValue(null);
                     ClientHandlers.HandlerInfo clientHandler = new ClientHandlers.HandlerInfo(method, dataType);
                     Handlers.ClientHandlers.Unsafe.Put(m_ClientHandlers[groupID], messageID, clientHandler);
-                    Debug.Log($"Client message handler ({method.Name}) with message type {logName} was found and it is valid!");
+                    RiptideLogger.Log(LogType.Info, $"Client message handler ({method.Name}) with message type {logName} was found and it is valid!");
                     break;
 
                 // Likely server-side method - they have UserID and INetworkMessage in parameters.
@@ -278,9 +282,9 @@ namespace Eclipse.Riptide
                     }
 
                     dataType = parameters[1].ParameterType;
-                    if (attribute.MessageType != null)
+                    if (attribute.Message != null)
                     {
-                        messageType = attribute.MessageType;
+                        messageType = attribute.Message;
                     }
                     else if (typeof(NetworkMessage).IsAssignableFrom(dataType))
                     {
@@ -288,7 +292,7 @@ namespace Eclipse.Riptide
                     }
                     else
                     {
-                        throw new Exception($"Message handler ({method.Name}) is likely client-side, but has unsupported parameter {parameters[1].Name} ({dataType.Name}). Make sure that parameter is either {nameof(Riptide)}.{nameof(Message)} or {nameof(Messages)}.{nameof(NetworkMessage)}.");
+                        throw new Exception($"Message handler ({method.Name}) is likely client-side, but has unsupported parameter {parameters[1].Name} ({dataType.Name}). Make sure that parameter is either {nameof(Toolkit)}.{nameof(Message)} or {nameof(Messages)}.{nameof(NetworkMessage)}.");
                     }
 
                     // Retrieves generic base class for messages, which contains GroupID and MessageID.
@@ -304,7 +308,7 @@ namespace Eclipse.Riptide
                     messageID = (ushort)messageType.GetField(nameof(ReflectionMessage.MessageID)).GetValue(null);
                     ServerHandlers.HandlerInfo serverHandler = new ServerHandlers.HandlerInfo(method, dataType);
                     Handlers.ServerHandlers.Unsafe.Put(m_ServerHandlers[groupID], messageID, serverHandler);
-                    Debug.Log($"Server message handler ({method.Name}) with message type {logName} was found and it is valid!");
+                    RiptideLogger.Log(LogType.Info, $"Client message handler ({method.Name}) with message type {logName} was found and it is valid!");
                     break;
 
                 // Any other kind of signature is not supported at the moment.

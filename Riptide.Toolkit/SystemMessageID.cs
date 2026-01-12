@@ -1,21 +1,18 @@
-﻿/// - - -    Copyright (c) 2026     - - -     SoG, DarkJune     - - - <![CDATA[
+﻿/// - - Shade of Singularity Community - - - Tom Weiland & Riptide Community, 2026 - - <![CDATA[
 /// 
 /// Licensed under the MIT License. Permission is hereby granted, free of charge,
 /// to any person obtaining a copy of this software and associated documentation
 /// files to deal in the Software without restriction. Full license terms are
 /// available in the LICENSE.md file located at the following repository path:
 ///   
-///                 "Eclipse/Eclipse.Riptide/LICENSE.md"
-/// 
-/// Note: Eclipse.Riptide and Eclipse are licensed under different licenses.
-/// See "Eclipse/LICENSE.md" for details.
+///                        "RiptideToolkit/LICENSE.md"
 /// 
 /// ]]>
 
-namespace Eclipse.Riptide
+namespace Riptide.Toolkit
 {
     /// <summary>
-    /// All message IDs used with <see cref="global::Riptide"/> networking to determine of game versions are compatible or not.
+    /// All message IDs used with <see cref="Riptide"/> networking to determine if modified game versions are compatible or not.
     /// </summary>
     public enum SystemMessageID : ushort
     {
@@ -23,7 +20,7 @@ namespace Eclipse.Riptide
         /// Range of all values system messages will take.
         /// This range will be reserved in handler lists and never employed by regular networking messages.
         /// </summary>
-        Range = 0b1111, // First 8 IDs are reserved.
+        Range = 0b111, // First 8 IDs are reserved.
 
         /// <summary>
         /// Amount of Message IDs reserved for system messages.

@@ -1,37 +1,33 @@
-﻿/// - - -    Copyright (c) 2026     - - -     SoG, DarkJune     - - - <![CDATA[
+﻿/// - - Shade of Singularity Community - - - Tom Weiland & Riptide Community, 2026 - - <![CDATA[
 /// 
 /// Licensed under the MIT License. Permission is hereby granted, free of charge,
 /// to any person obtaining a copy of this software and associated documentation
 /// files to deal in the Software without restriction. Full license terms are
 /// available in the LICENSE.md file located at the following repository path:
 ///   
-///                 "Eclipse/Eclipse.Riptide/LICENSE.md"
-/// 
-/// Note: Eclipse.Riptide and Eclipse are licensed under different licenses.
-/// See "Eclipse/LICENSE.md" for details.
+///                        "RiptideToolkit/LICENSE.md"
 /// 
 /// ]]>
 
-using Eclipse.Riptide.Handlers;
-using Riptide;
+using Riptide.Toolkit.Handlers;
 using Riptide.Transports;
 using Riptide.Transports.Udp;
 using Riptide.Utils;
-using UnityEngine;
 
-namespace Eclipse.Riptide
+namespace Riptide.Toolkit
 {
     /// <summary>
-    /// Custom <see cref="global::Riptide"/> <see cref="Server"/> which supports runtime Message ID identification.
+    /// Custom <see cref="Riptide"/> <see cref="Server"/> which supports runtime Message ID identification.
     /// </summary>
-    public sealed class EclipseServer : Server
+    /// Note: "Advanced" because of a lack of a better name. Might be changed before final release.
+    public sealed class AdvancedServer : Server
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
         /// .                                               Private Fields
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private ServerHandlers? m_MessageHandlers;
+        private ServerHandlers m_MessageHandlers;
         private bool m_BroadcastToHandlers;
 
 
@@ -47,14 +43,14 @@ namespace Eclipse.Riptide
         /// </summary>
         /// <param name="transport">The transport to use for sending and receiving data.</param>
         /// <param name="logName">The name to use when logging messages via <see cref="RiptideLogger"/>.</param>
-        public EclipseServer(string logName = "SERVER") : this(new UdpServer(), logName) { }
+        public AdvancedServer(string logName = "SERVER") : this(new UdpServer(), logName) { }
 
         /// <summary>
         /// Handles initial setup.
         /// </summary>
         /// <param name="transport">The transport to use for sending and receiving data.</param>
         /// <param name="logName">The name to use when logging messages via <see cref="RiptideLogger"/>.</param>
-        public EclipseServer(IServer transport, string logName = "SERVER") : base(transport, logName)
+        public AdvancedServer(IServer transport, string logName = "SERVER") : base(transport, logName)
         {
             // We also cannot override built-in handling method without breaking the message, so we just route message manually via callback.
             MessageReceived += ServerBroadcastMessage;
@@ -98,7 +94,7 @@ namespace Eclipse.Riptide
             if (!m_BroadcastToHandlers) return;
             if (m_MessageHandlers?.TryFire(args.MessageId, args.FromConnection.Id, args.Message) != true)
             {
-                Debug.LogWarning($"No Server-side Eclipse message handler method found for message ID ({args.MessageId})!");
+                RiptideLogger.Log(LogType.Warning, $"No Server-side Eclipse message handler method found for message ID ({args.MessageId})!");
             }
         }
     }
