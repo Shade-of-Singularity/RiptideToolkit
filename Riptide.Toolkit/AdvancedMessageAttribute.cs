@@ -11,6 +11,7 @@
 
 using Riptide.Toolkit.Messages;
 using System;
+using System.Text.RegularExpressions;
 
 namespace Riptide.Toolkit
 {
@@ -70,7 +71,6 @@ namespace Riptide.Toolkit
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
         /// .                                                Constructors
-        /// .             Note: .ctor attempt to enforce argument order: (mod) -> (group) -> (message) -> (ids)
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         public AdvancedMessageAttribute() { }
@@ -88,7 +88,6 @@ namespace Riptide.Toolkit
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
         /// .                                                1 Multi-type
-        /// .             Note: .ctor attempt to enforce argument order: (mod) -> (group) -> (message) -> (ids)
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         public AdvancedMessageAttribute(Type multicast)
@@ -96,30 +95,23 @@ namespace Riptide.Toolkit
             ResolveMultitype(multicast);
         }
 
-        /// <param name="message">Only supports <see cref="NetworkMessage"/>.</param>
-        public AdvancedMessageAttribute(byte groupID, Type message)
+        public AdvancedMessageAttribute(Type multicast, byte groupID)
         {
-            ResolveMessageType(message);
-            GroupID = groupID;
+            ResolveMultitype(multicast);
+            SetGroupID(groupID);
         }
 
-        public AdvancedMessageAttribute(Type mod, byte groupID)
+        public AdvancedMessageAttribute(Type multicast, ushort messageID)
         {
-            ResolveModType(mod);
-            GroupID = groupID;
+            ResolveMultitype(multicast);
+            SetMessageID(messageID);
         }
 
-        public AdvancedMessageAttribute(Type mod, ushort messageID)
+        public AdvancedMessageAttribute(Type multicast, byte groupID, ushort messageID)
         {
-            ResolveModType(mod);
-            MessageID = messageID;
-        }
-
-        public AdvancedMessageAttribute(Type mod, byte groupID, ushort messageID)
-        {
-            ResolveModType(mod);
-            GroupID = groupID;
-            MessageID = messageID;
+            ResolveMultitype(multicast);
+            SetGroupID(groupID);
+            SetMessageID(messageID);
         }
 
 
@@ -128,7 +120,6 @@ namespace Riptide.Toolkit
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
         /// .                                                2 Multi-types
-        /// .             Note: .ctor attempt to enforce argument order: (mod) -> (group) -> (message) -> (ids)
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         public AdvancedMessageAttribute(Type multicast1, Type multicast2)
@@ -137,18 +128,18 @@ namespace Riptide.Toolkit
             ResolveMultitype(multicast2);
         }
 
-        public AdvancedMessageAttribute(Type mod, byte groupID, Type message)
+        public AdvancedMessageAttribute(Type multicast1, Type multicast2, byte groupID)
         {
-            ResolveModType(mod);
-            GroupID = groupID;
-            ResolveMessageType(message);
+            ResolveMultitype(multicast1);
+            ResolveMultitype(multicast2);
+            SetGroupID(groupID);
         }
 
-        public AdvancedMessageAttribute(Type mod, Type group, ushort messageID)
+        public AdvancedMessageAttribute(Type multicast1, Type multicast2, ushort messageID)
         {
-            ResolveModType(mod);
-            ResolveGroupType(group);
-            MessageID = messageID;
+            ResolveMultitype(multicast1);
+            ResolveMultitype(multicast2);
+            SetMessageID(messageID);
         }
 
 
@@ -195,38 +186,16 @@ namespace Riptide.Toolkit
             }
         }
 
-        private void ResolveModType(in Type value)
+        private void SetGroupID(in byte groupID)
         {
-            // TODO: Add mod check.
-            throw new NotSupportedException($"Mod resolving is not supported! ({value.Name}) in {nameof(AdvancedMessageAttribute)}.");
+            if (Group is null) GroupID = groupID;
+            else throw new ArgumentException($"Specified {nameof(NetworkGroup)} in two different ways - explicitly and via auto-type. This is not allowed!");
         }
 
-        private void ResolveGroupType(in Type value)
+        private void SetMessageID(in ushort messageID)
         {
-            if (typeof(NetworkGroup).IsAssignableFrom(value))
-            {
-                if (Group is null) Group = value;
-                else throw new ArgumentException($"Provided multiple {nameof(NetworkGroup)} types in an advanced message handler attribute! This is not allowed!");
-                return;
-            }
-            else
-            {
-                throw new NotSupportedException($"Cannot resolve group type ({value.Name}) in {nameof(AdvancedMessageAttribute)}!");
-            }
-        }
-
-        private void ResolveMessageType(in Type value)
-        {
-            if (typeof(NetworkMessage).IsAssignableFrom(value))
-            {
-                if (Message is null) Message = value;
-                else throw new ArgumentException($"Provided multiple {nameof(NetworkMessage)} types in an advanced message handler attribute! This is not allowed!");
-                return;
-            }
-            else
-            {
-                throw new NotSupportedException($"Cannot resolve message type ({value.Name}) in {nameof(AdvancedMessageAttribute)}!");
-            }
+            if (Message is null) MessageID = messageID;
+            else throw new ArgumentException($"Specified {nameof(NetworkMessage)} in two different ways - explicitly and via auto-type. This is not allowed!");
         }
     }
 }
