@@ -11,6 +11,8 @@
 
 using Riptide.Toolkit.Messages;
 using System;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Riptide.Toolkit
 {
@@ -61,12 +63,6 @@ namespace Riptide.Toolkit
 
 
 
-        /// <summary>
-        /// Default constructor for the attribute.
-        /// </summary>
-        /// <param name="messageType">
-        /// Type of the message this attribute employs. Target type must inherit <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/>.
-        /// </param>
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
         /// .                                                Constructors
@@ -91,26 +87,26 @@ namespace Riptide.Toolkit
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         public AdvancedMessageAttribute(Type multicast)
         {
-            ResolveMultitype(multicast);
+            ResolveMultitypePrioritizeMessage(multicast);
         }
 
         public AdvancedMessageAttribute(Type multicast, byte groupID)
         {
-            ResolveMultitype(multicast);
-            SetGroupID(groupID);
+            GroupID = groupID;
+            ResolveMultitypePrioritizeMessage(multicast);
         }
 
         public AdvancedMessageAttribute(Type multicast, ushort messageID)
         {
-            ResolveMultitype(multicast);
-            SetMessageID(messageID);
+            MessageID = messageID;
+            ResolveMultitypePrioritizeGroup(multicast);
         }
 
         public AdvancedMessageAttribute(Type multicast, byte groupID, ushort messageID)
         {
-            ResolveMultitype(multicast);
-            SetGroupID(groupID);
-            SetMessageID(messageID);
+            GroupID = groupID;
+            MessageID = messageID;
+            ResolveMultitypePrioritizeMod(multicast);
         }
 
 
@@ -123,22 +119,22 @@ namespace Riptide.Toolkit
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         public AdvancedMessageAttribute(Type multicast1, Type multicast2)
         {
-            ResolveMultitype(multicast1);
-            ResolveMultitype(multicast2);
+            ResolveMultitypePrioritizeGroup(multicast1);
+            ResolveMultitypePrioritizeMessage(multicast2);
         }
 
         public AdvancedMessageAttribute(Type multicast1, Type multicast2, byte groupID)
         {
-            ResolveMultitype(multicast1);
-            ResolveMultitype(multicast2);
-            SetGroupID(groupID);
+            GroupID = groupID;
+            ResolveMultitypePrioritizeMod(multicast1);
+            ResolveMultitypePrioritizeMessage(multicast2);
         }
 
         public AdvancedMessageAttribute(Type multicast1, Type multicast2, ushort messageID)
         {
-            ResolveMultitype(multicast1);
-            ResolveMultitype(multicast2);
-            SetMessageID(messageID);
+            MessageID = messageID;
+            ResolveMultitypePrioritizeMod(multicast1);
+            ResolveMultitypePrioritizeGroup(multicast2);
         }
 
 
@@ -151,10 +147,21 @@ namespace Riptide.Toolkit
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         public AdvancedMessageAttribute(Type multicast1, Type multicast2, Type multicast3)
         {
-            ResolveMultitype(multicast1);
-            ResolveMultitype(multicast2);
-            ResolveMultitype(multicast3);
+            ResolveMultitypePrioritizeMod(multicast1);
+            ResolveMultitypePrioritizeGroup(multicast2);
+            ResolveMultitypePrioritizeMessage(multicast3);
         }
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                               Static Fields
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        private const BindingFlags MemberBindingFlags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+        private static Type LastModType = typeof(DefaultGroup); // Not a mistake. Uses random type to not use null, and avoid 1 branch.
 
 
 
@@ -164,37 +171,155 @@ namespace Riptide.Toolkit
         /// .                                               Private Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private void ResolveMultitype(in Type value)
+        private void ResolveMultitypePrioritizeMod(Type value)
         {
-            // TODO: Add mod check.
-            if (typeof(NetworkGroup).IsAssignableFrom(value))
+            if (!ResolveMod(value) && !ResolveGroup(value) && !ResolveMessage(value))
             {
-                if (Group is null) Group = value;
-                else throw new ArgumentException($"Provided multiple {nameof(NetworkGroup)} types in an advanced message handler attribute! This is not allowed!");
-                return;
-            }
-            else if (typeof(NetworkMessage).IsAssignableFrom(value))
-            {
-                if (Message is null) Message = value;
-                else throw new ArgumentException($"Provided multiple {nameof(NetworkMessage)} types in an advanced message handler attribute! This is not allowed!");
-                return;
-            }
-            else
-            {
-                throw new NotSupportedException($"Cannot resolve multitype ({value.Name}) in {nameof(AdvancedMessageAttribute)}!");
+                throw GetResolvingFailedException(value);
             }
         }
 
-        private void SetGroupID(in byte groupID)
+        private void ResolveMultitypePrioritizeGroup(Type value)
+        {
+            if (!ResolveGroup(value) && !ResolveMod(value) && !ResolveMessage(value))
+            {
+                throw GetResolvingFailedException(value);
+            }
+        }
+
+        private void ResolveMultitypePrioritizeMessage(Type value)
+        {
+            if (!ResolveMessage(value) && !ResolveGroup(value) && !ResolveMod(value))
+            {
+                throw GetResolvingFailedException(value);
+            }
+        }
+
+        private void SetGroupID(byte groupID)
         {
             if (Group is null) GroupID = groupID;
             else throw new ArgumentException($"Specified {nameof(NetworkGroup)} in two different ways - explicitly and via auto-type. This is not allowed!");
         }
 
-        private void SetMessageID(in ushort messageID)
+        private void SetMessageID(ushort messageID)
         {
             if (Message is null) MessageID = messageID;
             else throw new ArgumentException($"Specified {nameof(NetworkMessage)} in two different ways - explicitly and via auto-type. This is not allowed!");
+        }
+
+        private Exception GetResolvingFailedException(Type value)
+        {
+            // TODO: If all resolving attempts fail - run another analysis, more expensive one, but the one which gather debug info and log it.
+            return new NotSupportedException($"Cannot resolve multitype ({value.Name}) in {nameof(AdvancedMessageAttribute)}! Either invalid types are used, or IDs provided in multiple different ways.");
+        }
+
+        private bool ResolveMod(Type mod)
+        {
+            if (Mod is null)
+            {
+                // Starts from a fast cache lookup to avoid reflections.
+                if (LastModType.IsAssignableFrom(mod))
+                {
+                    Mod = mod;
+                }
+                else if (LookupAttribute<ModIDAttribute>(mod, out mod, Performance.Reflections.ModAttributeAnalysis_PrioritizeFields))
+                {
+                    LastModType = Mod = mod;
+                }
+
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private bool ResolveGroup(Type group)
+        {
+            if (GroupID is null && Group is null && typeof(NetworkGroup).IsAssignableFrom(group))
+            {
+                Group = group;
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool ResolveMessage(Type message)
+        {
+            if (MessageID is null && Message is null && typeof(NetworkMessage).IsAssignableFrom(message))
+            {
+                Message = message;
+                return true;
+            }
+
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool LookupAttribute<T>(Type target, out Type result, bool fieldsFirst) where T : Attribute
+        {
+            return LookupAttribute(typeof(T), target, out result, fieldsFirst);
+        }
+
+        private static bool LookupAttribute(Type attribute, Type target, out Type result, bool fieldsFirst)
+        {
+            if (fieldsFirst)
+            {
+                if (CheckFields(out result)) return true;
+                if (CheckProperties(out result)) return true;
+            }
+            else
+            {
+                if (CheckProperties(out result)) return true;
+                if (CheckFields(out result)) return true;
+            }
+
+            return false;
+
+            // Simplifications:
+            bool CheckFields(out Type ret)
+            {
+                ret = target.BaseType;
+                while (ret != null)
+                {
+                    foreach (var field in ret.GetFields(MemberBindingFlags))
+                    {
+                        if (field.IsDefined(attribute)) return true;
+                    }
+
+                    ret = ret.BaseType;
+                }
+
+                foreach (var field in (ret = target).GetFields(MemberBindingFlags))
+                {
+                    if (field.IsDefined(attribute)) return true;
+                }
+
+                return false;
+            }
+
+            bool CheckProperties(out Type ret)
+            {
+                ret = target.BaseType;
+                while (ret != null)
+                {
+                    foreach (var field in ret.GetFields(MemberBindingFlags))
+                    {
+                        if (field.IsDefined(attribute)) return true;
+                    }
+
+                    ret = ret.BaseType;
+                }
+
+                foreach (var field in (ret = target).GetFields(MemberBindingFlags))
+                {
+                    if (field.IsDefined(attribute)) return true;
+                }
+
+                return false;
+            }
         }
     }
 }
