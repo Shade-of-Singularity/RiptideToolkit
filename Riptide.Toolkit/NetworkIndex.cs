@@ -361,7 +361,7 @@ namespace Riptide.Toolkit
                         : attribute.MessageID.Value;
                     ServerHandlers.HandlerInfo serverHandler = new ServerHandlers.HandlerInfo(method, dataType);
                     MessageHandlerCollection<ServerHandlers.HandlerInfo>.Unsafe.Set(m_ServerHandlers[groupID].Handlers, modID, messageID, serverHandler);
-                    RiptideLogger.Log(LogType.Info, $"Client message handler ({method.Name}) with message type {logName} was found and it is valid!");
+                    RiptideLogger.Log(LogType.Info, $"Server message handler ({method.Name}) with message type {logName} was found and it is valid!");
                     break;
 
                 // Any other kind of signature is not supported at the moment.

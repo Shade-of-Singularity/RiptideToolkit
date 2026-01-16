@@ -22,7 +22,7 @@ namespace Riptide.Toolkit.Examples
         public const int ChunkVolume = ChunkArea * ChunkHeight;
 
         public int x, y;
-        public uint[]? blocks;
+        public uint[] blocks;
 
         public override Message Read(Message message)
         {
@@ -65,8 +65,8 @@ namespace Riptide.Toolkit.Examples
 
     public sealed class ReceiveInventory : NetworkMessage<ReceiveInventory, ExampleGroup>
     {
-        public uint[]? ids;
-        public uint[]? amounts;
+        public uint[] ids;
+        public uint[] amounts;
 
         public override Message Read(Message message)
         {

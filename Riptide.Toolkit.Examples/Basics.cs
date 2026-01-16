@@ -9,7 +9,6 @@
 /// 
 /// ]]>
 
-#nullable disable // Disabled to not confuse readers with compiler warnings.
 using Riptide.Utils;
 using System.Threading;
 using System.Threading.Tasks;
@@ -99,7 +98,7 @@ namespace Riptide.Toolkit.Examples
 
             ShutdownToken.Cancel();
             ShutdownToken.Dispose();
-            ShutdownToken = new();
+            ShutdownToken = new CancellationTokenSource();
 
             // As an example - unloads all mods as well.
             foreach (var mod in Mods)
@@ -116,7 +115,7 @@ namespace Riptide.Toolkit.Examples
         /// .                                                   Fields
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private static CancellationTokenSource ShutdownToken = new(); // Used to shutdown example.
+        private static CancellationTokenSource ShutdownToken = new CancellationTokenSource(); // Used to shutdown example.
         private static AdvancedServer Server;
         private static AdvancedClient Client;
 

@@ -36,7 +36,7 @@ namespace Riptide.Toolkit.Examples
         /// .                                              Static Properties
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public static readonly T Instance = new();
+        public static readonly T Instance = new T();
 
 
 
