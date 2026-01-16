@@ -3,7 +3,7 @@
 namespace Riptide.Toolkit
 {
     /// <summary>
-    /// Marks ModID in a custom base mod class.
+    /// Marks MessageID in a custom base mod class.
     /// Can be used on both fields and properties.
     /// </summary>
     /// <remarks>

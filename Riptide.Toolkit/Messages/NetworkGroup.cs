@@ -1,4 +1,7 @@
-﻿/// - - Shade of Singularity Community - - - Tom Weiland & Riptide Community, 2026 - - <![CDATA[
+﻿
+using System;
+
+/// - - Shade of Singularity Community - - - Tom Weiland & Riptide Community, 2026 - - <![CDATA[
 /// 
 /// Licensed under the MIT License. Permission is hereby granted, free of charge,
 /// to any person obtaining a copy of this software and associated documentation
@@ -8,7 +11,6 @@
 ///                        "RiptideToolkit/LICENSE.md"
 /// 
 /// ]]>
-
 namespace Riptide.Toolkit.Messages
 {
     /// <summary>
@@ -18,6 +20,14 @@ namespace Riptide.Toolkit.Messages
     /// TODO: Add non-generic listing if needed.
     public abstract class NetworkGroup<TGroup> : NetworkGroup where TGroup : NetworkGroup<TGroup>
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        public static readonly Type Handle = typeof(TGroup);
+
+        /// <summary>
+        /// 
+        /// </summary>
         [GroupID] public static readonly byte GroupID = NetworkIndex.NextGroupID();
     }
 

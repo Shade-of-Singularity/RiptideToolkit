@@ -9,6 +9,7 @@
 /// 
 /// ]]>
 
+using Riptide.Toolkit.Extensions;
 using Riptide.Toolkit.Messages;
 using System;
 using System.Reflection;
@@ -23,8 +24,11 @@ namespace Riptide.Toolkit.Handlers
         /// <summary>
         /// Client-side handler info.
         /// </summary>
-        public readonly struct HandlerInfo
+        public readonly struct HandlerInfo : IStructValidation
         {
+            /// <inheritdoc/>
+            bool IStructValidation.IsDefault => Method is null;
+
             /// <summary>
             /// Method which have to be invoked.
             /// </summary>
@@ -34,7 +38,7 @@ namespace Riptide.Toolkit.Handlers
             public readonly MethodInfo Method;
 
             /// <summary>
-            /// <see cref="INetworkMessage"/> type.
+            /// <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> type.
             /// </summary>
             public readonly Type MessageType;
 
@@ -42,11 +46,11 @@ namespace Riptide.Toolkit.Handlers
             /// Default constructor.
             /// </summary>
             /// <param name="method">Method info to use for invocation.</param>
-            /// <param name="dataType">Type in the message data holder, and second parameter (after clientID) of the <paramref name="method"/>.</param>
-            public HandlerInfo(MethodInfo method, Type dataType)
+            /// <param name="messageType">Type in the message data holder, and second parameter (after clientID) of the <paramref name="method"/>.</param>
+            public HandlerInfo(MethodInfo method, Type messageType)
             {
                 Method = method;
-                MessageType = dataType;
+                MessageType = messageType;
             }
         }
 
@@ -65,11 +69,11 @@ namespace Riptide.Toolkit.Handlers
         /// <param name="clientID">Riptide ID of a client which sent the message.</param>
         /// <param name="message">Message to read.</param>
         /// <returns><c>false</c> if there is no handler under given <paramref name="id"/> registered. <c>true</c> otherwise.</returns>
-        public bool TryFire(ushort id, ushort clientID, Message message)
+        public bool TryFire(AdvancedServer server, ushort id, ushort clientID, Message message)
         {
             if (Has(id))
             {
-                Fire(id, clientID, message);
+                Fire(server, id, clientID, message);
                 return true;
             }
 
@@ -82,7 +86,7 @@ namespace Riptide.Toolkit.Handlers
         /// <param name="id">ID of a message handler.</param>
         /// <param name="clientID">Riptide ID of a client which sent the message.</param>
         /// <param name="message">Message to read.</param>
-        public void Fire(ushort id, ushort clientID, Message message)
+        public void Fire(AdvancedServer server, ushort id, ushort clientID, Message message)
         {
             HandlerInfo info = Get(id);
             object[] args = new object[2];
@@ -100,6 +104,17 @@ namespace Riptide.Toolkit.Handlers
             }
 
             info.Method.Invoke(null, args);
+            switch (info.Method.Invoke(null, args))
+            {
+                // If you return regular message - it will immediately send its contents as a response.
+                // TODO: Make sure that FlagMessages will also be supported.
+                case Message msg: server.Send(msg, clientID); break;
+
+                // Automatically packs and sends response message.
+                // TODO: Make sure that MessageID is read correctly.
+                case NetworkMessage net: server.Send(net.Write(message), clientID); break;
+                default: break;
+            }
         }
     }
 }

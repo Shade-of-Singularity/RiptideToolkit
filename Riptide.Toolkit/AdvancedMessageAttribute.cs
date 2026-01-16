@@ -10,6 +10,7 @@
 /// ]]>
 
 using Riptide.Toolkit.Messages;
+using Riptide.Toolkit.Settings;
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -31,6 +32,7 @@ namespace Riptide.Toolkit
     /// Mods also has to be initialized in one set order, but it should be handled by <see cref="Engine"/> automatically anyway.
     /// </remarks>
     /// Note: (TODO) Allows multiple so you can define same methods in multiple groups.
+    /// TODO: Use MemberInfo instead of Type, or box FieldInfo/PropertyInfo instead.
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
     public sealed class AdvancedMessageAttribute : Attribute
     {
@@ -59,6 +61,11 @@ namespace Riptide.Toolkit
         /// Static MessageID of this message handler. Automatic ID assignment will avoid static IDs.
         /// </summary>
         public ushort? MessageID { get; set; } = null;
+
+        /// <summary>
+        /// (WIP) Whether this message supports 'message.Respond(content)' responses, similar to HTTP GET requests.
+        /// </summary>
+        // public bool? SupportResponses { get; set; } = null;
 
 
 
@@ -222,7 +229,7 @@ namespace Riptide.Toolkit
                 {
                     Mod = mod;
                 }
-                else if (LookupAttribute<ModIDAttribute>(mod, out mod, Performance.Reflections.ModAttributeAnalysis_PrioritizeFields))
+                else if (LookupAttribute<ModIDAttribute>(mod, out mod, Reflections.ModAttributeAnalysis_PrioritizeFields))
                 {
                     LastModType = Mod = mod;
                 }

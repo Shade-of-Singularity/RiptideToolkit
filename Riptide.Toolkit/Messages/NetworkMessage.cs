@@ -60,13 +60,24 @@ namespace Riptide.Toolkit.Messages
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
-        /// .                                              Public Properties
+        /// .                                              Static Properties
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
         /// <see cref="NetworkGroup{TGroup}"/> this <see cref="NetworkMessage{TMessage, TGroup, TLoad}"/> belongs to.
         /// </summary>
         [GroupID] public static byte GroupID => NetworkGroup<TGroup>.GroupID;
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                              Public Properties
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        /// <inheritdoc cref="MessageID"/>
+        public override ushort ID => MessageID;
 
 
 
@@ -168,27 +179,7 @@ namespace Riptide.Toolkit.Messages
         /// <summary>
         /// Releases itself by running <see cref="Dispose()"/> method and storing itself in a pool, if available.
         /// </summary>
-        public void Release() => Release(this);
-
-        /// <summary>
-        /// Packs <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> into a message, including its <see cref="MessageID"/> in the data.
-        /// </summary>
-        /// <param name="mode"><see cref="Riptide"/> Send mode of the <see cref="Riptide.Message"/>.</param>
-        /// <returns>Fully prepared <see cref="Riptide.Message"/>, ready to be sent to another party.</returns>
-        public Message Pack(MessageSendMode mode) => Write(Riptide.Message.Create(mode, MessageID));
-
-        /// <summary>
-        /// Packs <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> into a message, including its <see cref="MessageID"/> in the data,
-        /// and immediately <see cref="Release()"/>s it afterwards.
-        /// </summary>
-        /// <param name="mode"><see cref="Riptide"/> Send mode of the <see cref="Riptide.Message"/>.</param>
-        /// <returns>Fully prepared <see cref="Riptide.Message"/>, ready to be sent to another party.</returns>
-        public Message PackRelease(MessageSendMode mode)
-        {
-            Message result = Pack(mode);
-            Release(this);
-            return result;
-        }
+        public override void Release() => Release(this);
 
         /// <summary>
         /// Unpacks given message by overwriting values of this <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> instance.
@@ -222,6 +213,19 @@ namespace Riptide.Toolkit.Messages
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
+        /// .                                              Public Properties
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        /// <summary>
+        /// ID of this message, retrieved during <see cref="NetworkIndex"/> initialization.
+        /// </summary>
+        public abstract ushort ID { get; }
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
         /// .                                               Public Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
@@ -235,5 +239,30 @@ namespace Riptide.Toolkit.Messages
         /// </summary>
         /// <param name="message"></param>
         public abstract Message Write(Message message);
+
+        /// <summary>
+        /// Returns message to the pool.
+        /// </summary>
+        public abstract void Release();
+
+        /// <summary>
+        /// Packs <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> into a message, including its <see cref="MessageID"/> in the data.
+        /// </summary>
+        /// <param name="mode"><see cref="Riptide"/> Send mode of the <see cref="Message"/>.</param>
+        /// <returns>Fully prepared <see cref="Message"/>, ready to be sent to another party.</returns>
+        public Message Pack(MessageSendMode mode) => Write(Message.Create(mode, ID));
+
+        /// <summary>
+        /// Packs <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> into a message, including its <see cref="MessageID"/> in the data,
+        /// and immediately <see cref="Release()"/>s it afterwards.
+        /// </summary>
+        /// <param name="mode"><see cref="Riptide"/> Send mode of the <see cref="Message"/>.</param>
+        /// <returns>Fully prepared <see cref="Message"/>, ready to be sent to another party.</returns>
+        public Message PackRelease(MessageSendMode mode)
+        {
+            Message result = Pack(mode);
+            Release();
+            return result;
+        }
     }
 }

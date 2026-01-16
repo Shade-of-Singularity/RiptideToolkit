@@ -52,9 +52,17 @@ namespace Riptide.Toolkit
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Whether all handlers were initialized successfully.
+        /// Whether <see cref="NetworkIndex"/> was ever initialized.
         /// </summary>
-        public static bool IsInitialized => m_IsInitialized;
+        /// <remarks>
+        /// You will not be able to change settings in <see cref="Settings.Performance"/> category if this property is true.
+        /// </remarks>
+        public static bool IsEverInitialized => m_IsInitialized;
+
+        /// <summary>
+        /// Whether message handlers was loaded-in successfully.
+        /// </summary>
+        public static bool IsValid => m_IsValid;
 
 
 
@@ -68,38 +76,9 @@ namespace Riptide.Toolkit
         private static readonly ServerHandlers[] m_ServerHandlers = new ServerHandlers[MaxGroupIDAmount];
         private static readonly uint[] m_NextMessageIDs = new uint[MaxGroupIDAmount];
         private static volatile bool m_IsInitialized = false;
+        private static volatile bool m_IsValid = false;
         private static readonly object _lock = new object();
         private static ushort m_NextGroupID; // We use ushort instead of byte, to gracefully handle ID exhaustion.
-
-
-
-
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
-        /// .
-        /// .                                                Constructors
-        /// .
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        static NetworkIndex()
-        {
-            ClientHandlers[] client = m_ClientHandlers;
-            for (int i = 0; i < client.Length; i++)
-            {
-                client[i] = new ClientHandlers();
-            }
-
-            ServerHandlers[] server = m_ServerHandlers;
-            for (int i = 0; i < server.Length; i++)
-            {
-                server[i] = new ServerHandlers();
-            }
-
-            // Makes sure that system messages are left untouched.
-            const uint StartingID = (uint)SystemMessageID.Amount;
-            for (int i = 0; i < m_NextMessageIDs.Length; i++)
-            {
-                m_NextMessageIDs[i] = StartingID;
-            }
-        }
 
 
 
@@ -110,23 +89,21 @@ namespace Riptide.Toolkit
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Invalidates initialization of the network handlers, forcing game to reload all handlers before the next network call.
+        /// Invalidates initialization of the network handlers, forcing game to reload all message handlers before the next network call.
+        /// All message IDs should stay the same, as long as client and server had same Assemblies loaded in the same order upon reloading.
+        /// You should run <see cref="Initialize"/> immediate after <see cref="Invalidate"/> to be certain when initialization happens.
+        /// This is important, because re-initialization happens ONLY when someone uses <see cref="Handlers.ClientHandlers"/>
+        /// or <see cref="Handlers.ServerHandlers"/>.
         /// </summary>
         /// <remarks>
         /// Using this method outside of initialization sequence is dangerous.
         /// In <see cref="Riptide"/>, it might be used only once after <see cref="Engine"/> loads-in mod assemblies.
         /// </remarks>
-        public static void Invalidate() => m_IsInitialized = false;
+        public static void Invalidate() => m_IsValid = false;
         public static void Initialize()
         {
-            if (m_IsInitialized) return;
-            lock (_lock)
-            {
-                // Second check after value was unlocked.
-                if (m_IsInitialized) return;
-                UpdateHandlers();
-                m_IsInitialized = true;
-            }
+            if (!m_IsInitialized) lock (_lock) InternalInitializeService();
+            if (!m_IsValid) lock (_lock) UpdateHandlers();
         }
 
         /// <summary>
@@ -184,8 +161,38 @@ namespace Riptide.Toolkit
         /// .                                               Private Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        private static void InternalInitializeService()
+        {
+            // Mandatory second check - needed when _lock unlocks.
+            if (m_IsInitialized) return;
+            m_IsInitialized = true;
+
+            ClientHandlers[] client = m_ClientHandlers;
+            for (int i = 0; i < client.Length; i++)
+            {
+                client[i] = new ClientHandlers();
+            }
+
+            ServerHandlers[] server = m_ServerHandlers;
+            for (int i = 0; i < server.Length; i++)
+            {
+                server[i] = new ServerHandlers();
+            }
+
+            // Makes sure that system messages are left untouched.
+            const uint StartingID = (uint)SystemMessageID.Amount;
+            for (int i = 0; i < m_NextMessageIDs.Length; i++)
+            {
+                m_NextMessageIDs[i] = StartingID;
+            }
+        }
+
         private static void UpdateHandlers()
         {
+            // Mandatory second check - needed when _lock unlocks.
+            if (m_IsValid) return;
+            m_IsValid = true;
+
             try
             {
                 // Resets all handlers first.
@@ -281,7 +288,7 @@ namespace Riptide.Toolkit
                     groupID = (byte)messageType.GetProperty(nameof(ReflectionMessage.GroupID)).GetValue(null);
                     messageID = (ushort)messageType.GetField(nameof(ReflectionMessage.MessageID)).GetValue(null);
                     ClientHandlers.HandlerInfo clientHandler = new ClientHandlers.HandlerInfo(method, dataType);
-                    Handlers.ClientHandlers.Unsafe.Put(m_ClientHandlers[groupID], messageID, clientHandler);
+                    Handlers.ClientHandlers.Unsafe.Set(m_ClientHandlers[groupID], messageID, clientHandler);
                     RiptideLogger.Log(LogType.Info, $"Client message handler ({method.Name}) with message type {logName} was found and it is valid!");
                     break;
 
@@ -318,7 +325,7 @@ namespace Riptide.Toolkit
                     groupID = (byte)messageType.GetProperty(nameof(ReflectionMessage.GroupID)).GetValue(null);
                     messageID = (ushort)messageType.GetField(nameof(ReflectionMessage.MessageID)).GetValue(null);
                     ServerHandlers.HandlerInfo serverHandler = new ServerHandlers.HandlerInfo(method, dataType);
-                    Handlers.ServerHandlers.Unsafe.Put(m_ServerHandlers[groupID], messageID, serverHandler);
+                    Handlers.ServerHandlers.Unsafe.Set(m_ServerHandlers[groupID], messageID, serverHandler);
                     RiptideLogger.Log(LogType.Info, $"Client message handler ({method.Name}) with message type {logName} was found and it is valid!");
                     break;
 

@@ -1,4 +1,4 @@
-﻿namespace Riptide.Toolkit.Performance
+﻿namespace Riptide.Toolkit.Settings
 {
     /// <summary>
     /// Holds Toolkit advanced performance options you can configure to improve performance a bit.

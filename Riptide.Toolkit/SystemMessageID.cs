@@ -28,6 +28,11 @@ namespace Riptide.Toolkit
         Amount = Range + 1,
 
         /// <summary>
+        /// Message ID used in on-demand responses.
+        /// </summary>
+        Response = 0,
+
+        /// <summary>
         /// Message handler used to compare whether all message handlers have the same IDs or not.
         /// Used by <see cref="NetworkIndex"/>.
         /// </summary>
@@ -35,6 +40,6 @@ namespace Riptide.Toolkit
         /// Amount of handlers usually different only if two clients, or client and server has different networking mods installed.
         /// Client-side mods never modify handler collection (only by a developer's mistake), so they can be used safely.
         /// </remarks>
-        NetworkingValidationCheck = 0,
+        NetworkingValidationCheck = 1,
     }
 }

@@ -10,9 +10,12 @@
 /// ]]>
 
 using Riptide.Toolkit.Handlers;
+using Riptide.Toolkit.Messages;
+using Riptide.Toolkit.Storage;
 using Riptide.Transports;
 using Riptide.Transports.Udp;
 using Riptide.Utils;
+using System;
 
 namespace Riptide.Toolkit
 {
@@ -61,6 +64,37 @@ namespace Riptide.Toolkit
 
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
+        /// .                                               Public Methods
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        /// <inheritdoc cref="SendRequest{TMessage, TGroup, TStorage}(MessageSendMode, Action{NetworkMessage{TMessage, TGroup, TStorage}})"/>
+        public void SendRequest<TMessage, TGroup, TStorage>(Action<NetworkMessage<TMessage, TGroup, TStorage>> handler)
+            where TMessage : NetworkMessage<TMessage, TGroup, TStorage>, new()
+            where TGroup : NetworkGroup<TGroup>
+            where TStorage : StorageProfile<TStorage>, new()
+        {
+            SendRequest(MessageSendMode.Reliable, handler);
+        }
+
+        /// <summary>
+        /// Sends special data request to the server.
+        /// </summary>
+        public void SendRequest<TMessage, TGroup, TStorage>(MessageSendMode mode, Action<NetworkMessage<TMessage, TGroup, TStorage>> handler)
+            where TMessage : NetworkMessage<TMessage, TGroup, TStorage>, new()
+            where TGroup : NetworkGroup<TGroup>
+            where TStorage : StorageProfile<TStorage>, new()
+        {
+            // TODO: Finish response handling.
+            Send(Message.Create(mode)
+                .AddUShort((ushort)SystemMessageID.Response)
+                .AddUShort(NetworkMessage<TMessage, TGroup, TStorage>.MessageID));
+        }
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
         /// .                                              Implementations
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
@@ -92,7 +126,7 @@ namespace Riptide.Toolkit
         private void ClientBroadcastMessage(object sender, MessageReceivedEventArgs args)
         {
             if (!m_BroadcastToHandlers) return;
-            if (m_MessageHandlers?.TryFire(args.MessageId, args.Message) != true)
+            if (m_MessageHandlers?.TryFire(this, args.MessageId, args.Message) != true)
             {
                 RiptideLogger.Log(LogType.Warning, $"No Client-side Eclipse message handler method found for message ID ({args.MessageId})!");
             }

@@ -1,4 +1,6 @@
-﻿namespace Riptide.Toolkit.Examples
+﻿using System;
+
+namespace Riptide.Toolkit.Examples
 {
     /// <summary>
     /// Contains client-side and server-side message handlers, in almost all possible variations.
@@ -10,7 +12,14 @@
         /// .                                                Client-side
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-
+        /// <summary>
+        /// 
+        /// </summary>
+        [AdvancedMessage]
+        public static void RequestHandler(Message message)
+        {
+            throw new NotImplementedException();
+        }
 
 
 
