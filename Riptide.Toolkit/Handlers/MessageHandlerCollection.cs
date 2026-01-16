@@ -20,34 +20,30 @@ namespace Riptide.Toolkit.Handlers
     /// No reason to implement this one - Toolkit won't use any custom implementation (as of right now).
     /// Implemented in <see cref="RegionHandlerCollection{THandler}"/> and {TODO: insert DictionaryHandlerCollection}.
     /// </remarks>
-    public abstract class MessageHandlerCollection<THandler> where THandler : IStructValidator
+    public abstract class MessageHandlerCollection<THandler> : IMessageHandlerCollection<THandler> where THandler : IStructValidator
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
         /// .                                               Public Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        /// <summary>
-        /// Retrieves message handler under given <paramref name="messageID"/>.
-        /// </summary>
-        /// <param name="messageID">ID associated with an message handler.</param>
-        /// <returns>Message handler under given ID, or throws.</returns>
+        /// <inheritdoc/>
         public abstract THandler Get(ushort messageID);
 
-        /// <summary>
-        /// Checks if handler is defined.
-        /// </summary>
-        /// <param name="messageID">Handler MessageID to check.</param>
-        /// <returns><c>true</c> if defined. <c>false</c> otherwise.</returns>
+        /// <inheritdoc/>
+        public abstract THandler Get(ushort modID, ushort messageID);
+
+        /// <inheritdoc/>
         public abstract bool Has(ushort messageID);
 
-        /// <summary>
-        /// Tries to find message handler under given <paramref name="messageID"/>.
-        /// </summary>
-        /// <param name="messageID">ID associated with an message handler.</param>
-        /// <param name="hander">Message handler under given ID or default value.</param>
-        /// <returns><c>true</c> if handler was found. <c>false</c> otherwise.</returns>
+        /// <inheritdoc/>
+        public abstract bool Has(ushort modID, ushort messageID);
+
+        /// <inheritdoc/>
         public abstract bool TryGet(ushort messageID, out THandler hander);
+
+        /// <inheritdoc/>
+        public abstract bool TryGet(ushort modID, ushort messageID, out THandler hander);
 
 
 
@@ -79,20 +75,20 @@ namespace Riptide.Toolkit.Handlers
         /// </summary>
         /// <param name="messageID">Handler MessageID to associate with <paramref name="handler"/>.</param>
         /// <param name="handler">Message handler to register.</param>
-        protected abstract void Set(ushort messageID, THandler handler);
+        protected abstract void Set(ushort modID, ushort messageID, THandler handler);
 
         /// <summary>
         /// Puts <paramref name="handler"/> on the next free MessageID.
         /// </summary>
         /// <param name="handler">Message handler to store.</param>
         /// <returns>MessageID under which handler was registered.</returns>
-        protected abstract ushort Put(THandler handler);
+        protected abstract ushort Put(ushort modID, THandler handler);
 
         /// <summary>
         /// Removes message handler under given <paramref name="messageID"/>.
         /// </summary>
         /// <param name="messageID">Handler MessageID to check and remove.</param>
-        protected abstract void Remove(ushort messageID);
+        protected abstract void Remove(ushort modID, ushort messageID);
 
 
 
@@ -105,19 +101,52 @@ namespace Riptide.Toolkit.Handlers
         internal static class Unsafe
         {
             /// <inheritdoc cref="MessageHandlerCollection{THandler}.Clear()"/>
-            public static void Clear(MessageHandlerCollection<THandler> handlers) => handlers.Clear();
+            public static void Clear(MessageHandlerCollection<THandler> handlers)
+            {
+                handlers.Clear();
+            }
 
             /// <inheritdoc cref="MessageHandlerCollection{THandler}.Reset()"/>
-            public static void Reset(MessageHandlerCollection<THandler> handlers) => handlers.Reset();
+            public static void Reset(MessageHandlerCollection<THandler> handlers)
+            {
+                handlers.Reset();
+            }
 
-            /// <inheritdoc cref="MessageHandlerCollection{THandler}.Set(ushort, THandler)"/>
-            public static void Set(MessageHandlerCollection<THandler> handlers, ushort messageID, THandler handler) => handlers.Set(messageID, handler);
+            /// <inheritdoc cref="MessageHandlerCollection{THandler}.Set(ushort, ushort, THandler)"/>
+            public static void Set(MessageHandlerCollection<THandler> handlers, ushort messageID, THandler handler)
+            {
+                handlers.Set(0, messageID, handler);
+            }
 
-            /// <inheritdoc cref="MessageHandlerCollection{THandler}.Put(THandler)"/>
-            public static ushort Put(MessageHandlerCollection<THandler> handlers, THandler handler) => handlers.Put(handler);
+            /// <inheritdoc cref="MessageHandlerCollection{THandler}.Set(ushort, ushort, THandler)"/>
+            public static void Set(MessageHandlerCollection<THandler> handlers, ushort modID, ushort messageID, THandler handler)
+            {
+                handlers.Set(modID, messageID, handler);
+            }
 
-            /// <inheritdoc cref="MessageHandlerCollection{THandler}.Remove(ushort)"/>
-            public static void Remove(MessageHandlerCollection<THandler> handlers, ushort messageID) => handlers.Remove(messageID);
+            /// <inheritdoc cref="MessageHandlerCollection{THandler}.Put(ushort, THandler)"/>
+            public static ushort Put(MessageHandlerCollection<THandler> handlers, THandler handler)
+            {
+                return handlers.Put(0, handler);
+            }
+
+            /// <inheritdoc cref="MessageHandlerCollection{THandler}.Put(ushort, THandler)"/>
+            public static ushort Put(MessageHandlerCollection<THandler> handlers, ushort modID, THandler handler)
+            {
+                return handlers.Put(modID, handler);
+            }
+
+            /// <inheritdoc cref="MessageHandlerCollection{THandler}.Remove(ushort, ushort)"/>
+            public static void Remove(MessageHandlerCollection<THandler> handlers, ushort messageID)
+            {
+                handlers.Remove(0, messageID);
+            }
+
+            /// <inheritdoc cref="MessageHandlerCollection{THandler}.Remove(ushort, ushort)"/>
+            public static void Remove(MessageHandlerCollection<THandler> handlers, ushort modID, ushort messageID)
+            {
+                handlers.Remove(modID, messageID);
+            }
         }
     }
 }

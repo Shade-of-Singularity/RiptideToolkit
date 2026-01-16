@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Riptide.Toolkit.Settings
+﻿namespace Riptide.Toolkit.Settings
 {
-    internal class Modding
+    /// <summary>
+    /// Settings related to modding support.
+    /// </summary>
+    public static class Modding
     {
+
     }
 }

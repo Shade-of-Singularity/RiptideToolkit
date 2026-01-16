@@ -1,7 +1,18 @@
-﻿using Riptide.Toolkit.Extensions;
+﻿/// - - Shade of Singularity Community - - - Tom Weiland & Riptide Community, 2026 - - <![CDATA[
+/// 
+/// Licensed under the MIT License. Permission is hereby granted, free of charge,
+/// to any person obtaining a copy of this software and associated documentation
+/// files to deal in the Software without restriction. Full license terms are
+/// available in the LICENSE.md file located at the following repository path:
+///   
+///                        "RiptideToolkit/LICENSE.md"
+/// 
+/// ]]>
+
+using Riptide.Toolkit.Extensions;
 using Riptide.Toolkit.Settings;
 using System;
-using System.Runtime.InteropServices;
+using System.Drawing;
 
 namespace Riptide.Toolkit.Handlers
 {
@@ -12,6 +23,7 @@ namespace Riptide.Toolkit.Handlers
     /// Based on custom Region map implementation.
     /// Has higher memory usage, but 
     /// </remarks>
+    /// Note: If in the future someone will create dictionary with ushort as a base - we will use it instead.
     public sealed class RegionHandlerCollection<THandler> : MessageHandlerCollection<THandler>
         where THandler : IStructValidator
     {
@@ -20,10 +32,36 @@ namespace Riptide.Toolkit.Handlers
         /// .                                               Private Fields
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private readonly THandler[][] m_Regions;
+        /// <summary>
+        /// Array of RegionMaps with all the handlers.
+        /// </summary>
+        private readonly THandler[][][] m_Regions;
+
+        /// <summary>
+        /// Direct reference to RegionMap under core mod.
+        /// Saves few instructions.
+        /// </summary>
+        private readonly THandler[][] m_MainRegions;
+
+        /// <summary>
+        /// Size of one handler region.
+        /// </summary>
         private readonly int m_RegionSize;
+
+        /// <summary>
+        /// Mask which covers all bits, representing values within a region.
+        /// For example, with RegionSize set to 16, mask will be: 0b1111.
+        /// </summary>
         private readonly int m_RegionMask;
+
+        /// <summary>
+        /// By how much bits inputs has to be offset to move bits in input value to a bit #0.
+        /// </summary>
         private readonly int m_RegionOffset;
+
+        /// <summary>
+        /// Index of the next (probably) free cell in region array.
+        /// </summary>
         private int m_HeadIndex = (int)SystemMessageID.Amount; // Avoids ID range, allocated for system messages.
 
 
@@ -53,8 +91,8 @@ namespace Riptide.Toolkit.Handlers
             m_RegionMask = size - 1;
             m_RegionOffset = CountSetBits(m_RegionMask);
 
-            int regions = (ushort.MaxValue + 1) / size;
-            m_Regions = new THandler[regions][];
+            m_Regions = new THandler[1][][]; // Only initializes region map for one mod.
+            m_Regions[0] = m_MainRegions = new THandler[(ushort.MaxValue + 1) / size][];
         }
 
 
@@ -72,20 +110,51 @@ namespace Riptide.Toolkit.Handlers
         /// </exception>
         public override THandler Get(ushort messageID)
         {
-            return m_Regions[messageID >> m_RegionOffset][messageID & m_RegionMask];
+            return m_MainRegions[messageID >> m_RegionOffset][messageID & m_RegionMask];
+        }
+
+        /// <inheritdoc/>
+        /// <exception cref="NullReferenceException">
+        /// Means that region for handlers under <paramref name="messageID"/> is not defined.
+        /// Implies that message under this ID was not registered.
+        /// </exception>
+        public override THandler Get(ushort modID, ushort messageID)
+        {
+            return m_Regions[modID][messageID >> m_RegionOffset][messageID & m_RegionMask];
         }
 
         /// <inheritdoc/>
         public override bool Has(ushort messageID)
         {
-            var region = m_Regions[messageID >> m_RegionOffset];
+            var region = m_MainRegions[messageID >> m_RegionOffset];
+            return !(region is null) && !region[messageID & m_RegionMask].IsDefault;
+        }
+
+        /// <inheritdoc/>
+        public override bool Has(ushort modID, ushort messageID)
+        {
+            var region = m_Regions[modID][messageID >> m_RegionOffset];
             return !(region is null) && !region[messageID & m_RegionMask].IsDefault;
         }
 
         /// <inheritdoc/>
         public override bool TryGet(ushort messageID, out THandler hander)
         {
-            var region = m_Regions[messageID >> m_RegionOffset];
+            var region = m_MainRegions[messageID >> m_RegionOffset];
+            if (region is null)
+            {
+                hander = default;
+                return false;
+            }
+
+            hander = region[messageID & m_RegionMask];
+            return !hander.IsDefault;
+        }
+
+        /// <inheritdoc/>
+        public override bool TryGet(ushort modID, ushort messageID, out THandler hander)
+        {
+            var region = m_Regions[modID][messageID >> m_RegionOffset];
             if (region is null)
             {
                 hander = default;
@@ -108,33 +177,42 @@ namespace Riptide.Toolkit.Handlers
         protected override void Clear()
         {
             int size = m_RegionSize;
-            var array = m_Regions;
-            for (int i = 0; i < array.Length; i++)
+            var mods = m_Regions;
+            for (int i = 0; i < mods.Length; i++)
             {
-                Array.Clear(array[i], 0, size);
+                var regions = mods[i];
+                for (int j = 0; j < regions.Length; j++)
+                {
+                    Array.Clear(regions[i], 0, size);
+                }
             }
         }
 
         /// <inheritdoc/>
         protected override void Reset()
         {
-            var array = m_Regions;
-            for (int i = 0; i < array.Length; i++)
+            var mods = m_Regions;
+            for (int i = 0; i < mods.Length; i++)
             {
-                array[i] = null;
+                var regions = mods[i];
+                for (int j = 0; j < regions.Length; j++)
+                {
+                    regions[j] = null;
+                }
             }
         }
 
         /// <inheritdoc/>
-        protected override void Set(ushort messageID, THandler handler)
+        protected override void Set(ushort modID, ushort messageID, THandler handler)
         {
             int regionIndex = messageID >> m_RegionOffset;
             int referenceIndex = messageID & m_RegionMask;
 
-            var region = m_Regions[regionIndex];
+            var mods = m_Regions[modID];
+            var region = mods[regionIndex];
             if (region is null)
             {
-                m_Regions[regionIndex] = region = new THandler[m_RegionSize];
+                mods[regionIndex] = region = new THandler[(ushort.MaxValue + 1) / m_RegionSize];
                 region[referenceIndex] = handler;
             }
             else
@@ -144,10 +222,10 @@ namespace Riptide.Toolkit.Handlers
         }
 
         /// <inheritdoc/>
-        protected override ushort Put(THandler handler)
+        protected override ushort Put(ushort modID, THandler handler)
         {
             // Allocates local array variable to reduce instruction amount.
-            var regions = m_Regions;
+            var regions = m_Regions[modID];
             for (; m_HeadIndex <= ushort.MaxValue; m_HeadIndex++)
             {
                 int regionIndex = m_HeadIndex >> m_RegionOffset;
@@ -155,7 +233,7 @@ namespace Riptide.Toolkit.Handlers
                 THandler[] region = regions[regionIndex];
                 if (region is null)
                 {
-                    m_Regions[regionIndex] = region = new THandler[m_RegionSize];
+                    regions[regionIndex] = region = new THandler[(ushort.MaxValue + 1) / m_RegionSize];
                     region[referenceIndex] = handler;
                     break;
                 }
@@ -170,9 +248,9 @@ namespace Riptide.Toolkit.Handlers
         }
 
         /// <inheritdoc/>
-        protected override void Remove(ushort messageID)
+        protected override void Remove(ushort modID, ushort messageID)
         {
-            var region = m_Regions[messageID >> m_RegionOffset];
+            var region = m_Regions[modID][messageID >> m_RegionOffset];
             if (!(region is null))
             {
                 region[messageID & m_RegionMask] = default;

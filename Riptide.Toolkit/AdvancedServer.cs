@@ -92,7 +92,7 @@ namespace Riptide.Toolkit
         private void ServerBroadcastMessage(object sender, MessageReceivedEventArgs args)
         {
             if (!m_BroadcastToHandlers) return;
-            if (m_MessageHandlers?.TryFire(args.MessageId, args.FromConnection.Id, args.Message) != true)
+            if (m_MessageHandlers?.TryFire(this, args.MessageId, args.FromConnection.Id, args.Message) != true)
             {
                 RiptideLogger.Log(LogType.Warning, $"No Server-side Eclipse message handler method found for message ID ({args.MessageId})!");
             }

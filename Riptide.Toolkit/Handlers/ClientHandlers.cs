@@ -20,7 +20,7 @@ namespace Riptide.Toolkit.Handlers
     /// <summary>
     /// Collection of all server-side message handlers for specific handler group ID.
     /// </summary>
-    public sealed class ClientHandlers
+    public sealed class ClientHandlers : IMessageHandlerCollection<ClientHandlers.HandlerInfo>
     {
         /// <summary>
         /// Client-side handler info.
@@ -63,9 +63,32 @@ namespace Riptide.Toolkit.Handlers
         /// .                                              Public Properties
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public MessageHandlerCollection<HandlerInfo> Handlers { get; } = Performance.Type == PerformanceType.OptimizeCPU
-            ? new RegionHandlerCollection<HandlerInfo>(Performance.RegionSize)
-            : throw new NotSupportedException("Dictionary handlers are not supported yet."); 
+        public MessageHandlerCollection<HandlerInfo> Handlers { get; }
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                                Constructors
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        public ClientHandlers()
+        {
+            if (Performance.MessageHandlerFocus == PerformanceType.OptimizeCPU)
+            {
+                Handlers = new RegionHandlerCollection<HandlerInfo>(Performance.RegionSize);
+            }
+            else
+            {
+                Handlers = new DictionaryHandlerCollection<HandlerInfo>();
+            }
+        }
+
+        public ClientHandlers(MessageHandlerCollection<HandlerInfo> handlers)
+        {
+            Handlers = handlers;
+        }
 
 
 
@@ -75,17 +98,12 @@ namespace Riptide.Toolkit.Handlers
         /// .                                               Public Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        /// <summary>
-        /// Attempts to fire message handler under given <paramref name="id"/>.
-        /// </summary>
-        /// <param name="id">ID of a message handler.</param>
-        /// <param name="message">Message to read.</param>
-        /// <returns><c>false</c> if there is no handler under given <paramref name="id"/> registered. <c>true</c> otherwise.</returns>
-        public bool TryFire(AdvancedClient client, ushort id, Message message)
+        /// <inheritdoc cref="TryFire(AdvancedClient, ushort, ushort, Message)"/>
+        public bool TryFire(AdvancedClient client, ushort messageID, Message message)
         {
-            if (Has(id))
+            if (Has(messageID))
             {
-                Fire(client, id, message);
+                Fire(client, messageID, message);
                 return true;
             }
 
@@ -93,16 +111,27 @@ namespace Riptide.Toolkit.Handlers
         }
 
         /// <summary>
-        /// Fires handler with specified ID client-side.
+        /// Attempts to fire message handler under given <paramref name="messageID"/>.
         /// </summary>
-        /// <remarks>
-        /// Throws if handler wasn't found.
-        /// </remarks>
-        /// <param name="id">ID of a message handler.</param>
+        /// <param name="modID">ModID under which <paramref name="messageID"/> is registered.</param>
+        /// <param name="messageID">ID of a message handler.</param>
         /// <param name="message">Message to read.</param>
-        public void Fire(AdvancedClient client, ushort id, Message message)
+        /// <returns><c>false</c> if there is no handler under given <paramref name="messageID"/> registered. <c>true</c> otherwise.</returns>
+        public bool TryFire(AdvancedClient client, ushort modID, ushort messageID, Message message)
         {
-            HandlerInfo info = Get(id);
+            if (Has(modID, messageID))
+            {
+                Fire(client, messageID, message);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <inheritdoc cref="Fire(AdvancedClient, ushort, ushort, Message)"/>
+        public void Fire(AdvancedClient client, ushort messageID, Message message)
+        {
+            HandlerInfo info = Get(messageID);
             object[] args = new object[1];
 
             if (info.MessageType == typeof(Message))
@@ -128,5 +157,61 @@ namespace Riptide.Toolkit.Handlers
                 default: break;
             }
         }
+
+        /// <summary>
+        /// Fires handler with specified ID client-side.
+        /// </summary>
+        /// <remarks>
+        /// Throws if handler wasn't found.
+        /// </remarks>
+        /// <param name="modID">ModID under which <paramref name="messageID"/> is registered.</param>
+        /// <param name="messageID">ID of a message handler.</param>
+        /// <param name="message">Message to read.</param>
+        public void Fire(AdvancedClient client, ushort modID, ushort messageID, Message message)
+        {
+            HandlerInfo info = Get(modID, messageID);
+            object[] args = new object[1];
+
+            if (info.MessageType == typeof(Message))
+            {
+                args[0] = message;
+            }
+            else
+            {
+                NetworkMessage container = (NetworkMessage)Activator.CreateInstance(info.MessageType);
+                container.Read(message);
+                args[0] = container;
+            }
+
+            switch (info.Method.Invoke(null, args))
+            {
+                // If you return regular message - it will immediately send its contents as a response.
+                // TODO: Make sure that FlagMessages will also be supported.
+                case Message msg: client.Send(msg); break;
+
+                // Automatically packs and sends response message.
+                // TODO: Make sure that MessageID is read correctly.
+                case NetworkMessage net: client.Send(net.Write(message)); break;
+                default: break;
+            }
+        }
+
+        /// <inheritdoc/>
+        public HandlerInfo Get(ushort messageID) => Handlers.Get(messageID);
+
+        /// <inheritdoc/>
+        public HandlerInfo Get(ushort modID, ushort messageID) => Handlers.Get(messageID);
+
+        /// <inheritdoc/>
+        public bool Has(ushort messageID) => Handlers.Has(messageID);
+
+        /// <inheritdoc/>
+        public bool Has(ushort modID, ushort messageID) => Handlers.Has(messageID);
+
+        /// <inheritdoc/>
+        public bool TryGet(ushort messageID, out HandlerInfo hander) => Handlers.TryGet(messageID, out hander);
+
+        /// <inheritdoc/>
+        public bool TryGet(ushort modID, ushort messageID, out HandlerInfo hander) => Handlers.TryGet(messageID, out hander);
     }
 }

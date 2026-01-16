@@ -16,7 +16,7 @@ namespace Riptide.Toolkit.Settings
         /// .                                                Constructors
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public const string PerformanceTypeFlag = "-riptide.performance";
+        public const string PerformanceTypeFlag = "-riptide.performance.handlers";
         public const string PerformanceTypeCPU = "cpu";
         public const string PerformanceTypeRAM = "ram";
         public const string PerformanceTypeIO = "io";
@@ -30,18 +30,26 @@ namespace Riptide.Toolkit.Settings
         /// .                                              Static Properties
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public static PerformanceType Type
+        /// <summary>
+        /// Type of optimization <see cref="Handlers.ClientHandlers"/> and <see cref="Handlers.ServerHandlers"/> will use.
+        /// </summary>
+        /// <remarks>
+        /// <para>With <see cref="PerformanceType.OptimizeCPU"/> - adds ~4MB of RAM overhead. Internal list access takes '1.477 ns'.</para>
+        /// <para>With <see cref="PerformanceType.OptimizeRAM"/> - adds ~32KB of overhead. Internal list access takes '7.035 ns'.</para>
+        /// </remarks>
+        /// TODO: Benchmark data was only tested in a lab environment. We need to test again using handler implementations directly.
+        public static PerformanceType MessageHandlerFocus
         {
-            get => m_Type;
+            get => m_MessageHandlerFocus;
             set
             {
-                if (m_Type == value) return;
+                if (m_MessageHandlerFocus == value) return;
                 if (NetworkIndex.IsEverInitialized)
                 {
                     throw new Exception($"Cannot modify performance settings after {nameof(NetworkIndex)} initialization! Set performance options on app launch.");
                 }
 
-                m_Type = value;
+                m_MessageHandlerFocus = value;
             }
         }
 
@@ -71,8 +79,8 @@ namespace Riptide.Toolkit.Settings
         /// .                                               Static Fields
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private static PerformanceType m_Type = PerformanceType.OptimizeCPU;
-        private static int m_RegionSize = 8;
+        private static PerformanceType m_MessageHandlerFocus = PerformanceType.OptimizeCPU;
+        private static int m_RegionSize = 32;
 
 
 
@@ -89,8 +97,8 @@ namespace Riptide.Toolkit.Settings
             {
                 switch (type)
                 {
-                    case PerformanceTypeCPU: m_Type = PerformanceType.OptimizeCPU; break;
-                    case PerformanceTypeRAM: m_Type = PerformanceType.OptimizeRAM; break;
+                    case PerformanceTypeCPU: m_MessageHandlerFocus = PerformanceType.OptimizeCPU; break;
+                    case PerformanceTypeRAM: m_MessageHandlerFocus = PerformanceType.OptimizeRAM; break;
 
                     case PerformanceTypeIO:
                     case PerformanceTypeDisk: throw new Exception("Disk optimization is not supported yet.");

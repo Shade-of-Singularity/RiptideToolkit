@@ -198,8 +198,8 @@ namespace Riptide.Toolkit
                 // Resets all handlers first.
                 // Note: All managed handlers will be locked at this point, so mutation is safe, even in multi-threaded context (untested though)
                 // TODO: Avoid clearing of the entire database on first Initialization. All handlers will be empty at this point anyway.
-                Array.ForEach(m_ClientHandlers, Handlers.ClientHandlers.Unsafe.Clear);
-                Array.ForEach(m_ServerHandlers, Handlers.ServerHandlers.Unsafe.Clear);
+                Array.ForEach(m_ClientHandlers, (client) => MessageHandlerCollection<ClientHandlers.HandlerInfo>.Unsafe.Clear(client.Handlers));
+                Array.ForEach(m_ServerHandlers, (server) => MessageHandlerCollection<ServerHandlers.HandlerInfo>.Unsafe.Clear(server.Handlers));
 
                 // Fetches own assembly first.
                 Assembly current = Assembly.GetExecutingAssembly();
@@ -288,7 +288,7 @@ namespace Riptide.Toolkit
                     groupID = (byte)messageType.GetProperty(nameof(ReflectionMessage.GroupID)).GetValue(null);
                     messageID = (ushort)messageType.GetField(nameof(ReflectionMessage.MessageID)).GetValue(null);
                     ClientHandlers.HandlerInfo clientHandler = new ClientHandlers.HandlerInfo(method, dataType);
-                    Handlers.ClientHandlers.Unsafe.Set(m_ClientHandlers[groupID], messageID, clientHandler);
+                    MessageHandlerCollection<ClientHandlers.HandlerInfo>.Unsafe.Set(m_ClientHandlers[groupID].Handlers, messageID, clientHandler);
                     RiptideLogger.Log(LogType.Info, $"Client message handler ({method.Name}) with message type {logName} was found and it is valid!");
                     break;
 
@@ -325,7 +325,7 @@ namespace Riptide.Toolkit
                     groupID = (byte)messageType.GetProperty(nameof(ReflectionMessage.GroupID)).GetValue(null);
                     messageID = (ushort)messageType.GetField(nameof(ReflectionMessage.MessageID)).GetValue(null);
                     ServerHandlers.HandlerInfo serverHandler = new ServerHandlers.HandlerInfo(method, dataType);
-                    Handlers.ServerHandlers.Unsafe.Set(m_ServerHandlers[groupID], messageID, serverHandler);
+                    MessageHandlerCollection<ServerHandlers.HandlerInfo>.Unsafe.Set(m_ServerHandlers[groupID].Handlers, messageID, serverHandler);
                     RiptideLogger.Log(LogType.Info, $"Client message handler ({method.Name}) with message type {logName} was found and it is valid!");
                     break;
 
