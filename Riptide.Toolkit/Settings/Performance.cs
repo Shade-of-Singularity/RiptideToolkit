@@ -38,7 +38,7 @@ namespace Riptide.Toolkit.Settings
                 if (m_Type == value) return;
                 if (NetworkIndex.IsEverInitialized)
                 {
-                    throw new Exception($"Cannot modify performance settings after {nameof(NetworkIndex)} initialization! Set performance options on launch");
+                    throw new Exception($"Cannot modify performance settings after {nameof(NetworkIndex)} initialization! Set performance options on app launch.");
                 }
 
                 m_Type = value;
@@ -48,7 +48,20 @@ namespace Riptide.Toolkit.Settings
         /// <summary>
         /// Region size for <see cref="Handlers.RegionHandlerCollection"/>.
         /// </summary>
-        public static int RegionSize => m_RegionSize;
+        public static int RegionSize
+        {
+            get => m_RegionSize;
+            set
+            {
+                if (m_RegionSize == value) return;
+                if (NetworkIndex.IsEverInitialized)
+                {
+                    throw new Exception($"Cannot modify performance settings after {nameof(NetworkIndex)} initialization! Set performance options on app launch.");
+                }
+
+                m_RegionSize = value;
+            }
+        }
 
 
 
@@ -59,7 +72,7 @@ namespace Riptide.Toolkit.Settings
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         private static PerformanceType m_Type = PerformanceType.OptimizeCPU;
-        private static int m_RegionSize = 16;
+        private static int m_RegionSize = 8;
 
 
 

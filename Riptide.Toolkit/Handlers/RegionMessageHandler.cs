@@ -1,7 +1,7 @@
 ﻿using Riptide.Toolkit.Extensions;
 using Riptide.Toolkit.Settings;
 using System;
-using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace Riptide.Toolkit.Handlers
 {
@@ -39,7 +39,7 @@ namespace Riptide.Toolkit.Handlers
         /// Uses <see cref="Performance.RegionSize"/> as default region size for this collection.
         /// </summary>
         public RegionHandlerCollection() : this(Performance.RegionSize) { }
-        
+
         /// <summary>
         /// Constructor for <see cref="RegionHandlerCollection{THandler}"/>
         /// </summary>
@@ -51,7 +51,7 @@ namespace Riptide.Toolkit.Handlers
             size = Math.Max(2, size);
             m_RegionSize = size;
             m_RegionMask = size - 1;
-            m_RegionOffset = CountSetBits((uint)m_RegionMask);
+            m_RegionOffset = CountSetBits(m_RegionMask);
 
             int regions = (ushort.MaxValue + 1) / size;
             m_Regions = new THandler[regions][];
@@ -126,42 +126,57 @@ namespace Riptide.Toolkit.Handlers
         }
 
         /// <inheritdoc/>
+        protected override void Set(ushort messageID, THandler handler)
+        {
+            int regionIndex = messageID >> m_RegionOffset;
+            int referenceIndex = messageID & m_RegionMask;
+
+            var region = m_Regions[regionIndex];
+            if (region is null)
+            {
+                m_Regions[regionIndex] = region = new THandler[m_RegionSize];
+                region[referenceIndex] = handler;
+            }
+            else
+            {
+                region[referenceIndex] = handler;
+            }
+        }
+
+        /// <inheritdoc/>
         protected override ushort Put(THandler handler)
         {
             // Allocates local array variable to reduce instruction amount.
             var regions = m_Regions;
-            var references = null;
-            int length = regions.Length;
-
-            // We use 'for' loop here instead of 'while', in case compiler is more familiar with this format.
-            for (; m_HeadIndex < length; m_HeadIndex++)
+            for (; m_HeadIndex <= ushort.MaxValue; m_HeadIndex++)
             {
-                // TODO: Optimize by updating region index only after passing to the second region (i.e. each 16).
-                var references = regions[m_HeadIndex >> m_RegionOffset];
-                if (references[m_HeadIndex & m_RegionMask].IsDefault) goto Finish;
+                int regionIndex = m_HeadIndex >> m_RegionOffset;
+                int referenceIndex = m_HeadIndex & m_RegionMask;
+                THandler[] region = regions[regionIndex];
+                if (region is null)
+                {
+                    m_Regions[regionIndex] = region = new THandler[m_RegionSize];
+                    region[referenceIndex] = handler;
+                    break;
+                }
+                else if (region[referenceIndex].IsDefault)
+                {
+                    region[referenceIndex] = handler;
+                }
             }
 
-            // This point can only be reached after iterating over whole array.
-            int size = DynamicArrays.NextArraySize(m_HeadIndex);
-            if (size > ushort.MaxValue) throw new Exception($"{nameof(RegionHandlerCollection<THandler>)} Reached array size limit of ({ushort.MaxValue + 1}).");
-            Array.Resize(ref regions, size);
-
-            Finish:
-            regions[m_HeadIndex] = handler;
-            m_HeadIndex++; // Picks (potentially free) next ID as head. 
-            return (int)m_HeadIndex;
+            // Moves head to (potentially free) next ID. 
+            return (ushort)(++m_HeadIndex);
         }
 
         /// <inheritdoc/>
         protected override void Remove(ushort messageID)
         {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        protected override void Set(ushort messageID, THandler handler)
-        {
-            throw new NotImplementedException();
+            var region = m_Regions[messageID >> m_RegionOffset];
+            if (!(region is null))
+            {
+                region[messageID & m_RegionMask] = default;
+            }
         }
 
 
