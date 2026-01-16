@@ -14,6 +14,7 @@ using Riptide.Toolkit.Settings;
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 namespace Riptide.Toolkit
 {
@@ -42,17 +43,24 @@ namespace Riptide.Toolkit
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Class that declares mod data. Must implement <see cref="IMod{T}"/>.
+        /// Reference to a <see cref="FieldInfo"/> or <see cref="PropertyInfo"/> with <see cref="ModIDAttribute"/>.
         /// </summary>
-        public Type Mod { get; set; } = null;
+        public MemberInfo Mod { get; set; } = null;
         /// <summary>
-        /// Type of the message group. Must inherit <see cref="NetworkGroup{TGroup}"/>.
+        /// Reference to a <see cref="FieldInfo"/> or <see cref="PropertyInfo"/> with <see cref="GroupIDAttribute"/>.
         /// </summary>
-        public Type Group { get; set; } = null;
+        /// <remarks>
+        /// <see cref="GroupIDAttribute"/> is already defined in <see cref="NetworkGroup{TGroup}"/>
+        /// and also <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> types.
+        /// </remarks>
+        public MemberInfo Group { get; set; } = null;
         /// <summary>
-        /// Type of the message container. Must inherit <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/>.
+        /// Reference to a <see cref="FieldInfo"/> or <see cref="PropertyInfo"/> with <see cref="MessageIDAttribute"/>.
         /// </summary>
-        public Type Message { get; set; } = null;
+        /// <remarks>
+        /// <see cref="ModIDAttribute"/> is already declared in all <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> types.
+        /// </remarks>
+        public MemberInfo Message { get; set; } = null;
         /// <summary>
         /// Static GroupID of this message handler. Automatic ID assignment will avoid static IDs.
         /// </summary>
@@ -70,13 +78,24 @@ namespace Riptide.Toolkit
         /// .                                                Constructors
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public AdvancedMessageAttribute() { }
-        public AdvancedMessageAttribute(byte groupID) => GroupID = groupID;
-        public AdvancedMessageAttribute(ushort messageID) => MessageID = messageID;
+        public AdvancedMessageAttribute() => SetDefaults();
+        public AdvancedMessageAttribute(byte groupID)
+        {
+            GroupID = groupID;
+            SetDefaults();
+        }
+
+        public AdvancedMessageAttribute(ushort messageID)
+        {
+            MessageID = messageID;
+            SetDefaults();
+        }
+
         public AdvancedMessageAttribute(byte groupID, ushort messageID)
         {
             GroupID = groupID;
             MessageID = messageID;
+            SetDefaults();
         }
 
 
@@ -90,18 +109,21 @@ namespace Riptide.Toolkit
         public AdvancedMessageAttribute(Type multicast)
         {
             ResolveMultitypePrioritizeMessage(multicast);
+            SetDefaults();
         }
 
         public AdvancedMessageAttribute(Type multicast, byte groupID)
         {
             GroupID = groupID;
             ResolveMultitypePrioritizeMessage(multicast);
+            SetDefaults();
         }
 
         public AdvancedMessageAttribute(Type multicast, ushort messageID)
         {
             MessageID = messageID;
             ResolveMultitypePrioritizeGroup(multicast);
+            SetDefaults();
         }
 
         public AdvancedMessageAttribute(Type multicast, byte groupID, ushort messageID)
@@ -109,6 +131,7 @@ namespace Riptide.Toolkit
             GroupID = groupID;
             MessageID = messageID;
             ResolveMultitypePrioritizeMod(multicast);
+            SetDefaults();
         }
 
 
@@ -123,6 +146,7 @@ namespace Riptide.Toolkit
         {
             ResolveMultitypePrioritizeGroup(multicast1);
             ResolveMultitypePrioritizeMessage(multicast2);
+            SetDefaults();
         }
 
         public AdvancedMessageAttribute(Type multicast1, Type multicast2, byte groupID)
@@ -130,6 +154,7 @@ namespace Riptide.Toolkit
             GroupID = groupID;
             ResolveMultitypePrioritizeMod(multicast1);
             ResolveMultitypePrioritizeMessage(multicast2);
+            SetDefaults();
         }
 
         public AdvancedMessageAttribute(Type multicast1, Type multicast2, ushort messageID)
@@ -137,6 +162,7 @@ namespace Riptide.Toolkit
             MessageID = messageID;
             ResolveMultitypePrioritizeMod(multicast1);
             ResolveMultitypePrioritizeGroup(multicast2);
+            SetDefaults();
         }
 
 
@@ -152,6 +178,29 @@ namespace Riptide.Toolkit
             ResolveMultitypePrioritizeMod(multicast1);
             ResolveMultitypePrioritizeGroup(multicast2);
             ResolveMultitypePrioritizeMessage(multicast3);
+            SetDefaults();
+        }
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                                Constructors
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        static AdvancedMessageAttribute()
+        {
+            if (LookupMember(typeof(GroupIDAttribute), typeof(DefaultGroup), out MemberInfo member, Reflections.ModAttributeAnalysis_PrioritizeFields))
+            {
+                DefaultGroupIDSource = member;
+                LastModIDSource = member;
+                LastGroupIDSource = member;
+            }
+            else
+            {
+                throw new Exception($"[{nameof(AdvancedMessageAttribute)}] Cannot retrieve {nameof(GroupIDAttribute)} from a {nameof(DefaultGroup)}.");
+            }
         }
 
 
@@ -163,7 +212,9 @@ namespace Riptide.Toolkit
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         private const BindingFlags MemberBindingFlags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
-        private static Type LastModType = typeof(DefaultGroup); // Not a mistake. Uses random type to not use null, and avoid 1 branch.
+        private static readonly MemberInfo DefaultGroupIDSource;
+        private static MemberInfo LastGroupIDSource; // Not a mistake. Avoids null-check to remove 1 branch.
+        private static MemberInfo LastModIDSource; // Not a mistake. Avoids null-check to remove 1 branch.
 
 
 
@@ -173,6 +224,12 @@ namespace Riptide.Toolkit
         /// .                                               Private Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        private void SetDefaults()
+        {
+            if (GroupID is null) GroupID = 0;
+            if (Group is null) Group = DefaultGroupIDSource;
+        }
+
         private void ResolveMultitypePrioritizeMod(Type value)
         {
             if (!ResolveMod(value) && !ResolveGroup(value) && !ResolveMessage(value))
@@ -220,28 +277,36 @@ namespace Riptide.Toolkit
             if (Mod is null)
             {
                 // Starts from a fast cache lookup to avoid reflections.
-                if (LastModType.IsAssignableFrom(mod))
+                if (LastModIDSource.DeclaringType.IsAssignableFrom(mod))
                 {
-                    Mod = mod;
+                    Mod = LastModIDSource;
                 }
-                else if (LookupAttribute<ModIDAttribute>(mod, out mod, Reflections.ModAttributeAnalysis_PrioritizeFields))
+                else if (LookupMember<ModIDAttribute>(mod, out MemberInfo member, Reflections.ModAttributeAnalysis_PrioritizeFields))
                 {
-                    LastModType = Mod = mod;
+                    LastModIDSource = Mod = member;
                 }
 
                 return true;
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
 
         private bool ResolveGroup(Type group)
         {
-            if (GroupID is null && Group is null && typeof(NetworkGroup).IsAssignableFrom(group))
+            if (GroupID.HasValue) return false;
+            if (Group is null || Group == DefaultGroupIDSource)
             {
-                Group = group;
+                // Starts from a fast cache lookup to avoid reflections.
+                if (LastGroupIDSource.DeclaringType.IsAssignableFrom(group))
+                {
+                    Group = LastGroupIDSource;
+                }
+                else if (LookupMember<GroupIDAttribute>(group, out MemberInfo member, Reflections.ModAttributeAnalysis_PrioritizeFields))
+                {
+                    LastGroupIDSource = Group = member;
+                }
+
                 return true;
             }
 
@@ -250,9 +315,14 @@ namespace Riptide.Toolkit
 
         private bool ResolveMessage(Type message)
         {
-            if (MessageID is null && Message is null && typeof(NetworkMessage).IsAssignableFrom(message))
+            if (MessageID.HasValue) return false;
+            if (Message is null)
             {
-                Message = message;
+                if (LookupMember<GroupIDAttribute>(message, out MemberInfo member, Reflections.ModAttributeAnalysis_PrioritizeFields))
+                {
+                    Message = member;
+                }
+
                 return true;
             }
 
@@ -260,66 +330,84 @@ namespace Riptide.Toolkit
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool LookupAttribute<T>(Type target, out Type result, bool fieldsFirst) where T : Attribute
+        private static bool LookupMember<T>(Type target, out MemberInfo member, bool fieldsFirst) where T : Attribute
         {
-            return LookupAttribute(typeof(T), target, out result, fieldsFirst);
+            return LookupMember(typeof(T), target, out member, fieldsFirst);
         }
 
-        private static bool LookupAttribute(Type attribute, Type target, out Type result, bool fieldsFirst)
+        private static bool LookupMember(Type attribute, Type target, out MemberInfo member, bool fieldsFirst)
         {
             if (fieldsFirst)
             {
-                if (CheckFields(out result)) return true;
-                if (CheckProperties(out result)) return true;
+                if (CheckFields(out member)) return true;
+                if (CheckProperties(out member)) return true;
             }
             else
             {
-                if (CheckProperties(out result)) return true;
-                if (CheckFields(out result)) return true;
+                if (CheckProperties(out member)) return true;
+                if (CheckFields(out member)) return true;
             }
 
             return false;
 
             // Simplifications:
-            bool CheckFields(out Type ret)
+            bool CheckFields(out MemberInfo ret)
             {
-                ret = target.BaseType;
-                while (ret != null)
+                Type temp = target.BaseType;
+                while (temp != null)
                 {
-                    foreach (var field in ret.GetFields(MemberBindingFlags))
+                    foreach (var field in temp.GetFields(MemberBindingFlags))
                     {
-                        if (field.IsDefined(attribute)) return true;
+                        if (field.IsDefined(attribute))
+                        {
+                            ret = field;
+                            return true;
+                        }
                     }
 
-                    ret = ret.BaseType;
+                    temp = temp.BaseType;
                 }
 
-                foreach (var field in (ret = target).GetFields(MemberBindingFlags))
+                foreach (var field in target.GetFields(MemberBindingFlags))
                 {
-                    if (field.IsDefined(attribute)) return true;
+                    if (field.IsDefined(attribute))
+                    {
+                        ret = field;
+                        return true;
+                    }
                 }
 
+                ret = null;
                 return false;
             }
 
-            bool CheckProperties(out Type ret)
+            bool CheckProperties(out MemberInfo ret)
             {
-                ret = target.BaseType;
-                while (ret != null)
+                Type temp = target.BaseType;
+                while (temp != null)
                 {
-                    foreach (var field in ret.GetFields(MemberBindingFlags))
+                    foreach (var field in temp.GetProperties(MemberBindingFlags))
                     {
-                        if (field.IsDefined(attribute)) return true;
+                        if (field.IsDefined(attribute))
+                        {
+                            ret = field;
+                            return true;
+                        }
                     }
 
-                    ret = ret.BaseType;
+                    temp = temp.BaseType;
                 }
 
-                foreach (var field in (ret = target).GetFields(MemberBindingFlags))
+                foreach (var field in target.GetProperties(MemberBindingFlags))
                 {
-                    if (field.IsDefined(attribute)) return true;
+                    if (field.IsDefined(attribute))
+                    {
+                        ret = field;
+                        return true;
+                    }
                 }
 
+                ret = null;
                 return false;
             }
         }

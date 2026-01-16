@@ -14,6 +14,7 @@ using Riptide.Toolkit.Messages;
 using Riptide.Utils;
 using System;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Riptide.Toolkit
 {
@@ -144,6 +145,9 @@ namespace Riptide.Toolkit
         /// <summary>
         /// Retrieves next group ID for networking with <see cref="Toolkit"/>.
         /// </summary>
+        /// TODO: Make sure that <see cref="DefaultGroup"/> is initialized first, to take 0th group ID.
+        /// However, do not force it - only initialize it first if any message handlers in main assembly define it.
+        /// This is to make it possible for people to define their own default groups. No matter how confusing it is.
         public static byte NextGroupID()
         {
             if (m_NextGroupID >= MaxGroupIDAmount)
@@ -280,7 +284,7 @@ namespace Riptide.Toolkit
             // Differentiates client-side and server-side message handlers by the parameter types they specify.
             ParameterInfo[] parameters = method.GetParameters();
             Type messageType, dataType;
-            byte groupID; ushort messageID;
+            byte groupID; ushort modID, messageID;
             string logName;
             switch (parameters.Length)
             {
@@ -289,7 +293,7 @@ namespace Riptide.Toolkit
                     dataType = parameters[0].ParameterType;
                     if (attribute.Message != null)
                     {
-                        messageType = attribute.Message;
+                        messageType = attribute.Message.DeclaringType;
                     }
                     else if (typeof(NetworkMessage).IsAssignableFrom(dataType))
                     {
@@ -308,11 +312,11 @@ namespace Riptide.Toolkit
                         messageType = messageType.BaseType;
                     }
 
-                    // Note: GroupID is **property** and MessageID is **field**. Keep that in mind.
-                    groupID = (byte)messageType.GetProperty(nameof(ReflectionMessage.GroupID)).GetValue(null);
-                    messageID = (ushort)messageType.GetField(nameof(ReflectionMessage.MessageID)).GetValue(null);
+                    modID = (ushort)GetValue(attribute.Mod);
+                    groupID = (byte)GetValue(attribute.Group);
+                    messageID = (ushort)GetValue(attribute.Message);
                     ClientHandlers.HandlerInfo clientHandler = new ClientHandlers.HandlerInfo(method, dataType);
-                    MessageHandlerCollection<ClientHandlers.HandlerInfo>.Unsafe.Set(m_ClientHandlers[groupID].Handlers, messageID, clientHandler);
+                    MessageHandlerCollection<ClientHandlers.HandlerInfo>.Unsafe.Set(m_ClientHandlers[groupID].Handlers, modID, messageID, clientHandler);
                     RiptideLogger.Log(LogType.Info, $"Client message handler ({method.Name}) with message type {logName} was found and it is valid!");
                     break;
 
@@ -326,7 +330,7 @@ namespace Riptide.Toolkit
                     dataType = parameters[1].ParameterType;
                     if (attribute.Message != null)
                     {
-                        messageType = attribute.Message;
+                        messageType = attribute.Message.DeclaringType;
                     }
                     else if (typeof(NetworkMessage).IsAssignableFrom(dataType))
                     {
@@ -345,17 +349,28 @@ namespace Riptide.Toolkit
                         messageType = messageType.BaseType;
                     }
 
-                    // Note: GroupID is **property** and MessageID is **field**. Keep that in mind.
-                    groupID = (byte)messageType.GetProperty(nameof(ReflectionMessage.GroupID)).GetValue(null);
-                    messageID = (ushort)messageType.GetField(nameof(ReflectionMessage.MessageID)).GetValue(null);
+                    modID = (ushort)GetValue(attribute.Mod);
+                    groupID = (byte)GetValue(attribute.Group);
+                    messageID = (ushort)GetValue(attribute.Message);
                     ServerHandlers.HandlerInfo serverHandler = new ServerHandlers.HandlerInfo(method, dataType);
-                    MessageHandlerCollection<ServerHandlers.HandlerInfo>.Unsafe.Set(m_ServerHandlers[groupID].Handlers, messageID, serverHandler);
+                    MessageHandlerCollection<ServerHandlers.HandlerInfo>.Unsafe.Set(m_ServerHandlers[groupID].Handlers, modID, messageID, serverHandler);
                     RiptideLogger.Log(LogType.Info, $"Client message handler ({method.Name}) with message type {logName} was found and it is valid!");
                     break;
 
                 // Any other kind of signature is not supported at the moment.
                 default:
                 case 0: throw new Exception($"Message handler ({method.Name}) doesn't have client-side nor server-side Riptide message signature.");
+            }
+
+            // Simplifications:
+            object GetValue(MemberInfo member)
+            {
+                switch (member)
+                {
+                    case FieldInfo field: return field.GetValue(null);
+                    case PropertyInfo property: return property.GetValue(null);
+                    default: throw new Exception($"{LogPrefix} Unknown member type of an ID provider. Type: ({member.GetType().Name})");
+                }
             }
         }
     }
