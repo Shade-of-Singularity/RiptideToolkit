@@ -14,7 +14,6 @@ using Riptide.Toolkit.Settings;
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 
 namespace Riptide.Toolkit
 {

@@ -14,7 +14,6 @@ using Riptide.Toolkit.Messages;
 using Riptide.Utils;
 using System;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace Riptide.Toolkit
 {
@@ -312,9 +311,13 @@ namespace Riptide.Toolkit
                         messageType = messageType.BaseType;
                     }
 
-                    modID = (ushort)GetValue(attribute.Mod);
-                    groupID = (byte)GetValue(attribute.Group);
-                    messageID = (ushort)GetValue(attribute.Message);
+                    modID = (ushort)(GetValue(attribute.Mod) ?? 0);
+                    groupID = attribute.GroupID is null
+                        ? (byte)(GetValue(attribute.Group) ?? 0)
+                        : attribute.GroupID.Value;
+                    messageID = attribute.MessageID is null
+                        ? (ushort)(GetValue(attribute.Message) ?? throw new Exception($"{LogPrefix} Message ID was not provided"))
+                        : attribute.MessageID.Value;
                     ClientHandlers.HandlerInfo clientHandler = new ClientHandlers.HandlerInfo(method, dataType);
                     MessageHandlerCollection<ClientHandlers.HandlerInfo>.Unsafe.Set(m_ClientHandlers[groupID].Handlers, modID, messageID, clientHandler);
                     RiptideLogger.Log(LogType.Info, $"Client message handler ({method.Name}) with message type {logName} was found and it is valid!");
@@ -349,9 +352,13 @@ namespace Riptide.Toolkit
                         messageType = messageType.BaseType;
                     }
 
-                    modID = (ushort)GetValue(attribute.Mod);
-                    groupID = (byte)GetValue(attribute.Group);
-                    messageID = (ushort)GetValue(attribute.Message);
+                    modID = (ushort)(GetValue(attribute.Mod) ?? 0);
+                    groupID = attribute.GroupID is null
+                        ? (byte)(GetValue(attribute.Group) ?? 0)
+                        : attribute.GroupID.Value;
+                    messageID = attribute.MessageID is null
+                        ? (ushort)(GetValue(attribute.Message) ?? throw new Exception($"{LogPrefix} Message ID was not provided"))
+                        : attribute.MessageID.Value;
                     ServerHandlers.HandlerInfo serverHandler = new ServerHandlers.HandlerInfo(method, dataType);
                     MessageHandlerCollection<ServerHandlers.HandlerInfo>.Unsafe.Set(m_ServerHandlers[groupID].Handlers, modID, messageID, serverHandler);
                     RiptideLogger.Log(LogType.Info, $"Client message handler ({method.Name}) with message type {logName} was found and it is valid!");
@@ -369,7 +376,7 @@ namespace Riptide.Toolkit
                 {
                     case FieldInfo field: return field.GetValue(null);
                     case PropertyInfo property: return property.GetValue(null);
-                    default: throw new Exception($"{LogPrefix} Unknown member type of an ID provider. Type: ({member.GetType().Name})");
+                    default: return null;
                 }
             }
         }
