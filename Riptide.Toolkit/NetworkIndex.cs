@@ -128,20 +128,6 @@ namespace Riptide.Toolkit
             throw new NotImplementedException("Mod ID retrieval is not implemented yet.");
         }
 
-        // Registers groups from Enum. Not implemented, as groups are imported from AdvancedMessage.
-        public static void RegisterGroup<T>() where T : Enum
-        {
-            if (Enum.GetUnderlyingType(typeof(T)) != typeof(byte))
-            {
-                throw new Exception($"{LogPrefix} Cannot register ")
-            }
-
-            foreach (object value in Enum.GetValues(typeof(T)))
-            {
-                if (v)
-            }
-        }
-
         /// <summary>
         /// Retrieves next group ID for networking with <see cref="Toolkit"/>.
         /// </summary>
