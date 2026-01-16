@@ -72,9 +72,9 @@ namespace Riptide.Toolkit
         /// .                                               Private Fields
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private static readonly ClientHandlers[] m_ClientHandlers = new ClientHandlers[MaxGroupIDAmount];
-        private static readonly ServerHandlers[] m_ServerHandlers = new ServerHandlers[MaxGroupIDAmount];
-        private static readonly uint[] m_NextMessageIDs = new uint[MaxGroupIDAmount];
+        private static ClientHandlers[] m_ClientHandlers = new ClientHandlers[1];
+        private static ServerHandlers[] m_ServerHandlers = new ServerHandlers[1];
+        private static uint[] m_NextMessageIDs = new uint[1];
         private static volatile bool m_IsInitialized = false;
         private static volatile bool m_IsValid = false;
         private static readonly object _lock = new object();
@@ -128,6 +128,20 @@ namespace Riptide.Toolkit
             throw new NotImplementedException("Mod ID retrieval is not implemented yet.");
         }
 
+        // Registers groups from Enum. Not implemented, as groups are imported from AdvancedMessage.
+        public static void RegisterGroup<T>() where T : Enum
+        {
+            if (Enum.GetUnderlyingType(typeof(T)) != typeof(byte))
+            {
+                throw new Exception($"{LogPrefix} Cannot register ")
+            }
+
+            foreach (object value in Enum.GetValues(typeof(T)))
+            {
+                if (v)
+            }
+        }
+
         /// <summary>
         /// Retrieves next group ID for networking with <see cref="Toolkit"/>.
         /// </summary>
@@ -139,6 +153,9 @@ namespace Riptide.Toolkit
                 throw new Exception("Exhausted all network Group IDs for Riptide networking.");
             }
 
+
+            if (m_NextGroupID)
+            m_NextGroupID++;
             return (byte)m_NextGroupID++;
         }
 

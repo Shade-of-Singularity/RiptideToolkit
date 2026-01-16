@@ -119,6 +119,18 @@ namespace Riptide.Toolkit.Extensions
             array[at] = value;
         }
 
+        /// <param name="increment">By how much array size is allowed to grow. With 4, you will get: [4,8,12,...]. With one: [1,2,3,...]</param>
+        public static void SetLinear<T>(ref T[] array, int at, T value, int increment = 1)
+        {
+            if (at >= array.Length)
+            {
+                increment = Math.Max(1, increment);
+                Array.Resize(ref array, at / increment + increment);
+            }
+
+            array[at] = value;
+        }
+
         /// <param name="limit">Array size limit.</param>
         public static void Set<T>(ref T[] array, int at, T value, int limit)
         {
