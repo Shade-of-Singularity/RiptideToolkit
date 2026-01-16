@@ -190,6 +190,7 @@ namespace Riptide.Toolkit.Examples
             RiptideLogger.Log(LogType.Info, "Testing client...");
 
             // TODO: Add client-side testing methods.
+            Client.Send(Message.Create().AddUShort(0));
             await WaitForMessageToDeliver();
 
             RiptideLogger.Log(LogType.Info, "Client test finished.");
@@ -201,6 +202,7 @@ namespace Riptide.Toolkit.Examples
             RiptideLogger.Log(LogType.Info, "Testing server...");
 
             // TODO: Add server-side testing methods.
+            Server.SendToAll(Message.Create().AddUShort(0));
             await WaitForMessageToDeliver();
 
             RiptideLogger.Log(LogType.Info, "Server test finished.");

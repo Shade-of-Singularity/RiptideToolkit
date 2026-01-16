@@ -14,23 +14,21 @@ namespace Riptide.Toolkit
     /// <summary>
     /// All message IDs used with <see cref="Riptide"/> networking to determine if modified game versions are compatible or not.
     /// </summary>
-    public enum SystemMessageID : ushort
+    internal enum SystemMessageID : byte
     {
         /// <summary>
-        /// Range of all values system messages will take.
-        /// This range will be reserved in handler lists and never employed by regular networking messages.
+        /// Regular message. Messages with this data will be passed down as regular messages.
         /// </summary>
-        Range = 0b111, // First 8 IDs are reserved.
-
-        /// <summary>
-        /// Amount of Message IDs reserved for system messages.
-        /// </summary>
-        Amount = Range + 1,
+        /// <remarks>
+        /// Anything other than regular message will be read as system message.
+        /// <see cref="Client.MessageReceived"/> or <see cref="Server.MessageReceived"/> won't fire for those messages.
+        /// </remarks>
+        Regular = 0,
 
         /// <summary>
         /// Message ID used in on-demand responses.
         /// </summary>
-        Response = 0,
+        Response = 1,
 
         /// <summary>
         /// Message handler used to compare whether all message handlers have the same IDs or not.
@@ -40,6 +38,6 @@ namespace Riptide.Toolkit
         /// Amount of handlers usually different only if two clients, or client and server has different networking mods installed.
         /// Client-side mods never modify handler collection (only by a developer's mistake), so they can be used safely.
         /// </remarks>
-        NetworkingValidationCheck = 1,
+        NetworkingValidationCheck,
     }
 }

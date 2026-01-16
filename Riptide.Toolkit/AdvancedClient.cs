@@ -87,7 +87,14 @@ namespace Riptide.Toolkit
             // TODO: Finish response handling.
             Send(Message.Create(mode)
                 .AddUShort((ushort)SystemMessageID.Response)
-                .AddUShort(NetworkMessage<TMessage, TGroup, TStorage>.MessageID));
+                .AddUShort(NetworkMessage<TMessage, TGroup, TStorage>.MessageID)
+                .AddByte((byte)SystemMessageID.Response));
+        }
+
+        public new void Send(Message message, bool shouldRelease = true)
+        {
+            message.AddByte((byte)SystemMessageID.Regular);
+            base.Send(message, shouldRelease);
         }
 
 
@@ -126,9 +133,23 @@ namespace Riptide.Toolkit
         private void ClientBroadcastMessage(object sender, MessageReceivedEventArgs args)
         {
             if (!m_BroadcastToHandlers) return;
+            args.Message.PeekBits(8, args.Message.UnreadBits - 8, out byte raw);
+            switch ((SystemMessageID)raw)
+            {
+                // Allows regular execution.
+                case SystemMessageID.Regular: break;
+
+                // Sends message data to a requesting side. Timeouts if response is not satisfied in time.
+                case SystemMessageID.Response: throw new NotImplementedException();
+                
+                // Fires custom handlers.
+                default: NetworkIndex.HandleClient(raw, this, args); return;
+            }
+
+            // Handles regular messages:
             if (m_MessageHandlers?.TryFire(this, args.MessageId, args.Message) != true)
             {
-                RiptideLogger.Log(LogType.Warning, $"No Client-side Eclipse message handler method found for message ID ({args.MessageId})!");
+                RiptideLogger.Log(LogType.Warning, $"No Client-side advanced message handler method found for message ID ({args.MessageId})!");
             }
         }
     }

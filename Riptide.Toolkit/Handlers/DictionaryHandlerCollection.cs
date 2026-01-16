@@ -45,7 +45,7 @@ namespace Riptide.Toolkit.Handlers
         /// <summary>
         /// Index of the next (probably) free cell in region array.
         /// </summary>
-        private int m_HeadIndex = (int)SystemMessageID.Amount; // Avoids ID range, allocated for system messages.
+        private int m_HeadIndex = 0;
 
 
 
@@ -81,6 +81,7 @@ namespace Riptide.Toolkit.Handlers
         /// </exception>
         public override THandler Get(ushort messageID)
         {
+            NetworkIndex.Initialize();
             return m_MainHandlers[messageID];
         }
 
@@ -93,18 +94,22 @@ namespace Riptide.Toolkit.Handlers
         /// </exception>
         public override THandler Get(ushort modID, ushort messageID)
         {
+            NetworkIndex.Initialize();
             return m_Handlers[modID][messageID];
         }
 
         /// <inheritdoc/>
         public override bool Has(ushort messageID)
         {
+            NetworkIndex.Initialize();
             return m_MainHandlers.ContainsKey(messageID);
         }
 
         /// <inheritdoc/>
         public override bool Has(ushort modID, ushort messageID)
         {
+            NetworkIndex.Initialize();
+
             // Assumes that mod lists are filled-in one-by-one.
             if (modID >= m_Handlers.Length) return false;
             var handlers = m_Handlers[modID];
@@ -115,12 +120,14 @@ namespace Riptide.Toolkit.Handlers
         /// <inheritdoc/>
         public override bool TryGet(ushort messageID, out THandler hander)
         {
+            NetworkIndex.Initialize();
             return m_MainHandlers.TryGetValue(messageID, out hander);
         }
 
         /// <inheritdoc/>
         public override bool TryGet(ushort modID, ushort messageID, out THandler hander)
         {
+            NetworkIndex.Initialize();
             if (modID >= m_Handlers.Length)
             {
                 hander = default;

@@ -11,6 +11,7 @@
 
 using Riptide.Toolkit.Handlers;
 using Riptide.Toolkit.Messages;
+using Riptide.Toolkit.Settings;
 using Riptide.Utils;
 using System;
 using System.Reflection;
@@ -50,6 +51,25 @@ namespace Riptide.Toolkit
         /// </summary>
         public const uint MaxMessageIDAmount = ushort.MaxValue + 1;
 
+        /// <summary>
+        /// How many handler array cells should be allocated for <see cref="SystemMessageID"/> enum.
+        /// </summary>
+        /// <remarks>
+        /// System messages work with all groups - they are used to determine if systems are compatible or not, so kind of important.
+        /// </remarks>
+        internal const ushort SystemMessagesCount = 4;
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                                 Delegates
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        internal delegate void ClientSystemHandler(AdvancedClient sender, MessageReceivedEventArgs args);
+        internal delegate void ServerSystemHandler(AdvancedServer sender, MessageReceivedEventArgs args);
+
 
 
 
@@ -79,8 +99,10 @@ namespace Riptide.Toolkit
         /// .                                               Private Fields
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private static ClientHandlers[] m_ClientHandlers = new ClientHandlers[1];
-        private static ServerHandlers[] m_ServerHandlers = new ServerHandlers[1];
+        private static readonly ClientSystemHandler[] m_ClientSystemHandlers = new ClientSystemHandler[SystemMessagesCount];
+        private static readonly ServerSystemHandler[] m_ServerSystemHandlers = new ServerSystemHandler[SystemMessagesCount];
+        private static ClientHandlers[] m_ClientHandlers = new ClientHandlers[1] { new ClientHandlers() };
+        private static ServerHandlers[] m_ServerHandlers = new ServerHandlers[1] { new ServerHandlers() };
         private static uint[] m_NextMessageIDs = new uint[1];
         private static volatile bool m_IsInitialized = false;
         private static volatile bool m_IsValid = false;
@@ -110,23 +132,39 @@ namespace Riptide.Toolkit
         public static void Invalidate() => m_IsValid = false;
         public static void Initialize()
         {
-            if (!m_IsInitialized) lock (_lock) InternalInitializeService();
+            RiptideLogger.Log(LogType.Warning, $"Checking for initialization");
             if (!m_IsValid) lock (_lock) UpdateHandlers();
         }
 
         /// <summary>
         /// Retrieves collection of all message handlers - specifically for client-side message handlers.
         /// </summary>
-        /// <param name="group">Group ID of a collection of client-side message handlers.</param>
+        /// <param name="groupID">Group ID of a collection of client-side message handlers.</param>
         /// <returns>Collection of client-side message handlers.</returns>
-        public static ClientHandlers ClientHandlers(byte group = 0) => m_ClientHandlers[group];
+        public static ClientHandlers ClientHandlers(byte groupID = 0)
+        {
+            if (groupID >= m_ClientHandlers.Length)
+            {
+                throw new Exception($"Client message handler group ({groupID}) is not defined.");
+            }
+
+            return m_ClientHandlers[groupID];
+        }
 
         /// <summary>
         /// Retrieves collection of all message handlers - specifically for server-side message handlers.
         /// </summary>
-        /// <param name="group">Group ID of a collection of server-side message handlers.</param>
+        /// <param name="groupID">Group ID of a collection of server-side message handlers.</param>
         /// <returns>Collection of server-side message handlers.</returns>
-        public static ServerHandlers ServerHandlers(byte group = 0) => m_ServerHandlers[group];
+        public static ServerHandlers ServerHandlers(byte groupID = 0)
+        {
+            if (groupID >= m_ServerHandlers.Length)
+            {
+                throw new Exception($"Server message handler group ({groupID}) is not defined");
+            }
+
+            return m_ServerHandlers[groupID];
+        }
 
         /// <summary>
         /// Retrieves next mod id for internal usage.
@@ -185,6 +223,19 @@ namespace Riptide.Toolkit
 
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
+        /// .                                                  Internal
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        internal static void Register(byte systemID, ClientSystemHandler handler) => m_ClientSystemHandlers[systemID] = handler;
+        internal static void Register(byte systemID, ServerSystemHandler handler) => m_ServerSystemHandlers[systemID] = handler;
+        internal static void HandleClient(byte systemID, AdvancedClient client, MessageReceivedEventArgs args) => m_ClientSystemHandlers[systemID](client, args);
+        internal static void HandleServer(byte systemID, AdvancedServer server, MessageReceivedEventArgs args) => m_ServerSystemHandlers[systemID](server, args);
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
         /// .                                               Private Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
@@ -205,20 +256,20 @@ namespace Riptide.Toolkit
             {
                 server[i] = new ServerHandlers();
             }
-
-            // Makes sure that system messages are left untouched.
-            const uint StartingID = (uint)SystemMessageID.Amount;
-            for (int i = 0; i < m_NextMessageIDs.Length; i++)
-            {
-                m_NextMessageIDs[i] = StartingID;
-            }
         }
 
         private static void UpdateHandlers()
         {
+            if (!m_IsInitialized)
+            {
+                InternalInitializeService();
+                m_IsInitialized = true;
+            }
+
             // Mandatory second check - needed when _lock unlocks.
             if (m_IsValid) return;
             m_IsValid = true;
+            RiptideLogger.Log(LogType.Warning, $"Updating handlers");
 
             try
             {
@@ -253,6 +304,8 @@ namespace Riptide.Toolkit
                     }
                 }
 
+                RiptideLogger.Log(LogType.Warning, $"Handlers are updated.");
+
                 // Simplifications:
                 void FetchHandlers(Assembly assembly)
                 {
@@ -277,50 +330,52 @@ namespace Riptide.Toolkit
             // TODO: Update, so it works better.
             if (!method.IsDefined(typeof(AdvancedMessageAttribute))) return;
 
+            RiptideLogger.Log(LogType.Warning, method.Name);
+
             // TODO: Analyze multiple attributes.
             AdvancedMessageAttribute attribute = method.GetCustomAttribute<AdvancedMessageAttribute>();
 
             // Differentiates client-side and server-side message handlers by the parameter types they specify.
             ParameterInfo[] parameters = method.GetParameters();
-            Type messageType, dataType;
-            byte groupID; ushort modID, messageID;
-            string logName;
+            Type dataType;
+            byte groupID = attribute.GroupID is null ? (byte)(GetValue(attribute.Group) ?? 0) : attribute.GroupID.Value;
+            ushort modID = attribute.Mod is null ? (ushort)0 : (ushort)GetValue(attribute.Mod);
+            ushort messageID;
             switch (parameters.Length)
             {
                 // Likely client-side method - they only have the NetworkMessage in parameters.
                 case 1:
                     dataType = parameters[0].ParameterType;
-                    if (attribute.Message != null)
+                    if (typeof(NetworkMessage).IsAssignableFrom(dataType))
                     {
-                        messageType = attribute.Message.DeclaringType;
+                        if (AdvancedMessageAttribute.LookupMember<MessageIDAttribute>(
+                            dataType, out MemberInfo member,
+                            Reflections.MessageAttributeAnalysis_PrioritizeFields))
+                        {
+                            messageID = (ushort)GetValue(member);
+                        }
+                        else
+                        {
+                            throw new Exception($"{LogPrefix} Cannot find {nameof(MessageIDAttribute)} in {nameof(NetworkMessage)} inside {method.Name} body.");
+                        }
                     }
-                    else if (typeof(NetworkMessage).IsAssignableFrom(dataType))
+                    else if (attribute.MessageID.HasValue)
                     {
-                        messageType = dataType;
+                        messageID = attribute.MessageID.Value;
+                    }
+                    else if (attribute.Message is null)
+                    {
+                        throw new Exception($"{LogPrefix} MessageID for {method.Name} was not provided by any of 3 known methods" +
+                            $"(method body, ID in attribute, type in attribute)");
                     }
                     else
                     {
-                        throw new Exception($"Message handler ({method.Name}) is likely client-side, but has unsupported parameter {parameters[0].Name} ({dataType.Name}). Make sure that parameter is either {nameof(Toolkit)}.{nameof(Message)} or {nameof(Messages)}.{nameof(NetworkMessage)}.");
+                        messageID = (ushort)GetValue(attribute.Message);
                     }
 
-                    // Retrieves generic base class for messages, which contains GroupID and MessageID.
-                    // We need this since static generic fields cannot be retrieved without specific types (Flatten binding flag doesn't work either).
-                    logName = messageType.Name;
-                    while (messageType.BaseType != typeof(NetworkMessage))
-                    {
-                        messageType = messageType.BaseType;
-                    }
-
-                    modID = (ushort)(GetValue(attribute.Mod) ?? 0);
-                    groupID = attribute.GroupID is null
-                        ? (byte)(GetValue(attribute.Group) ?? 0)
-                        : attribute.GroupID.Value;
-                    messageID = attribute.MessageID is null
-                        ? (ushort)(GetValue(attribute.Message) ?? throw new Exception($"{LogPrefix} Message ID was not provided"))
-                        : attribute.MessageID.Value;
                     ClientHandlers.HandlerInfo clientHandler = new ClientHandlers.HandlerInfo(method, dataType);
                     MessageHandlerCollection<ClientHandlers.HandlerInfo>.Unsafe.Set(m_ClientHandlers[groupID].Handlers, modID, messageID, clientHandler);
-                    RiptideLogger.Log(LogType.Info, $"Client message handler ({method.Name}) with message type {logName} was found and it is valid!");
+                    RiptideLogger.Log(LogType.Info, $"Client message handler ({method.Name}) with message was found and it is valid!");
                     break;
 
                 // Likely server-side method - they have UserID and INetworkMessage in parameters.
@@ -331,37 +386,36 @@ namespace Riptide.Toolkit
                     }
 
                     dataType = parameters[1].ParameterType;
-                    if (attribute.Message != null)
+                    if (typeof(NetworkMessage).IsAssignableFrom(dataType))
                     {
-                        messageType = attribute.Message.DeclaringType;
+                        if (AdvancedMessageAttribute.LookupMember<MessageIDAttribute>(
+                            dataType, out MemberInfo member,
+                            Reflections.MessageAttributeAnalysis_PrioritizeFields))
+                        {
+                            messageID = (ushort)GetValue(member);
+                        }
+                        else
+                        {
+                            throw new Exception($"{LogPrefix} Cannot find {nameof(MessageIDAttribute)} in {nameof(NetworkMessage)} inside {method.Name} body.");
+                        }
                     }
-                    else if (typeof(NetworkMessage).IsAssignableFrom(dataType))
+                    else if (attribute.MessageID.HasValue)
                     {
-                        messageType = dataType;
+                        messageID = attribute.MessageID.Value;
+                    }
+                    else if (attribute.Message is null)
+                    {
+                        throw new Exception($"{LogPrefix} MessageID for {method.Name} was not provided by any of 3 known methods" +
+                            $"(method body, ID in attribute, type in attribute)");
                     }
                     else
                     {
-                        throw new Exception($"Message handler ({method.Name}) is likely client-side, but has unsupported parameter {parameters[1].Name} ({dataType.Name}). Make sure that parameter is either {nameof(Toolkit)}.{nameof(Message)} or {nameof(Messages)}.{nameof(NetworkMessage)}.");
+                        messageID = (ushort)GetValue(attribute.Message);
                     }
 
-                    // Retrieves generic base class for messages, which contains GroupID and MessageID.
-                    // We need this since static generic fields cannot be retrieved without specific types (Flatten binding flag doesn't work either).
-                    logName = messageType.Name;
-                    while (messageType.BaseType != typeof(NetworkMessage))
-                    {
-                        messageType = messageType.BaseType;
-                    }
-
-                    modID = (ushort)(GetValue(attribute.Mod) ?? 0);
-                    groupID = attribute.GroupID is null
-                        ? (byte)(GetValue(attribute.Group) ?? 0)
-                        : attribute.GroupID.Value;
-                    messageID = attribute.MessageID is null
-                        ? (ushort)(GetValue(attribute.Message) ?? throw new Exception($"{LogPrefix} Message ID was not provided"))
-                        : attribute.MessageID.Value;
                     ServerHandlers.HandlerInfo serverHandler = new ServerHandlers.HandlerInfo(method, dataType);
                     MessageHandlerCollection<ServerHandlers.HandlerInfo>.Unsafe.Set(m_ServerHandlers[groupID].Handlers, modID, messageID, serverHandler);
-                    RiptideLogger.Log(LogType.Info, $"Server message handler ({method.Name}) with message type {logName} was found and it is valid!");
+                    RiptideLogger.Log(LogType.Info, $"Client message handler ({method.Name}) with message was found and it is valid!");
                     break;
 
                 // Any other kind of signature is not supported at the moment.

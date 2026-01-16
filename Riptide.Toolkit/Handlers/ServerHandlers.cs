@@ -101,7 +101,7 @@ namespace Riptide.Toolkit.Handlers
         /// <inheritdoc cref="TryFire(AdvancedServer, ushort, ushort, ushort, Message)"/>
         public bool TryFire(AdvancedServer server, ushort messageID, ushort clientID, Message message)
         {
-            if (Has(messageID))
+            if (Handlers.Has(messageID))
             {
                 Fire(server, messageID, clientID, message);
                 return true;
@@ -120,7 +120,7 @@ namespace Riptide.Toolkit.Handlers
         /// <returns><c>false</c> if there is no handler under given <paramref name="messageID"/> registered. <c>true</c> otherwise.</returns>
         public bool TryFire(AdvancedServer server, ushort modID, ushort messageID, ushort clientID, Message message)
         {
-            if (Has(modID, messageID))
+            if (Handlers.Has(modID, messageID))
             {
                 Fire(server, modID, messageID, clientID, message);
                 return true;
@@ -132,7 +132,7 @@ namespace Riptide.Toolkit.Handlers
         /// <inheritdoc cref="Fire(AdvancedServer, ushort, ushort, ushort, Message)"/>
         public void Fire(AdvancedServer server, ushort messageID, ushort clientID, Message message)
         {
-            HandlerInfo info = Get(messageID);
+            HandlerInfo info = Handlers.Get(messageID);
             object[] args = new object[2];
             args[0] = clientID;
 
@@ -170,7 +170,7 @@ namespace Riptide.Toolkit.Handlers
         /// <param name="message">Message to read.</param>
         public void Fire(AdvancedServer server, ushort modID, ushort messageID, ushort clientID, Message message)
         {
-            HandlerInfo info = Get(modID, messageID);
+            HandlerInfo info = Handlers.Get(modID, messageID);
             object[] args = new object[2];
             args[0] = clientID;
 

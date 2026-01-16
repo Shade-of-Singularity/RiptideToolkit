@@ -13,6 +13,7 @@ using Riptide.Toolkit.Handlers;
 using Riptide.Transports;
 using Riptide.Transports.Udp;
 using Riptide.Utils;
+using System;
 
 namespace Riptide.Toolkit
 {
@@ -86,15 +87,61 @@ namespace Riptide.Toolkit
 
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
+        /// .                                                  Internal
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        /// <inheritdoc cref="Server.Send(Message, ushort, bool)"/>
+        public new void Send(Message message, ushort toClient, bool shouldRelease = true)
+        {
+            base.Send(message.AddByte((byte)SystemMessageID.Regular), toClient, shouldRelease);
+        }
+
+        /// <inheritdoc cref="Server.Send(Message, Connection, bool)"/>
+        public new ushort Send(Message message, Connection toClient, bool shouldRelease = true)
+        {
+            return toClient.Send(message.AddByte((byte)SystemMessageID.Regular), shouldRelease);
+        }
+
+        /// <inheritdoc cref="Server.SendToAll(Message, bool)"/>
+        public new void SendToAll(Message message, bool shouldRelease = true)
+        {
+            base.SendToAll(message.AddByte((byte)SystemMessageID.Regular), shouldRelease);
+        }
+
+        /// <inheritdoc cref="Server.SendToAll(Message, ushort, bool)"/>
+        public new void SendToAll(Message message, ushort exceptToClientId, bool shouldRelease = true)
+        {
+            base.SendToAll(message.AddByte((byte)SystemMessageID.Regular), shouldRelease);
+        }
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
         /// .                                               Private Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         private void ServerBroadcastMessage(object sender, MessageReceivedEventArgs args)
         {
             if (!m_BroadcastToHandlers) return;
+            args.Message.PeekBits(8, args.Message.UnreadBits - 8, out byte raw);
+            switch ((SystemMessageID)raw)
+            {
+                // Allows regular execution.
+                case SystemMessageID.Regular: break;
+
+                // Handles message response.
+                case SystemMessageID.Response: throw new NotImplementedException();
+
+                // Fires custom handlers.
+                default: NetworkIndex.HandleServer(raw, this, args); return;
+            }
+
+            // Handles regular messages:
             if (m_MessageHandlers?.TryFire(this, args.MessageId, args.FromConnection.Id, args.Message) != true)
             {
-                RiptideLogger.Log(LogType.Warning, $"No Server-side Eclipse message handler method found for message ID ({args.MessageId})!");
+                RiptideLogger.Log(LogType.Warning, $"No Server-side advanced message handler method found for message ID ({args.MessageId})!");
             }
         }
     }

@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="RiptideNetworking.Riptide" Version="2.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Riptide.Toolkit\Riptide.Toolkit.csproj" />
   </ItemGroup>
 

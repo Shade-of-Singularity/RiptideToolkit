@@ -26,7 +26,7 @@ namespace Riptide.Toolkit.Examples
         /// <summary>
         /// 
         /// </summary>
-        [AdvancedMessage]
+        [AdvancedMessage(0, 0)]
         public static void RequestHandler(Message message)
         {
             throw new NotImplementedException();
@@ -40,6 +40,13 @@ namespace Riptide.Toolkit.Examples
         /// .                                                Server-side
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-
+        /// <summary>
+        /// 
+        /// </summary>
+        [AdvancedMessage(0, 0)]
+        public static void RequestHandler(ushort client, Message message)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

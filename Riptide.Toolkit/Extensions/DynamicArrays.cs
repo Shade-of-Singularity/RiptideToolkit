@@ -22,7 +22,7 @@ namespace Riptide.Toolkit.Extensions
         /// .                                                 Constants
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public const int MinimalArraySize = (int)SystemMessageID.Amount;
+        public const int MinimalArraySize = 4;
 
 
 

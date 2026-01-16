@@ -329,12 +329,12 @@ namespace Riptide.Toolkit
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool LookupMember<T>(Type target, out MemberInfo member, bool fieldsFirst) where T : Attribute
+        internal static bool LookupMember<T>(Type target, out MemberInfo member, bool fieldsFirst) where T : Attribute
         {
             return LookupMember(typeof(T), target, out member, fieldsFirst);
         }
 
-        private static bool LookupMember(Type attribute, Type target, out MemberInfo member, bool fieldsFirst)
+        internal static bool LookupMember(Type attribute, Type target, out MemberInfo member, bool fieldsFirst)
         {
             if (fieldsFirst)
             {

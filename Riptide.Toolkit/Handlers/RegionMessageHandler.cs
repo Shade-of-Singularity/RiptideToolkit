@@ -62,7 +62,7 @@ namespace Riptide.Toolkit.Handlers
         /// <summary>
         /// Index of the next (probably) free cell in region array.
         /// </summary>
-        private int m_HeadIndex = (int)SystemMessageID.Amount; // Avoids ID range, allocated for system messages.
+        private int m_HeadIndex = 0;
 
 
 
@@ -110,6 +110,7 @@ namespace Riptide.Toolkit.Handlers
         /// </exception>
         public override THandler Get(ushort messageID)
         {
+            NetworkIndex.Initialize();
             return m_MainRegions[messageID >> m_RegionOffset][messageID & m_RegionMask];
         }
 
@@ -120,12 +121,14 @@ namespace Riptide.Toolkit.Handlers
         /// </exception>
         public override THandler Get(ushort modID, ushort messageID)
         {
+            NetworkIndex.Initialize();
             return m_Regions[modID][messageID >> m_RegionOffset][messageID & m_RegionMask];
         }
 
         /// <inheritdoc/>
         public override bool Has(ushort messageID)
         {
+            NetworkIndex.Initialize();
             var region = m_MainRegions[messageID >> m_RegionOffset];
             return !(region is null) && !region[messageID & m_RegionMask].IsDefault;
         }
@@ -133,6 +136,7 @@ namespace Riptide.Toolkit.Handlers
         /// <inheritdoc/>
         public override bool Has(ushort modID, ushort messageID)
         {
+            NetworkIndex.Initialize();
             var region = m_Regions[modID][messageID >> m_RegionOffset];
             return !(region is null) && !region[messageID & m_RegionMask].IsDefault;
         }
@@ -140,6 +144,7 @@ namespace Riptide.Toolkit.Handlers
         /// <inheritdoc/>
         public override bool TryGet(ushort messageID, out THandler hander)
         {
+            NetworkIndex.Initialize();
             var region = m_MainRegions[messageID >> m_RegionOffset];
             if (region is null)
             {
@@ -154,6 +159,7 @@ namespace Riptide.Toolkit.Handlers
         /// <inheritdoc/>
         public override bool TryGet(ushort modID, ushort messageID, out THandler hander)
         {
+            NetworkIndex.Initialize();
             var region = m_Regions[modID][messageID >> m_RegionOffset];
             if (region is null)
             {
@@ -180,10 +186,13 @@ namespace Riptide.Toolkit.Handlers
             var mods = m_Regions;
             for (int i = 0; i < mods.Length; i++)
             {
-                var regions = mods[i];
-                for (int j = 0; j < regions.Length; j++)
+                var mod = mods[i];
+                if (mod is null) continue;
+                for (int j = 0; j < mod.Length; j++)
                 {
-                    Array.Clear(regions[i], 0, size);
+                    var region = mod[i];
+                    if (region is null) continue;
+                    Array.Clear(region, 0, size);
                 }
             }
         }
@@ -194,10 +203,11 @@ namespace Riptide.Toolkit.Handlers
             var mods = m_Regions;
             for (int i = 0; i < mods.Length; i++)
             {
-                var regions = mods[i];
-                for (int j = 0; j < regions.Length; j++)
+                var mod = mods[i];
+                if (mod is null) continue;
+                for (int j = 0; j < mod.Length; j++)
                 {
-                    regions[j] = null;
+                    mod[j] = null;
                 }
             }
         }
