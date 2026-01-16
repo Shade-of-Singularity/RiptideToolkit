@@ -3,7 +3,7 @@ Community Toolkit for [RiptideNetworking](https://github.com/RiptideNetworking/R
 Makes Riptide support community modding.
 Also gives new ways for handling messages, and general ease-of-use.
 
-Deeveloped with high performance in mind.
+Developed with high performance in mind.
 
 ## Modding Support
 `...`
