@@ -62,11 +62,6 @@ namespace Riptide.Toolkit
         /// </summary>
         public ushort? MessageID { get; set; } = null;
 
-        /// <summary>
-        /// (WIP) Whether this message supports 'message.Respond(content)' responses, similar to HTTP GET requests.
-        /// </summary>
-        // public bool? SupportResponses { get; set; } = null;
-
 
 
 

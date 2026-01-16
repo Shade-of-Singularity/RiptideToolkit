@@ -34,6 +34,13 @@ namespace Riptide.Toolkit
         public const string LogPrefix = "[" + nameof(NetworkIndex) + "]";
 
         /// <summary>
+        /// How many mods toolkit supports.
+        /// You can bypass this limit by not registering mods which doesn't use networking.
+        /// (Though, I have no idea how you can genuinely exhaust all 65536 available mod IDs)
+        /// </summary>
+        public const uint MaxModIDAmount = ushort.MaxValue + 1;
+
+        /// <summary>
         /// How many groups can be generated.
         /// </summary>
         public const ushort MaxGroupIDAmount = byte.MaxValue + 1;
@@ -79,6 +86,7 @@ namespace Riptide.Toolkit
         private static volatile bool m_IsValid = false;
         private static readonly object _lock = new object();
         private static ushort m_NextGroupID; // We use ushort instead of byte, to gracefully handle ID exhaustion.
+        private static uint m_NextModID; // We use uint instead of ushort, to gracefully handle ID exhaustion.
 
 
 
@@ -125,7 +133,12 @@ namespace Riptide.Toolkit
         /// </summary>
         public static ushort NextModID()
         {
-            throw new NotImplementedException("Mod ID retrieval is not implemented yet.");
+            if (m_NextModID >= MaxModIDAmount)
+            {
+                throw new Exception("Exhausted all Mod IDs for Riptide networking.");
+            }
+
+            return (ushort)++m_NextModID;
         }
 
         /// <summary>
@@ -133,16 +146,24 @@ namespace Riptide.Toolkit
         /// </summary>
         public static byte NextGroupID()
         {
-            // If group ID returns back to 0
             if (m_NextGroupID >= MaxGroupIDAmount)
             {
                 throw new Exception("Exhausted all network Group IDs for Riptide networking.");
             }
 
+            ushort index = m_NextGroupID;
+            if (index >= m_NextMessageIDs.Length)
+            {
+                Array.Resize(ref m_ClientHandlers, m_NextGroupID);
+                m_ClientHandlers[index] = new ClientHandlers();
 
-            if (m_NextGroupID)
-            m_NextGroupID++;
-            return (byte)m_NextGroupID++;
+                Array.Resize(ref m_ServerHandlers, m_NextGroupID);
+                m_ServerHandlers[index] = new ServerHandlers();
+
+                Array.Resize(ref m_NextMessageIDs, m_NextGroupID);
+            }
+
+            return (byte)(m_NextGroupID = (ushort)(index + 1));
         }
 
         public static ushort NextMessageID(byte groupID)
@@ -153,7 +174,7 @@ namespace Riptide.Toolkit
                 throw new Exception("Exhausted all network Message IDs for Riptide networking.");
             }
 
-            return (ushort)m_NextMessageIDs[groupID]++;
+            return (ushort)++m_NextMessageIDs[groupID];
         }
 
 
