@@ -19,15 +19,15 @@ namespace Riptide.Toolkit.Handlers
     /// <summary>
     /// Collection of all server-side message handlers for specific handler group ID.
     /// </summary>
-    public sealed class ServerHandlers : MessageHandlers<ServerHandlers.HandlerInfo>
+    public sealed class ServerHandlers : MessageHandlerCollection<ServerHandlers.HandlerInfo>
     {
         /// <summary>
         /// Client-side handler info.
         /// </summary>
-        public readonly struct HandlerInfo : IStructValidation
+        public readonly struct HandlerInfo : IStructValidator
         {
             /// <inheritdoc/>
-            bool IStructValidation.IsDefault => Method is null;
+            bool IStructValidator.IsDefault => Method is null;
 
             /// <summary>
             /// Method which have to be invoked.

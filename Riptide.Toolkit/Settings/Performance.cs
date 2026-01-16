@@ -45,6 +45,11 @@ namespace Riptide.Toolkit.Settings
             }
         }
 
+        /// <summary>
+        /// Region size for <see cref="Handlers.RegionHandlerCollection"/>.
+        /// </summary>
+        public static int RegionSize => m_RegionSize;
+
 
 
 
@@ -54,6 +59,7 @@ namespace Riptide.Toolkit.Settings
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         private static PerformanceType m_Type = PerformanceType.OptimizeCPU;
+        private static int m_RegionSize = 16;
 
 
 

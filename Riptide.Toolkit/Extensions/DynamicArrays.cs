@@ -176,7 +176,7 @@ namespace Riptide.Toolkit.Extensions
             return head;
         }
 
-        public static int PutStruct<T>(ref T[] array, ref int head, T value) where T : IStructValidation
+        public static int PutStruct<T>(ref T[] array, ref int head, T value) where T : IStructValidator
         {
             // Allocated local array variable to reduce instruction amount.
             int length = array.Length;
@@ -196,7 +196,7 @@ namespace Riptide.Toolkit.Extensions
             return head;
         }
 
-        public static int PutStruct<T>(ref T[] array, ref int head, T value, int limit) where T : IStructValidation
+        public static int PutStruct<T>(ref T[] array, ref int head, T value, int limit) where T : IStructValidator
         {
             // Allocated local array variable to reduce instruction amount.
             int length = array.Length;
@@ -240,10 +240,10 @@ namespace Riptide.Toolkit.Extensions
 
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
-        /// .                                               Private Methods
+        /// .                                                  Helpers
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private static int NextArraySize(int v)
+        public static int NextArraySize(int v)
         {
             // Clamps to the minimal allowed size.
             if (v < MinimalArraySize)
@@ -259,7 +259,7 @@ namespace Riptide.Toolkit.Extensions
         }
     }
 
-    public interface IStructValidation
+    public interface IStructValidator
     {
         /// <summary>
         /// Utilized by structs to tell if they are in a <see cref="default"/> state, e.g. and can be overwritten.

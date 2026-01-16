@@ -14,64 +14,85 @@ using Riptide.Toolkit.Extensions;
 namespace Riptide.Toolkit.Handlers
 {
     /// <summary>
-    /// Collection of all network message handlers.
+    /// Base class for collections, which store client-side/server-side message handlers.
     /// </summary>
     /// <remarks>
-    /// DO NOT inherit this class!
-    /// Use <see cref="ServerHandlers"/> and <see cref="ClientHandlers"/> directly instead.
-    /// This is because custom message handler collections are not supported at the moment.
+    /// No reason to implement this one - Toolkit won't use any custom implementation (as of right now).
+    /// Implemented in <see cref="RegionHandlerCollection{THandler}"/> and {TODO: insert DictionaryHandlerCollection}.
     /// </remarks>
-    /// Note: Supports only structs as <typeparam name="THandler".
-    public abstract class MessageHandlers<THandler> where THandler : IStructValidation
+    public abstract class MessageHandlerCollection<THandler> where THandler : IStructValidator
     {
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
-        /// .
-        /// .                                               Private Fields
-        /// .
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private THandler[] m_Handlers = new THandler[(int)SystemMessageID.Amount];
-        private int m_HeadIndex = (int)SystemMessageID.Amount;
-
-
-
-
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
         /// .                                               Public Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public THandler Get(ushort messageID)
-        {
-            NetworkIndex.Initialize();
-            // We don't need checks here - it will throw anyway.
-            // if (id > m_Handlers.Length) throw new ArgumentOutOfRangeException(nameof(id));
-            return m_Handlers[messageID];
-        }
+        /// <summary>
+        /// Retrieves message handler under given <paramref name="messageID"/>.
+        /// </summary>
+        /// <param name="messageID">ID associated with an message handler.</param>
+        /// <returns>Message handler under given ID, or throws.</returns>
+        public abstract THandler Get(ushort messageID);
 
         /// <summary>
         /// Checks if handler is defined.
         /// </summary>
         /// <param name="messageID">Handler MessageID to check.</param>
         /// <returns><c>true</c> if defined. <c>false</c> otherwise.</returns>
-        public bool Has(ushort messageID)
-        {
-            NetworkIndex.Initialize();
-            if (messageID > m_Handlers.Length) return false;
-            return !m_Handlers[messageID].IsDefault;
-        }
+        public abstract bool Has(ushort messageID);
 
-        public bool TryGet(ushort messageID, out THandler hander)
-        {
-            NetworkIndex.Initialize();
-            if (messageID > m_Handlers.Length)
-            {
-                hander = default;
-                return false;
-            }
+        /// <summary>
+        /// Tries to find message handler under given <paramref name="messageID"/>.
+        /// </summary>
+        /// <param name="messageID">ID associated with an message handler.</param>
+        /// <param name="hander">Message handler under given ID or default value.</param>
+        /// <returns><c>true</c> if handler was found. <c>false</c> otherwise.</returns>
+        public abstract bool TryGet(ushort messageID, out THandler hander);
 
-            hander = m_Handlers[messageID];
-            return !hander.IsDefault;
-        }
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                              Protected Methods
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        /// <summary>
+        /// Clears internal handler array.
+        /// </summary>
+        /// <remarks>
+        /// Clears even system messages.
+        /// </remarks>
+        protected abstract void Clear();
+
+        /// <summary>
+        /// Clears internal handler array and resizes buffers to default size.
+        /// GC will be able to collect released resources, if there is any.
+        /// </summary>
+        /// <remarks>
+        /// Clears even system messages.
+        /// </remarks>
+        protected abstract void Reset();
+
+        /// <summary>
+        /// Registers message handler on target <paramref name="messageID"/>.
+        /// </summary>
+        /// <param name="messageID">Handler MessageID to associate with <paramref name="handler"/>.</param>
+        /// <param name="handler">Message handler to register.</param>
+        protected abstract void Set(ushort messageID, THandler handler);
+
+        /// <summary>
+        /// Puts <paramref name="handler"/> on the next free MessageID.
+        /// </summary>
+        /// <param name="handler">Message handler to store.</param>
+        /// <returns>MessageID under which handler was registered.</returns>
+        protected abstract ushort Put(THandler handler);
+
+        /// <summary>
+        /// Removes message handler under given <paramref name="messageID"/>.
+        /// </summary>
+        /// <param name="messageID">Handler MessageID to check and remove.</param>
+        protected abstract void Remove(ushort messageID);
 
 
 
@@ -83,57 +104,20 @@ namespace Riptide.Toolkit.Handlers
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         internal static class Unsafe
         {
-            /// <summary>
-            /// Clears internal handler array.
-            /// </summary>
-            /// <remarks>
-            /// Clears even system messages.
-            /// </remarks>
-            public static void Clear(MessageHandlers<THandler> handlers)
-            {
-                handlers.m_Handlers.Clear(ref handlers.m_HeadIndex);
-            }
+            /// <inheritdoc cref="MessageHandlerCollection{THandler}.Clear()"/>
+            public static void Clear(MessageHandlerCollection<THandler> handlers) => handlers.Clear();
 
-            /// <summary>
-            /// Clears internal handler array and resizes it to a target size.
-            /// </summary>
-            /// <remarks>
-            /// Clears even system messages.
-            /// </remarks>
-            /// <param name="size">New size of the array.</param>
-            public static void Reset(MessageHandlers<THandler> handlers, ushort size)
-            {
-                DynamicArrays.Reset(ref handlers.m_Handlers, ref handlers.m_HeadIndex, size);
-            }
+            /// <inheritdoc cref="MessageHandlerCollection{THandler}.Reset()"/>
+            public static void Reset(MessageHandlerCollection<THandler> handlers) => handlers.Reset();
 
-            /// <summary>
-            /// Registers message handler on target <paramref name="messageID"/>.
-            /// </summary>
-            /// <param name="messageID">Handler MessageID to associate with <paramref name="handler"/>.</param>
-            /// <param name="handler">Message handler to register.</param>
-            public static void Set(MessageHandlers<THandler> handlers, ushort messageID, THandler handler)
-            {
-                DynamicArrays.Set(ref handlers.m_Handlers, messageID, handler, limit: ushort.MaxValue);
-            }
+            /// <inheritdoc cref="MessageHandlerCollection{THandler}.Set(ushort, THandler)"/>
+            public static void Set(MessageHandlerCollection<THandler> handlers, ushort messageID, THandler handler) => handlers.Set(messageID, handler);
 
-            /// <summary>
-            /// Puts <paramref name="handler"/> on the next free MessageID.
-            /// </summary>
-            /// <param name="handler">Message handler to store.</param>
-            /// <returns>MessageID under which handler was registered.</returns>
-            public static ushort Put(MessageHandlers<THandler> handlers, THandler handler)
-            {
-                return (ushort)DynamicArrays.Put(ref handlers.m_Handlers, ref handlers.m_HeadIndex, handler, limit: ushort.MaxValue);
-            }
+            /// <inheritdoc cref="MessageHandlerCollection{THandler}.Put(THandler)"/>
+            public static ushort Put(MessageHandlerCollection<THandler> handlers, THandler handler) => handlers.Put(handler);
 
-            /// <summary>
-            /// Removes message handler under given <paramref name="messageID"/>.
-            /// </summary>
-            /// <param name="messageID">Handler MessageID to check and remove.</param>
-            public static void Remove(MessageHandlers<THandler> handlers, ushort messageID)
-            {
-                DynamicArrays.Remove(ref handlers.m_Handlers, messageID);
-            }
+            /// <inheritdoc cref="MessageHandlerCollection{THandler}.Remove(ushort)"/>
+            public static void Remove(MessageHandlerCollection<THandler> handlers, ushort messageID) => handlers.Remove(messageID);
         }
     }
 }

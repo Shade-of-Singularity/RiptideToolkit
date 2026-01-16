@@ -11,6 +11,7 @@
 
 using Riptide.Toolkit.Extensions;
 using Riptide.Toolkit.Messages;
+using Riptide.Toolkit.Settings;
 using System;
 using System.Reflection;
 
@@ -19,15 +20,15 @@ namespace Riptide.Toolkit.Handlers
     /// <summary>
     /// Collection of all server-side message handlers for specific handler group ID.
     /// </summary>
-    public sealed class ClientHandlers : MessageHandlers<ClientHandlers.HandlerInfo>
+    public sealed class ClientHandlers
     {
         /// <summary>
         /// Client-side handler info.
         /// </summary>
-        public readonly struct HandlerInfo : IStructValidation
+        public readonly struct HandlerInfo : IStructValidator
         {
             /// <inheritdoc/>
-            bool IStructValidation.IsDefault => Method is null;
+            bool IStructValidator.IsDefault => Method is null;
 
             /// <summary>
             /// Method which have to be invoked.
@@ -53,6 +54,18 @@ namespace Riptide.Toolkit.Handlers
                 MessageType = messageType;
             }
         }
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                              Public Properties
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        public MessageHandlerCollection<HandlerInfo> Handlers { get; } = Performance.Type == PerformanceType.OptimizeCPU
+            ? new RegionHandlerCollection<HandlerInfo>(Performance.RegionSize)
+            : throw new NotSupportedException("Dictionary handlers are not supported yet."); 
 
 
 
