@@ -32,7 +32,7 @@ namespace Riptide.Toolkit
     /// Mods also has to be initialized in one set order, but it should be handled by <see cref="Engine"/> automatically anyway.
     /// </remarks>
     /// Note: (TODO) Allows multiple so you can define same methods in multiple groups.
-    /// TODO: Use MemberInfo instead of Type, or box FieldInfo/PropertyInfo instead.
+    /// TODO: Support methods without method parameters (for flag messages) and with 1 parameter (for server-side flag messages)
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
     public sealed class AdvancedMessageAttribute : Attribute
     {

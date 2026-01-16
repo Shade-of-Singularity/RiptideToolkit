@@ -28,7 +28,12 @@ namespace Riptide.Toolkit
         /// <summary>
         /// Message ID used in on-demand responses.
         /// </summary>
-        Response = 1,
+        Request = 1,
+
+        /// <summary>
+        /// Message ID used in on-demand responses.
+        /// </summary>
+        Response = 2,
 
         /// <summary>
         /// Message handler used to compare whether all message handlers have the same IDs or not.

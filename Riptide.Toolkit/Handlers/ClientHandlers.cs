@@ -145,15 +145,16 @@ namespace Riptide.Toolkit.Handlers
                 args[0] = container;
             }
 
+            // Note: untested.
             switch (info.Method.Invoke(null, args))
             {
                 // If you return regular message - it will immediately send its contents as a response.
                 // TODO: Make sure that FlagMessages will also be supported.
-                case Message msg: client.Send(msg); break;
+                case Message msg: client.SendResponse(msg); break;
 
                 // Automatically packs and sends response message.
                 // TODO: Make sure that MessageID is read correctly.
-                case NetworkMessage net: client.Send(net.Write(message)); break;
+                case NetworkMessage net: client.SendResponse(net.Write(message)); break;
                 default: break;
             }
         }
@@ -187,11 +188,11 @@ namespace Riptide.Toolkit.Handlers
             {
                 // If you return regular message - it will immediately send its contents as a response.
                 // TODO: Make sure that FlagMessages will also be supported.
-                case Message msg: client.Send(msg); break;
+                case Message msg: client.SendResponse(msg); break;
 
                 // Automatically packs and sends response message.
                 // TODO: Make sure that MessageID is read correctly.
-                case NetworkMessage net: client.Send(net.Write(message)); break;
+                case NetworkMessage net: client.SendResponse(net.Write(message)); break;
                 default: break;
             }
         }

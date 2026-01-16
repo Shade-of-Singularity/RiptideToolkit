@@ -9,6 +9,7 @@
 /// 
 /// ]]>
 
+using Riptide.Utils;
 using System;
 
 namespace Riptide.Toolkit.Examples
@@ -29,7 +30,13 @@ namespace Riptide.Toolkit.Examples
         [AdvancedMessage(0, 0)]
         public static void RequestHandler(Message message)
         {
-            throw new NotImplementedException();
+            RiptideLogger.Log(LogType.Warning, $"Fired client-side {nameof(RequestHandler)}");
+        }
+
+        [AdvancedMessage(typeof(ExampleMod), typeof(ExampleGroup))]
+        public static void ReceiveInventory(ReceiveInventory inventory)
+        {
+            RiptideLogger.Log(LogType.Warning, $"Inventory received!");
         }
 
 
@@ -46,7 +53,7 @@ namespace Riptide.Toolkit.Examples
         [AdvancedMessage(0, 0)]
         public static void RequestHandler(ushort client, Message message)
         {
-            throw new NotImplementedException();
+            RiptideLogger.Log(LogType.Warning, $"Fired server-side {nameof(RequestHandler)} from client ({client})");
         }
     }
 }

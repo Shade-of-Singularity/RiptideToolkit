@@ -67,34 +67,67 @@ namespace Riptide.Toolkit
         /// .                                               Public Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        /// <inheritdoc cref="SendRequest{TMessage, TGroup, TStorage}(MessageSendMode, Action{NetworkMessage{TMessage, TGroup, TStorage}})"/>
-        public void SendRequest<TMessage, TGroup, TStorage>(Action<NetworkMessage<TMessage, TGroup, TStorage>> handler)
-            where TMessage : NetworkMessage<TMessage, TGroup, TStorage>, new()
-            where TGroup : NetworkGroup<TGroup>
-            where TStorage : StorageProfile<TStorage>, new()
+        public new void Send(Message message, bool shouldRelease = true)
         {
-            SendRequest(MessageSendMode.Reliable, handler);
+            message.AddByte((byte)SystemMessageID.Regular);
+            base.Send(message, shouldRelease);
         }
 
         /// <summary>
         /// Sends special data request to the server.
         /// </summary>
-        public void SendRequest<TMessage, TGroup, TStorage>(MessageSendMode mode, Action<NetworkMessage<TMessage, TGroup, TStorage>> handler)
+        public void SendRequest<TMessage, TGroup, TStorage>(Action<NetworkMessage<TMessage, TGroup, TStorage>> handler)
+            where TMessage : NetworkMessage<TMessage, TGroup, TStorage>, new()
+            where TGroup : NetworkGroup<TGroup>
+            where TStorage : StorageProfile<TStorage>, new()
+        {
+            SendRequest(handler, MessageSendMode.Reliable);
+        }
+
+        /// <summary>
+        /// Sends special data request to the server.
+        /// </summary>
+        public void SendRequest<TMessage, TGroup, TStorage>(Action<NetworkMessage<TMessage, TGroup, TStorage>> handler, MessageSendMode mode)
             where TMessage : NetworkMessage<TMessage, TGroup, TStorage>, new()
             where TGroup : NetworkGroup<TGroup>
             where TStorage : StorageProfile<TStorage>, new()
         {
             // TODO: Finish response handling.
-            Send(Message.Create(mode)
-                .AddUShort((ushort)SystemMessageID.Response)
+            base.Send(Message.Create(mode)
                 .AddUShort(NetworkMessage<TMessage, TGroup, TStorage>.MessageID)
-                .AddByte((byte)SystemMessageID.Response));
+                .AddByte((byte)SystemMessageID.Request));
         }
 
-        public new void Send(Message message, bool shouldRelease = true)
+        /// <summary>
+        /// Responds to an request.
+        /// </summary>
+        public void SendResponse<TMessage, TGroup, TStorage>(NetworkMessage<TMessage, TGroup, TStorage> container)
+            where TMessage : NetworkMessage<TMessage, TGroup, TStorage>, new()
+            where TGroup : NetworkGroup<TGroup>
+            where TStorage : StorageProfile<TStorage>, new()
         {
-            message.AddByte((byte)SystemMessageID.Regular);
-            base.Send(message, shouldRelease);
+            SendResponse(container, MessageSendMode.Reliable);
+        }
+
+        /// <summary>
+        /// Responds to an request.
+        /// </summary>
+        public void SendResponse<TMessage, TGroup, TStorage>(NetworkMessage<TMessage, TGroup, TStorage> container, MessageSendMode mode)
+            where TMessage : NetworkMessage<TMessage, TGroup, TStorage>, new()
+            where TGroup : NetworkGroup<TGroup>
+            where TStorage : StorageProfile<TStorage>, new()
+        {
+            // TODO: Finish response handling.
+            base.Send(container.Pack(mode).AddByte((byte)SystemMessageID.Response));
+        }
+
+        /// <summary>
+        /// Responds to an request.
+        /// </summary>
+        public void SendResponse(Message message)
+        {
+            // TODO: Finish response handling.
+            base.Send(message.AddByte((byte)SystemMessageID.Response));
         }
 
 

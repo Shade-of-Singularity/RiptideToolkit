@@ -132,7 +132,6 @@ namespace Riptide.Toolkit
         public static void Invalidate() => m_IsValid = false;
         public static void Initialize()
         {
-            RiptideLogger.Log(LogType.Warning, $"Checking for initialization");
             if (!m_IsValid) lock (_lock) UpdateHandlers();
         }
 
@@ -204,7 +203,8 @@ namespace Riptide.Toolkit
                 Array.Resize(ref m_NextMessageIDs, m_NextGroupID);
             }
 
-            return (byte)(m_NextGroupID = (ushort)(index + 1));
+            m_NextGroupID = (ushort)(index + 1);
+            return (byte)index;
         }
 
         public static ushort NextMessageID(byte groupID)
@@ -244,18 +244,7 @@ namespace Riptide.Toolkit
             // Mandatory second check - needed when _lock unlocks.
             if (m_IsInitialized) return;
             m_IsInitialized = true;
-
-            ClientHandlers[] client = m_ClientHandlers;
-            for (int i = 0; i < client.Length; i++)
-            {
-                client[i] = new ClientHandlers();
-            }
-
-            ServerHandlers[] server = m_ServerHandlers;
-            for (int i = 0; i < server.Length; i++)
-            {
-                server[i] = new ServerHandlers();
-            }
+            // Doesn't initialize anything, but might do it in the future.
         }
 
         private static void UpdateHandlers()
@@ -269,7 +258,6 @@ namespace Riptide.Toolkit
             // Mandatory second check - needed when _lock unlocks.
             if (m_IsValid) return;
             m_IsValid = true;
-            RiptideLogger.Log(LogType.Warning, $"Updating handlers");
 
             try
             {
@@ -304,7 +292,6 @@ namespace Riptide.Toolkit
                     }
                 }
 
-                RiptideLogger.Log(LogType.Warning, $"Handlers are updated.");
 
                 // Simplifications:
                 void FetchHandlers(Assembly assembly)
@@ -375,7 +362,6 @@ namespace Riptide.Toolkit
 
                     ClientHandlers.HandlerInfo clientHandler = new ClientHandlers.HandlerInfo(method, dataType);
                     MessageHandlerCollection<ClientHandlers.HandlerInfo>.Unsafe.Set(m_ClientHandlers[groupID].Handlers, modID, messageID, clientHandler);
-                    RiptideLogger.Log(LogType.Info, $"Client message handler ({method.Name}) with message was found and it is valid!");
                     break;
 
                 // Likely server-side method - they have UserID and INetworkMessage in parameters.
@@ -415,7 +401,6 @@ namespace Riptide.Toolkit
 
                     ServerHandlers.HandlerInfo serverHandler = new ServerHandlers.HandlerInfo(method, dataType);
                     MessageHandlerCollection<ServerHandlers.HandlerInfo>.Unsafe.Set(m_ServerHandlers[groupID].Handlers, modID, messageID, serverHandler);
-                    RiptideLogger.Log(LogType.Info, $"Client message handler ({method.Name}) with message was found and it is valid!");
                     break;
 
                 // Any other kind of signature is not supported at the moment.

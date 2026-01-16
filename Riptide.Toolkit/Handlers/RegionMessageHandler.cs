@@ -222,7 +222,7 @@ namespace Riptide.Toolkit.Handlers
             var region = mods[regionIndex];
             if (region is null)
             {
-                mods[regionIndex] = region = new THandler[(ushort.MaxValue + 1) / m_RegionSize];
+                mods[regionIndex] = region = new THandler[m_RegionSize];
                 region[referenceIndex] = handler;
             }
             else
@@ -243,7 +243,7 @@ namespace Riptide.Toolkit.Handlers
                 THandler[] region = regions[regionIndex];
                 if (region is null)
                 {
-                    regions[regionIndex] = region = new THandler[(ushort.MaxValue + 1) / m_RegionSize];
+                    regions[regionIndex] = region = new THandler[m_RegionSize];
                     region[referenceIndex] = handler;
                     break;
                 }
