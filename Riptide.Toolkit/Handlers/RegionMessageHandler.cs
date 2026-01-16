@@ -130,6 +130,7 @@ namespace Riptide.Toolkit.Handlers
         {
             // Allocates local array variable to reduce instruction amount.
             var regions = m_Regions;
+            var references = null;
             int length = regions.Length;
 
             // We use 'for' loop here instead of 'while', in case compiler is more familiar with this format.
@@ -171,17 +172,11 @@ namespace Riptide.Toolkit.Handlers
         /// .                                               Private Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public static int CountSetBits(uint value)
+        public static int CountSetBits(int i)
         {
-            int count = 0;
-            while (value != 0)
-            {
-                // This operation unsets the rightmost set bit
-                value &= value - 1;
-                count++;
-            }
-
-            return count;
+            i -= (i >> 1) & 0x55555555;
+            i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
+            return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
         }
     }
 }
