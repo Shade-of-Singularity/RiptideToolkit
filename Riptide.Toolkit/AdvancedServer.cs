@@ -184,7 +184,7 @@ namespace Riptide.Toolkit
         private void ServerBroadcastMessage(object sender, MessageReceivedEventArgs args)
         {
             if (!m_BroadcastToHandlers) return;
-            args.Message.PeekBits(8, args.Message.UnreadBits - 8, out byte raw);
+            args.Message.PeekBits(8, args.Message.WrittenBits - 8, out byte raw);
             switch ((SystemMessageID)raw)
             {
                 // Allows regular execution.
