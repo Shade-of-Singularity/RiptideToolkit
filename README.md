@@ -3,7 +3,7 @@ Community Toolkit for [RiptideNetworking](https://github.com/RiptideNetworking/R
 Makes Riptide support community modding.
 Also gives new ways for handling messages, and general ease-of-use.
 
-Deeveloped with high performance in mind.
+Developed with high performance in mind.
 
 ## Modding Support
 `...`
@@ -14,7 +14,7 @@ Deeveloped with high performance in mind.
 ## Performance
 `...`
 
-# Contributions (for CV)
+# Contributions (use in CV)
 **[Shade of Singularity (SoG)](https://github.com/Shade-of-Singularity), [DarkJune](https://github.com/DarkJune0122)**: Performance Engineering & System Engineering.
 
 That's the end of the list for now. Have a nice timezone!
