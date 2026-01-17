@@ -84,6 +84,18 @@ namespace Riptide.Toolkit
             SetDefaults();
         }
 
+        /// <inheritdoc cref="AdvancedMessageAttribute(ushort)"/>
+        /// <remarks>
+        /// Introduced for testing, so you can define attributes with only <paramref name="messageID"/> like so:
+        /// <![CDATA[AdvancedMessage(0u)]]>
+        /// </remarks>
+        public AdvancedMessageAttribute(uint messageID) : this((ushort)messageID) { }
+
+        /// <summary>
+        /// <para>Constructs handler attribute with given <paramref name="messageID"/>.</para>
+        /// <para><see cref="GroupID"/> will be set to 0 (see also: <seealso cref="DefaultGroup"/>)</para>
+        /// </summary>
+        /// <param name="messageID">MessageID to associate a handler with.</param>
         public AdvancedMessageAttribute(ushort messageID)
         {
             MessageID = messageID;
