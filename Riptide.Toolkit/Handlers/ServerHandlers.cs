@@ -151,12 +151,12 @@ namespace Riptide.Toolkit.Handlers
             {
                 // If you return regular message - it will immediately send its contents as a response.
                 // TODO: Make sure that FlagMessages will also be supported.
-                case Message msg: server.SendResponse(msg, clientID); break;
+                //case Message msg: server.SendResponse(msg, clientID); break;
 
                 // Automatically packs and sends response message.
                 // TODO: Make sure that MessageID is read correctly.
-                case NetworkMessage net: server.SendResponse(net.Write(message), clientID); break;
-                default: break;
+                //case NetworkMessage net: server.SendResponse(net.Write(message), clientID); break;
+                default: break; // WIP: While responses is not supported - response handlers are commented-out.
             }
         }
 
@@ -188,12 +188,12 @@ namespace Riptide.Toolkit.Handlers
             {
                 // If you return regular message - it will immediately send its contents as a response.
                 // TODO: Make sure that FlagMessages will also be supported.
-                case Message msg: server.SendResponse(msg, clientID); break;
+                //case Message msg: server.SendResponse(msg, clientID); break;
 
                 // Automatically packs and sends response message.
                 // TODO: Make sure that MessageID is read correctly.
-                case NetworkMessage net: server.SendResponse(net.Write(message), clientID); break;
-                default: break;
+                //case NetworkMessage net: server.SendResponse(net.Write(message), clientID); break;
+                default: break; // WIP: While responses is not supported - response handlers are commented-out.
             }
         }
 
@@ -201,18 +201,18 @@ namespace Riptide.Toolkit.Handlers
         public HandlerInfo Get(ushort messageID) => Handlers.Get(messageID);
 
         /// <inheritdoc/>
-        public HandlerInfo Get(ushort modID, ushort messageID) => Handlers.Get(messageID);
+        public HandlerInfo Get(ushort modID, ushort messageID) => Handlers.Get(modID, messageID);
 
         /// <inheritdoc/>
         public bool Has(ushort messageID) => Handlers.Has(messageID);
 
         /// <inheritdoc/>
-        public bool Has(ushort modID, ushort messageID) => Handlers.Has(messageID);
+        public bool Has(ushort modID, ushort messageID) => Handlers.Has(modID, messageID);
 
         /// <inheritdoc/>
         public bool TryGet(ushort messageID, out HandlerInfo hander) => Handlers.TryGet(messageID, out hander);
 
         /// <inheritdoc/>
-        public bool TryGet(ushort modID, ushort messageID, out HandlerInfo hander) => Handlers.TryGet(messageID, out hander);
+        public bool TryGet(ushort modID, ushort messageID, out HandlerInfo hander) => Handlers.TryGet(modID, messageID, out hander);
     }
 }

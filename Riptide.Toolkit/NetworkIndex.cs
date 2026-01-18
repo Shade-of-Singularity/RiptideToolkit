@@ -22,6 +22,7 @@ namespace Riptide.Toolkit
     /// Helps with message indexing.
     /// </summary>
     /// TODO: Add ways to register new handlers for new loaded-in assemblies, automatically or manually, without full networking reload.
+    /// TODO: Add a way to reset the entire system (includes headers and internal pools) for proper runtime reloading.
     public static class NetworkIndex
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
@@ -153,6 +154,19 @@ namespace Riptide.Toolkit
         {
             if (!m_IsValid) lock (_lock) UpdateHandlers();
         }
+
+        /// <summary>
+        /// Activates all static fields in given class/type.
+        /// Can be used to Forcefully register ModIDs and GroupIDs from <see cref="NetworkGroup{TGroup}"/>s.
+        /// </summary>
+        /// <typeparam name="T">Type to initialize.</typeparam>
+        public static void Register<T>() => System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(T).TypeHandle);
+
+        /// <summary>
+        /// Activates all static fields in given class/type.
+        /// Can be used to Forcefully register ModIDs and GroupIDs from <see cref="NetworkGroup{TGroup}"/>s.
+        /// </summary>
+        public static void Register(Type type) => System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(type.TypeHandle);
 
         /// <summary>
         /// Retrieves collection of all message handlers - specifically for client-side message handlers.

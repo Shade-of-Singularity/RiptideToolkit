@@ -185,9 +185,9 @@ namespace Riptide.Toolkit.Examples
             while (!token.IsCancellationRequested)
             {
                 Server?.Update();
-                await Task.Delay(3);
+                await Task.Delay(2);
                 Client?.Update();
-                await Task.Delay(3);
+                await Task.Delay(2);
             }
         }
 
@@ -205,7 +205,7 @@ namespace Riptide.Toolkit.Examples
         {
             RiptideLogger.Log(LogType.Info, "Testing client...");
 
-            Client.Send(Message.Create().AddUShort((ushort)ToServerMessages.ReceiveUsername).AddString("New User"));
+            Client.Send(NetMessage.Create(ToServerMessages.RegisterUsername).AddString("New User"));
             await WaitForMessageToDeliver();
 
             // TODO: Add client-side testing methods.
@@ -219,7 +219,7 @@ namespace Riptide.Toolkit.Examples
             RiptideLogger.Log(LogType.Info, "Testing server...");
 
             const ushort ClientID = 1;
-            Server.SendToAll(Message.Create().AddUShort((ushort)ToServerMessages.ReceiveUsername).AddUShort(ClientID).AddString("New User"));
+            Server.SendToAll(NetMessage.Create(ToClientMessages.UpdateUsername).AddUShort(ClientID).AddString("New User"));
             await WaitForMessageToDeliver();
 
             // TODO: Add server-side testing methods.

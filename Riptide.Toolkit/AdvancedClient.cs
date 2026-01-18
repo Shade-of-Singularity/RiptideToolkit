@@ -10,8 +10,6 @@
 /// ]]>
 
 using Riptide.Toolkit.Handlers;
-using Riptide.Toolkit.Messages;
-using Riptide.Toolkit.Storage;
 using Riptide.Transports;
 using Riptide.Transports.Udp;
 using Riptide.Utils;
@@ -64,77 +62,6 @@ namespace Riptide.Toolkit
 
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
-        /// .                                               Public Methods
-        /// .
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public new void Send(Message message, bool shouldRelease = true)
-        {
-            message.AddByte((byte)SystemMessageID.Regular);
-            base.Send(message, shouldRelease);
-        }
-
-        /// <summary>
-        /// Sends special data request to the server.
-        /// </summary>
-        public void SendRequest<TMessage, TGroup, TStorage>(Action<NetworkMessage<TMessage, TGroup, TStorage>> handler)
-            where TMessage : NetworkMessage<TMessage, TGroup, TStorage>, new()
-            where TGroup : NetworkGroup<TGroup>
-            where TStorage : StorageProfile<TStorage>, new()
-        {
-            SendRequest(handler, MessageSendMode.Reliable);
-        }
-
-        /// <summary>
-        /// Sends special data request to the server.
-        /// </summary>
-        public void SendRequest<TMessage, TGroup, TStorage>(Action<NetworkMessage<TMessage, TGroup, TStorage>> handler, MessageSendMode mode)
-            where TMessage : NetworkMessage<TMessage, TGroup, TStorage>, new()
-            where TGroup : NetworkGroup<TGroup>
-            where TStorage : StorageProfile<TStorage>, new()
-        {
-            // TODO: Finish response handling.
-            base.Send(Message.Create(mode)
-                .AddUShort(NetworkMessage<TMessage, TGroup, TStorage>.MessageID)
-                .AddByte((byte)SystemMessageID.Request));
-        }
-
-        /// <summary>
-        /// Responds to an request.
-        /// </summary>
-        public void SendResponse<TMessage, TGroup, TStorage>(NetworkMessage<TMessage, TGroup, TStorage> container)
-            where TMessage : NetworkMessage<TMessage, TGroup, TStorage>, new()
-            where TGroup : NetworkGroup<TGroup>
-            where TStorage : StorageProfile<TStorage>, new()
-        {
-            SendResponse(container, MessageSendMode.Reliable);
-        }
-
-        /// <summary>
-        /// Responds to an request.
-        /// </summary>
-        public void SendResponse<TMessage, TGroup, TStorage>(NetworkMessage<TMessage, TGroup, TStorage> container, MessageSendMode mode)
-            where TMessage : NetworkMessage<TMessage, TGroup, TStorage>, new()
-            where TGroup : NetworkGroup<TGroup>
-            where TStorage : StorageProfile<TStorage>, new()
-        {
-            // TODO: Finish response handling.
-            base.Send(container.Pack(mode).AddByte((byte)SystemMessageID.Response));
-        }
-
-        /// <summary>
-        /// Responds to an request.
-        /// </summary>
-        public void SendResponse(Message message)
-        {
-            // TODO: Finish response handling.
-            base.Send(message.AddByte((byte)SystemMessageID.Response));
-        }
-
-
-
-
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
-        /// .
         /// .                                              Implementations
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
@@ -166,23 +93,34 @@ namespace Riptide.Toolkit
         private void ClientBroadcastMessage(object sender, MessageReceivedEventArgs args)
         {
             if (!m_BroadcastToHandlers) return;
-            args.Message.PeekBits(8, args.Message.WrittenBits - 8, out byte raw);
-            switch ((SystemMessageID)raw)
+            NetMessage.ReadHeaders(args.Message, out bool isModded, out SystemMessageID systemMessageID, out ushort modID);
+            switch (systemMessageID)
             {
                 // Allows regular execution.
                 case SystemMessageID.Regular: break;
 
                 // Sends message data to a requesting side. Timeouts if response is not satisfied in time.
+                case SystemMessageID.Request:
                 case SystemMessageID.Response: throw new NotImplementedException();
-                
+
                 // Fires custom handlers.
-                default: NetworkIndex.HandleClient(raw, this, args); return;
+                default: NetworkIndex.HandleClient((byte)systemMessageID, this, args); return;
             }
 
             // Handles regular messages:
-            if (m_MessageHandlers?.TryFire(this, args.MessageId, args.Message) != true)
+            if (isModded)
             {
-                RiptideLogger.Log(LogType.Warning, $"No Client-side advanced message handler method found for message ID ({args.MessageId})!");
+                if (m_MessageHandlers?.TryFire(this, modID, args.MessageId, args.Message) != true)
+                {
+                    RiptideLogger.Log(LogType.Warning, $"No Client-side advanced message handler found in mod ({modID}) for MessageID ({args.MessageId})!");
+                }
+            }
+            else
+            {
+                if (m_MessageHandlers?.TryFire(this, args.MessageId, args.Message) != true)
+                {
+                    RiptideLogger.Log(LogType.Warning, $"No Client-side advanced message handler found for MessageID ({args.MessageId})!");
+                }
             }
         }
     }

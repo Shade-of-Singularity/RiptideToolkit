@@ -27,7 +27,10 @@ namespace Riptide.Toolkit.Examples
         [AdvancedMessage((ushort)ToClientMessages.UpdateUsername)]
         public static void UpdateUsername(Message message)
         {
-            RiptideLogger.Log(LogType.Warning, $"Received new username ({message.GetString()}) for user ({message.GetUShort()})");
+            message.GetBool();
+            message.GetBool();
+            message.GetBool();
+            RiptideLogger.Log(LogType.Warning, $"[Client] Updating username for client ({message.GetUShort()}) to ({message.GetString()})");
         }
 
         [AdvancedMessage(typeof(DefaultGroup), (ushort)ToClientMessages.UpdatePlayerPosition)]
@@ -44,10 +47,10 @@ namespace Riptide.Toolkit.Examples
         /// .                                                Server-side
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        [AdvancedMessage((ushort)ToServerMessages.ReceiveUsername)]
+        [AdvancedMessage((ushort)ToServerMessages.RegisterUsername)]
         public static void RequestHandler(ushort client, Message message)
         {
-            RiptideLogger.Log(LogType.Warning, $"Received new username ({message.GetString()}) for user ({client})");
+            RiptideLogger.Log(LogType.Warning, $"[Server] Received new username ({message.GetString()}) for user ({client})");
         }
     }
 }

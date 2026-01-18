@@ -26,7 +26,7 @@ namespace Riptide.Toolkit.Examples
 
     public enum ToServerMessages : ushort
     { 
-        ReceiveUsername,
+        RegisterUsername,
         ReceivePlayerPosition,
     }
 

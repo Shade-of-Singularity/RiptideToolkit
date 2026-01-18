@@ -17,5 +17,6 @@ namespace Riptide.Toolkit
     /// Group for all default messages.
     /// Can always be used unless you want introduce more than one group.
     /// </summary>
+    /// TODO: Make sure it has GroupID of 0, no matter what.
     public sealed class DefaultGroup : NetworkGroup<DefaultGroup> { }
 }
