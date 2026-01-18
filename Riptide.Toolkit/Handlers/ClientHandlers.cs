@@ -121,7 +121,7 @@ namespace Riptide.Toolkit.Handlers
         {
             if (Has(modID, messageID))
             {
-                Fire(client, messageID, message);
+                Fire(client, modID, messageID, message);
                 return true;
             }
 
