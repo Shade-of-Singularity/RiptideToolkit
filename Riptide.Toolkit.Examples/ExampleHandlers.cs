@@ -27,7 +27,9 @@ namespace Riptide.Toolkit.Examples
         [AdvancedMessage((ushort)ToClientMessages.UpdateUsername)]
         public static void UpdateUsername(Message message)
         {
+            RiptideLogger.Log(LogType.Warning, $"");
             RiptideLogger.Log(LogType.Warning, $"[Client] Updating username for client ({message.GetUShort()}) to ({message.GetString()})");
+            RiptideLogger.Log(LogType.Warning, $"");
         }
 
         [AdvancedMessage(typeof(DefaultGroup), (ushort)ToClientMessages.UpdatePlayerPosition)]
@@ -47,7 +49,9 @@ namespace Riptide.Toolkit.Examples
         [AdvancedMessage((ushort)ToServerMessages.RegisterUsername)]
         public static void RequestHandler(ushort client, Message message)
         {
+            RiptideLogger.Log(LogType.Warning, $"");
             RiptideLogger.Log(LogType.Warning, $"[Server] Received new username ({message.GetString()}) for user ({client})");
+            RiptideLogger.Log(LogType.Warning, $"");
         }
     }
 }

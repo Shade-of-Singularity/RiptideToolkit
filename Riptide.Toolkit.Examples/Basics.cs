@@ -203,6 +203,7 @@ namespace Riptide.Toolkit.Examples
         private static async Task WaitForMessageToDeliver() => await Task.Delay(25);
         private static async Task TestClient()
         {
+            RiptideLogger.Log(LogType.Info, $"");
             RiptideLogger.Log(LogType.Info, "Testing client...");
 
             Message message = NetMessage.Create(0, MessageSendMode.Reliable, ToServerMessages.RegisterUsername)
@@ -213,11 +214,13 @@ namespace Riptide.Toolkit.Examples
             // TODO: Add more client-side testing methods.
 
             RiptideLogger.Log(LogType.Info, "Client test finished.");
+            RiptideLogger.Log(LogType.Info, $"");
             await Task.Delay(50);
         }
 
         private static async Task TestServer()
         {
+            RiptideLogger.Log(LogType.Info, $"");
             RiptideLogger.Log(LogType.Info, "Testing server...");
 
             const ushort ClientID = 1;
@@ -229,6 +232,7 @@ namespace Riptide.Toolkit.Examples
             // TODO: Add more server-side testing methods.
 
             RiptideLogger.Log(LogType.Info, "Server test finished.");
+            RiptideLogger.Log(LogType.Info, $"");
             await Task.Delay(50);
         }
 
