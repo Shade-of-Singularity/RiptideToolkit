@@ -61,15 +61,7 @@ namespace Riptide.Toolkit
         /// Doesn't encode ModID in the message (In which case defaults to ModID '0')
         /// </summary>
         /// <seealso cref="Message.Create()"/>
-        public static Message Create() => Create(MessageSendMode.Reliable);
-
-        /// <summary>
-        /// Creates regular message with <see cref="MessageSendMode.Reliable"/> mode.
-        /// Encodes <paramref name="messageID"/> in a spot where ModID would have been (hence messages created without ModID cannot have one).
-        /// Doesn't encode ModID in the message (In which case defaults to ModID '0')
-        /// </summary>
-        /// <seealso cref="Message.Create(MessageSendMode, Enum)"/>
-        public static Message Create(Enum messageID) => Create(MessageSendMode.Reliable, (ushort)(object)messageID);
+        public static Message Create() => Message.Create();
 
         /// <summary>
         /// Creates regular message with custom send <paramref name="mode"/>.
@@ -77,13 +69,7 @@ namespace Riptide.Toolkit
         /// Doesn't encode ModID in the message (In which case defaults to ModID '0')
         /// </summary>
         /// <seealso cref="Message.Create(MessageSendMode)"/>
-        public static Message Create(MessageSendMode mode)
-        {
-            // Adds isModded with flag '0' to indicate that ModID is not encoded.
-            return Message.Create(mode)
-                .AddBool(false) // Indicates that message does not contain ModID.
-                .AddBits((byte)SystemMessageID.Regular, SystemMessaging.TotalBits);
-        }
+        public static Message Create(MessageSendMode mode) => Message.Create(mode);
 
         /// <inheritdoc cref="Create(MessageSendMode, ushort)"/>
         /// <seealso cref="Message.Create(MessageSendMode, Enum)"/>
@@ -98,9 +84,9 @@ namespace Riptide.Toolkit
         public static Message Create(MessageSendMode mode, ushort messageID)
         {
             return Message.Create(mode)
+                .AddVarULong(messageID)
                 .AddBool(false) // Indicates that message does not contain ModID.
-                .AddBits((byte)SystemMessageID.Regular, SystemMessaging.TotalBits)
-                .AddUShort(messageID);
+                .AddBits((byte)SystemMessageID.Regular, SystemMessaging.TotalBits);
         }
 
 
@@ -109,37 +95,6 @@ namespace Riptide.Toolkit
         /// .                                     Constructors with supporting mods.
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        /// <summary>
-        /// Creates regular message with <see cref="MessageSendMode.Reliable"/> mode.
-        /// Doesn't encode MessageID (which makes it an invalid message until <see cref="Message.Add(ushort)"/> or similar is used)
-        /// Doesn't encode ModID in the message (In which case defaults to ModID '0')
-        /// </summary>
-        /// <seealso cref="Message.Create()"/>
-        public static Message Create(ushort modID) => Create(modID, MessageSendMode.Reliable);
-
-        /// <summary>
-        /// Creates regular message with <see cref="MessageSendMode.Reliable"/> mode.
-        /// Encodes <paramref name="messageID"/> after all headers.
-        /// Doesn't encode ModID in the message (In which case defaults to ModID '0')
-        /// </summary>
-        /// <seealso cref="Message.Create(MessageSendMode, Enum)"/>
-        public static Message Create(ushort modID, Enum messageID) => Create(modID, MessageSendMode.Reliable, (ushort)(object)messageID);
-
-        /// <summary>
-        /// Creates regular message with custom send <paramref name="mode"/>.
-        /// Doesn't encode MessageID (which makes it an invalid message until <see cref="Message.Add(ushort)"/> or similar is used)
-        /// Doesn't encode ModID in the message (In which case defaults to ModID '0')
-        /// </summary>
-        /// <seealso cref="Message.Create(MessageSendMode)"/>
-        public static Message Create(ushort modID, MessageSendMode mode)
-        {
-            // WIP: Make custom NetMessage and use it with custom pool, once Riptide supports it.
-            return Message.Create(mode)
-                .AddBool(true) // Indicates that message contains ModID.
-                .AddBits((byte)SystemMessageID.Regular, SystemMessaging.TotalBits)
-                .AddBits(modID, Modding.ModIDTotalBits);
-        }
-
         /// <inheritdoc cref="Create(MessageSendMode, ushort)"/>
         /// <seealso cref="Message.Create(MessageSendMode, Enum)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -153,10 +108,10 @@ namespace Riptide.Toolkit
         public static Message Create(ushort modID, MessageSendMode mode, ushort messageID)
         {
             return Message.Create(mode)
+                .AddVarULong(messageID)
                 .AddBool(true) // Indicates that message contains ModID.
                 .AddBits((byte)SystemMessageID.Regular, SystemMessaging.TotalBits)
-                .AddBits(modID, Modding.ModIDTotalBits)
-                .AddUShort(messageID);
+                .AddBits(modID, Modding.ModIDTotalBits);
         }
 
 
@@ -178,6 +133,46 @@ namespace Riptide.Toolkit
             // Skips ModID only if defined.
             return message.PeekBits(NetHeaders.IsModdedTotalBits, NetHeaders.GetHeaderBase(message) + NetHeaders.IsModdedLocation, out byte result)
                 .SkipBits(NetHeaders.IsModdedTotalBits + SystemMessaging.TotalBits + (result == 0 ? 0 : Modding.ModIDTotalBits));
+        }
+
+        /// <summary>
+        /// Adds <see cref="NetMessage"/> headers with **doesn't** support ModIDs.
+        /// Should be used on empty <see cref="Message"/>s only, as it doesn't overwrite the header. (TODO: Add SetHeaders methods with insert)
+        /// </summary>
+        /// <remarks>
+        /// Use <see cref="AddHeaders(Message, SystemMessageID, ushort)"/> to define mod ModID.
+        /// </remarks>
+        /// <param name="systemMessageID"><see cref="SystemMessageID"/> to add.</param>
+        public static Message AddHeaders(this Message message, SystemMessageID systemMessageID)
+        {
+            return message
+                .AddBool(false) // Indicates that message doesn't contain ModID.
+                .AddBits((byte)systemMessageID, SystemMessaging.TotalBits);
+        }
+
+        /// <summary>
+        /// Adds <see cref="NetMessage"/> headers with support ModIDs.
+        /// Should be used on empty <see cref="Message"/>s only, as it doesn't overwrite the header. (TODO: Add SetHeaders methods with insert)
+        /// </summary>
+        /// <param name="systemMessageID"><see cref="SystemMessageID"/> to add.</param>
+        public static Message AddHeaders(this Message message, SystemMessageID systemMessageID, ushort modID)
+        {
+            return message
+                .AddBool(true) // Indicates that message contains ModID.
+                .AddBits((byte)systemMessageID, SystemMessaging.TotalBits)
+                .AddBits(modID, Modding.ModIDTotalBits);
+        }
+
+        /// <summary>
+        /// Adds <see cref="NetMessage"/> headers with support or doesn't support ModIDs based on <paramref name="isModded"/> flag.
+        /// Should be used on empty <see cref="Message"/>s only, as it doesn't overwrite the header. (TODO: Add SetHeaders methods with insert)
+        /// </summary>
+        /// <param name="systemMessageID"><see cref="SystemMessageID"/> to add.</param>
+        public static Message AddHeaders(this Message message, bool isModded, SystemMessageID systemMessageID, ushort modID)
+        {
+            return isModded
+                ? message.AddHeaders(systemMessageID, modID)
+                : message.AddHeaders(systemMessageID);
         }
 
         /// <summary>

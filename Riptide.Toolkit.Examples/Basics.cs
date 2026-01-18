@@ -205,10 +205,12 @@ namespace Riptide.Toolkit.Examples
         {
             RiptideLogger.Log(LogType.Info, "Testing client...");
 
-            Client.Send(NetMessage.Create(ToServerMessages.RegisterUsername).AddString("New User"));
+            Message message = NetMessage.Create(0, MessageSendMode.Reliable, ToServerMessages.RegisterUsername)
+                .AddString("New User");
+            Client.Send(message);
             await WaitForMessageToDeliver();
 
-            // TODO: Add client-side testing methods.
+            // TODO: Add more client-side testing methods.
 
             RiptideLogger.Log(LogType.Info, "Client test finished.");
             await Task.Delay(50);
@@ -219,10 +221,12 @@ namespace Riptide.Toolkit.Examples
             RiptideLogger.Log(LogType.Info, "Testing server...");
 
             const ushort ClientID = 1;
-            Server.SendToAll(NetMessage.Create(ToClientMessages.UpdateUsername).AddUShort(ClientID).AddString("New User"));
+            Message message = NetMessage.Create(0, MessageSendMode.Reliable, ToClientMessages.UpdateUsername)
+                .AddUShort(ClientID).AddString("New User");
+            Server.SendToAll(message);
             await WaitForMessageToDeliver();
 
-            // TODO: Add server-side testing methods.
+            // TODO: Add more server-side testing methods.
 
             RiptideLogger.Log(LogType.Info, "Server test finished.");
             await Task.Delay(50);

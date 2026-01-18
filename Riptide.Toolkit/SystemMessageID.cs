@@ -21,7 +21,7 @@ namespace Riptide.Toolkit
         /// Might be increased in future updates.
         /// </summary>
         /// <remarks>Max ever value - 256 (<see cref="byte.MaxValue"/> + 1).</remarks>
-        public const ushort TotalIDs = 16;
+        public const ushort TotalIDs = 8;
         /// <summary>
         /// Mask which covers all values described by <see cref="TotalIDs"/>
         /// </summary>
@@ -31,7 +31,7 @@ namespace Riptide.Toolkit
         /// How many bits is used to encode all <see cref="TotalIDs"/>.
         /// </summary>
         /// <remarks>Max ever value - 8.</remarks>
-        public const ushort TotalBits = 4;
+        public const ushort TotalBits = 3;
     }
 
     /// <summary>

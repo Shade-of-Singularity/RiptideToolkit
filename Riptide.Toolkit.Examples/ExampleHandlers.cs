@@ -27,9 +27,6 @@ namespace Riptide.Toolkit.Examples
         [AdvancedMessage((ushort)ToClientMessages.UpdateUsername)]
         public static void UpdateUsername(Message message)
         {
-            message.GetBool();
-            message.GetBool();
-            message.GetBool();
             RiptideLogger.Log(LogType.Warning, $"[Client] Updating username for client ({message.GetUShort()}) to ({message.GetString()})");
         }
 
