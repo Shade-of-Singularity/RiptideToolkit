@@ -21,6 +21,7 @@ namespace Riptide.Toolkit.Examples
         {
             // TODO: Register custom message handlers.
             // TODO: Register response handlers.
+            // Note: Modifying static handlers require locks.
         }
 
         /// <inheritdoc/>

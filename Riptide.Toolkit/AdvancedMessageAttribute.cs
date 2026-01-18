@@ -38,13 +38,23 @@ namespace Riptide.Toolkit
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
+        /// .                                                 Constants
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        internal const BindingFlags MethodBindingFlags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static;
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
         /// .                                                Public Fields
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
         /// Reference to a <see cref="FieldInfo"/> or <see cref="PropertyInfo"/> with <see cref="ModIDAttribute"/>.
         /// </summary>
-        public MemberInfo Mod { get; set; } = null;
+        public MemberInfo Mod { get; set; }
         /// <summary>
         /// Reference to a <see cref="FieldInfo"/> or <see cref="PropertyInfo"/> with <see cref="GroupIDAttribute"/>.
         /// </summary>
@@ -52,22 +62,22 @@ namespace Riptide.Toolkit
         /// <see cref="GroupIDAttribute"/> is already defined in <see cref="NetworkGroup{TGroup}"/>
         /// and also <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> types.
         /// </remarks>
-        public MemberInfo Group { get; set; } = null;
+        public MemberInfo Group { get; set; }
         /// <summary>
         /// Reference to a <see cref="FieldInfo"/> or <see cref="PropertyInfo"/> with <see cref="MessageIDAttribute"/>.
         /// </summary>
         /// <remarks>
         /// <see cref="ModIDAttribute"/> is already declared in all <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> types.
         /// </remarks>
-        public MemberInfo Message { get; set; } = null;
+        public MemberInfo Message { get; set; }
         /// <summary>
         /// Static GroupID of this message handler. Automatic ID assignment will avoid static IDs.
         /// </summary>
-        public byte? GroupID { get; set; } = null;
+        public byte? GroupID { get; set; }
         /// <summary>
         /// Static MessageID of this message handler. Automatic ID assignment will avoid static IDs.
         /// </summary>
-        public ushort? MessageID { get; set; } = null;
+        public ushort? MessageID { get; set; }
 
 
 
@@ -86,7 +96,7 @@ namespace Riptide.Toolkit
 
         /// <inheritdoc cref="AdvancedMessageAttribute(ushort)"/>
         /// <remarks>
-        /// Introduced for testing, so you can define attributes with only <paramref name="messageID"/> like so:
+        /// Introduced for prototyping, so you can define attributes with only <paramref name="messageID"/> like so:
         /// <![CDATA[AdvancedMessage(0u)]]>
         /// </remarks>
         public AdvancedMessageAttribute(uint messageID) : this((ushort)messageID) { }
@@ -102,6 +112,12 @@ namespace Riptide.Toolkit
             SetDefaults();
         }
 
+        /// <inheritdoc cref="AdvancedMessageAttribute(byte, ushort)"/>
+        /// <remarks>
+        /// Introduced for prototyping, so you can define attributes with only <paramref name="messageID"/> like so:
+        /// <![CDATA[AdvancedMessage(0, 0u)]]>
+        /// </remarks>
+        public AdvancedMessageAttribute(byte groupID, uint messageID) : this(groupID, (ushort)messageID) { }
         public AdvancedMessageAttribute(byte groupID, ushort messageID)
         {
             GroupID = groupID;
@@ -130,6 +146,12 @@ namespace Riptide.Toolkit
             SetDefaults();
         }
 
+        /// <inheritdoc cref="AdvancedMessageAttribute(Type, ushort)"/>
+        /// <remarks>
+        /// Introduced for prototyping, so you can define attributes with only <paramref name="messageID"/> like so:
+        /// <![CDATA[AdvancedMessage(typeof(Mod), 0u)]]>
+        /// </remarks>
+        public AdvancedMessageAttribute(Type multicast, uint messageID) : this(multicast, (ushort)messageID) { }
         public AdvancedMessageAttribute(Type multicast, ushort messageID)
         {
             MessageID = messageID;
@@ -137,6 +159,12 @@ namespace Riptide.Toolkit
             SetDefaults();
         }
 
+        /// <inheritdoc cref="AdvancedMessageAttribute(Type, byte, ushort)"/>
+        /// <remarks>
+        /// Introduced for prototyping, so you can define attributes with only <paramref name="messageID"/> like so:
+        /// <![CDATA[AdvancedMessage(typeof(Mod), 0, 0u)]]>
+        /// </remarks>
+        public AdvancedMessageAttribute(Type multicast, byte groupID, uint messageID) : this(multicast, groupID, (ushort)messageID) { }
         public AdvancedMessageAttribute(Type multicast, byte groupID, ushort messageID)
         {
             GroupID = groupID;
@@ -168,6 +196,12 @@ namespace Riptide.Toolkit
             SetDefaults();
         }
 
+        /// <inheritdoc cref="AdvancedMessageAttribute(Type, Type, ushort)"/>
+        /// <remarks>
+        /// Introduced for prototyping, so you can define attributes with only <paramref name="messageID"/> like so:
+        /// <![CDATA[AdvancedMessage(typeof(Mod), typeof(Group), 0u)]]>
+        /// </remarks>
+        public AdvancedMessageAttribute(Type multicast1, Type multicast2, uint messageID) : this(multicast1, multicast2, (ushort)messageID) { }
         public AdvancedMessageAttribute(Type multicast1, Type multicast2, ushort messageID)
         {
             MessageID = messageID;
@@ -202,7 +236,7 @@ namespace Riptide.Toolkit
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         static AdvancedMessageAttribute()
         {
-            if (LookupMember(typeof(GroupIDAttribute), typeof(DefaultGroup), out MemberInfo member, Reflections.ModAttributeAnalysis_PrioritizeFields))
+            if (LookupMemberRootLast(typeof(GroupIDAttribute), typeof(DefaultGroup), out MemberInfo member, Reflections.ModAttributeAnalysis_PrioritizeFields))
             {
                 DefaultGroupIDSource = member;
                 LastModIDSource = member;
@@ -237,8 +271,24 @@ namespace Riptide.Toolkit
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         private void SetDefaults()
         {
-            if (GroupID is null) GroupID = 0;
-            if (Group is null) Group = DefaultGroupIDSource;
+            if (GroupID is null && Group is null)
+            {
+                if (Message is null)
+                {
+                    GroupID = 0;
+                }
+                else if (LookupMember<GroupIDAttribute>(Message.DeclaringType, out MemberInfo member,
+                        Reflections.ImbeddedAttributeAnalysis_PrioritizeFields))
+                {
+                    // Avoids defining GroupID to prioritize member's GroupID in field/parameter.
+                    Group = member;
+                }
+                else
+                {
+                    Group = DefaultGroupIDSource;
+                    GroupID = 0;
+                }
+            }
         }
 
         private void ResolveMultitypePrioritizeMod(Type value)
@@ -292,7 +342,7 @@ namespace Riptide.Toolkit
                 {
                     Mod = LastModIDSource;
                 }
-                else if (LookupMember<ModIDAttribute>(mod, out MemberInfo member, Reflections.ModAttributeAnalysis_PrioritizeFields))
+                else if (LookupMemberRootLast<ModIDAttribute>(mod, out MemberInfo member, Reflections.ModAttributeAnalysis_PrioritizeFields))
                 {
                     LastModIDSource = Mod = member;
                 }
@@ -313,7 +363,7 @@ namespace Riptide.Toolkit
                 {
                     Group = LastGroupIDSource;
                 }
-                else if (LookupMember<GroupIDAttribute>(group, out MemberInfo member, Reflections.ModAttributeAnalysis_PrioritizeFields))
+                else if (LookupMemberRootLast<GroupIDAttribute>(group, out MemberInfo member, Reflections.ModAttributeAnalysis_PrioritizeFields))
                 {
                     LastGroupIDSource = Group = member;
                 }
@@ -329,7 +379,7 @@ namespace Riptide.Toolkit
             if (MessageID.HasValue) return false;
             if (Message is null)
             {
-                if (LookupMember<GroupIDAttribute>(message, out MemberInfo member, Reflections.ModAttributeAnalysis_PrioritizeFields))
+                if (LookupMemberRootLast<GroupIDAttribute>(message, out MemberInfo member, Reflections.ModAttributeAnalysis_PrioritizeFields))
                 {
                     Message = member;
                 }
@@ -340,13 +390,17 @@ namespace Riptide.Toolkit
             return false;
         }
 
+        /// <inheritdoc cref="LookupMemberRootLast(Type, Type, out MemberInfo, bool)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool LookupMember<T>(Type target, out MemberInfo member, bool fieldsFirst) where T : Attribute
+        internal static bool LookupMemberRootLast<T>(Type target, out MemberInfo member, bool fieldsFirst) where T : Attribute
         {
-            return LookupMember(typeof(T), target, out member, fieldsFirst);
+            return LookupMemberRootLast(typeof(T), target, out member, fieldsFirst);
         }
 
-        internal static bool LookupMember(Type attribute, Type target, out MemberInfo member, bool fieldsFirst)
+        /// <remarks>
+        /// Checks <paramref name="target"/> type last, as sometimes we can be fairly certain that it won't contain our <paramref name="attribute"/>.
+        /// </remarks>
+        internal static bool LookupMemberRootLast(Type attribute, Type target, out MemberInfo member, bool fieldsFirst)
         {
             if (fieldsFirst)
             {
@@ -417,6 +471,73 @@ namespace Riptide.Toolkit
                         return true;
                     }
                 }
+
+                ret = null;
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool LookupMember<T>(Type target, out MemberInfo member, bool fieldsFirst) where T : Attribute
+        {
+            return LookupMemberRootLast(typeof(T), target, out member, fieldsFirst);
+        }
+
+        internal static bool LookupMember(Type attribute, Type target, out MemberInfo member, bool fieldsFirst)
+        {
+            if (fieldsFirst)
+            {
+                if (CheckFields(out member)) return true;
+                if (CheckProperties(out member)) return true;
+            }
+            else
+            {
+                if (CheckProperties(out member)) return true;
+                if (CheckFields(out member)) return true;
+            }
+
+            return false;
+
+            // Simplifications:
+            bool CheckFields(out MemberInfo ret)
+            {
+                Type temp = target;
+                do
+                {
+                    foreach (var field in temp.GetFields(MemberBindingFlags))
+                    {
+                        if (field.IsDefined(attribute))
+                        {
+                            ret = field;
+                            return true;
+                        }
+                    }
+
+                    temp = temp.BaseType;
+                }
+                while (!(temp is null));
+
+                ret = null;
+                return false;
+            }
+
+            bool CheckProperties(out MemberInfo ret)
+            {
+                Type temp = target;
+                do
+                {
+                    foreach (var field in temp.GetProperties(MemberBindingFlags))
+                    {
+                        if (field.IsDefined(attribute))
+                        {
+                            ret = field;
+                            return true;
+                        }
+                    }
+
+                    temp = temp.BaseType;
+                }
+                while (!(temp is null));
 
                 ret = null;
                 return false;

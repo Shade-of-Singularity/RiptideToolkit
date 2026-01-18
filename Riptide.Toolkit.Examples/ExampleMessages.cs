@@ -16,19 +16,23 @@ namespace Riptide.Toolkit.Examples
     // Set enum values:
     // Note: Values [0-7] are occupied by system messages.
     // Note #2: Should probably imbed system messages in better way... Maybe write down a byte value? Gives way more room to us.
-    public enum ClientMessages : ushort
+    public enum ToClientMessages : ushort
     {
+        UpdateUsername,
+        UpdatePlayerPosition,
 
+        ReceiveChunkData,
     }
 
-    public enum ServerMessages : ushort
+    public enum ToServerMessages : ushort
     { 
-        
+        ReceiveUsername,
+        ReceivePlayerPosition,
     }
 
     // Automatic network messages will take any unoccupied ID.
     public sealed class VFXSignal : FlagMessage<VFXSignal, ExampleGroup> { }
-    public sealed class ChunkContainer : NetworkMessage<ChunkContainer, ExampleGroup>
+    public sealed class CustomNetworkMessage : NetworkMessage<CustomNetworkMessage, ExampleGroup>
     {
         public const int ChunkSize = 8;
         public const int ChunkHeight = 64;

@@ -10,13 +10,13 @@
 /// ]]>
 
 using Riptide.Utils;
-using System;
 
 namespace Riptide.Toolkit.Examples
 {
     /// <summary>
     /// Contains client-side and server-side message handlers, in almost all possible variations.
     /// </summary>
+    /// TODO: Fill with all possible variations.
     public static class ExampleHandlers
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
@@ -24,19 +24,16 @@ namespace Riptide.Toolkit.Examples
         /// .                                                Client-side
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        /// <summary>
-        /// 
-        /// </summary>
-        [AdvancedMessage(0, 0)]
-        public static void RequestHandler(Message message)
+        [AdvancedMessage((ushort)ToClientMessages.UpdateUsername)]
+        public static void UpdateUsername(Message message)
         {
-            RiptideLogger.Log(LogType.Warning, $"Fired client-side {nameof(RequestHandler)}");
+            RiptideLogger.Log(LogType.Warning, $"Received new username ({message.GetString()}) for user ({message.GetUShort()})");
         }
 
-        [AdvancedMessage(typeof(ExampleMod), typeof(ExampleGroup))]
-        public static void ReceiveInventory(ReceiveInventory inventory)
+        [AdvancedMessage(typeof(DefaultGroup), (ushort)ToClientMessages.UpdatePlayerPosition)]
+        public static void UpdatePlayerPosition(Message message)
         {
-            RiptideLogger.Log(LogType.Warning, $"Inventory received!");
+
         }
 
 
@@ -47,13 +44,10 @@ namespace Riptide.Toolkit.Examples
         /// .                                                Server-side
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        /// <summary>
-        /// 
-        /// </summary>
-        [AdvancedMessage(0, 0)]
+        [AdvancedMessage((ushort)ToServerMessages.ReceiveUsername)]
         public static void RequestHandler(ushort client, Message message)
         {
-            RiptideLogger.Log(LogType.Warning, $"Fired server-side {nameof(RequestHandler)} from client ({client})");
+            RiptideLogger.Log(LogType.Warning, $"Received new username ({message.GetString()}) for user ({client})");
         }
     }
 }

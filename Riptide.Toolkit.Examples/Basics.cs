@@ -24,6 +24,20 @@ namespace Riptide.Toolkit.Examples
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
+        /// .                                              Static Properties
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        /// <summary>
+        /// Whether testing is currently running or not.
+        /// </summary>
+        /// Note: Used by Riptide.Toolkit.Testing to indicate when to quit waiting for example method to finish.
+        public static bool IsRunning { get; private set; }
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
         /// .                                                 Constants
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
@@ -129,7 +143,9 @@ namespace Riptide.Toolkit.Examples
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         private static void Initialize()
         {
+            IsRunning = true;
             RiptideLogger.Log(LogType.Info, "Initializing Riptide.Toolkit Basics test.");
+            Message.MaxPayloadSize = Message.MaxHeaderSize + ushort.MaxValue + 1;
 
             // Here mods can register custom message handlers.
             foreach (var mod in Mods)
@@ -189,9 +205,10 @@ namespace Riptide.Toolkit.Examples
         {
             RiptideLogger.Log(LogType.Info, "Testing client...");
 
-            // TODO: Add client-side testing methods.
-            Client.Send(Message.Create().AddUShort(0));
+            Client.Send(Message.Create().AddUShort((ushort)ToServerMessages.ReceiveUsername).AddString("New User"));
             await WaitForMessageToDeliver();
+
+            // TODO: Add client-side testing methods.
 
             RiptideLogger.Log(LogType.Info, "Client test finished.");
             await Task.Delay(50);
@@ -201,9 +218,11 @@ namespace Riptide.Toolkit.Examples
         {
             RiptideLogger.Log(LogType.Info, "Testing server...");
 
-            // TODO: Add server-side testing methods.
-            Server.SendToAll(Message.Create().AddUShort(0));
+            const ushort ClientID = 1;
+            Server.SendToAll(Message.Create().AddUShort((ushort)ToServerMessages.ReceiveUsername).AddUShort(ClientID).AddString("New User"));
             await WaitForMessageToDeliver();
+
+            // TODO: Add server-side testing methods.
 
             RiptideLogger.Log(LogType.Info, "Server test finished.");
             await Task.Delay(50);
@@ -216,6 +235,7 @@ namespace Riptide.Toolkit.Examples
 
             RiptideLogger.Log(LogType.Info, "Basics test concluded!");
             await Task.Delay(50);
+            IsRunning = false;
         }
     }
 }

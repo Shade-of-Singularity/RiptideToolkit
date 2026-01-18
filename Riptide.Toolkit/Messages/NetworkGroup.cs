@@ -9,8 +9,6 @@
 /// 
 /// ]]>
 
-using System;
-
 namespace Riptide.Toolkit.Messages
 {
     /// <summary>
@@ -21,12 +19,7 @@ namespace Riptide.Toolkit.Messages
     public abstract class NetworkGroup<TGroup> : NetworkGroup where TGroup : NetworkGroup<TGroup>
     {
         /// <summary>
-        /// 
-        /// </summary>
-        public static readonly Type Handle = typeof(TGroup);
-
-        /// <summary>
-        /// 
+        /// ID to which this group was mapped.
         /// </summary>
         [GroupID] public static readonly byte GroupID = NetworkIndex.NextGroupID();
     }

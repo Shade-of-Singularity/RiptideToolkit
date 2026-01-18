@@ -14,6 +14,8 @@ namespace Riptide.Toolkit.Settings
     /// <summary>
     /// Holds Toolkit advanced performance options you can configure to improve performance a bit.
     /// </summary>
+    /// TODO: Field/Property prioritization can probably be automated, by using last successful priority.
+    /// I doublt developers will define multiple base mod types.
     public static class Reflections
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
@@ -22,21 +24,36 @@ namespace Riptide.Toolkit.Settings
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Whether to check for <see cref="ModIDAttribute"/> on fields first, before checking properties.
-        /// Otherwise will check properties first.
+        /// Whether to check for <see cref="ModIDAttribute"/>
+        /// on fields first, then properties (when true) or the other way around (when false)
         /// </summary>
+        /// True by default, to match flags for group and message analysis.
+        /// Though, I (Dark) can easily see how developers would opt to use ModID as parameter here instead.
+        /// But static readonly field is still more optimized, so Riptide's target audience might prefer them more, I assume.
         public static bool ModAttributeAnalysis_PrioritizeFields { get; set; } = true;
 
         /// <summary>
-        /// Whether to check for <see cref="GroupIDAttribute"/> on fields first, before checking properties.
-        /// Otherwise will check properties first.
+        /// Whether to check for <see cref="GroupIDAttribute"/>
+        /// on fields first, then properties (when true) or the other way around (when false)
         /// </summary>
+        /// True by default, because <see cref="Toolkit.Messages.NetworkGroup{TGroup}.GroupID"/> is a field.
         public static bool GroupAttributeAnalysis_PrioritizeFields { get; set; } = true;
 
         /// <summary>
-        /// Whether to check for <see cref="MessageIDAttribute"/> on fields first, before checking properties.
-        /// Otherwise will check properties first.
+        /// Whether to check for <see cref="MessageIDAttribute"/>
+        /// on fields first, then properties (when true) or the other way around (when false)
         /// </summary>
+        /// True by default, because <see cref="Toolkit.Messages.NetworkMessage{TMessage, TGroup, TProfile}.MessageID"/> is a field.
         public static bool MessageAttributeAnalysis_PrioritizeFields { get; set; } = true;
+
+        /// <summary>
+        /// Whether to check for any attributes
+        /// (<see cref="MessageIDAttribute"/>, <see cref="GroupIDAttribute"/> or <see cref="ModIDAttribute"/>)
+        /// inside other handlers
+        /// (<see cref="Toolkit.Messages.NetworkMessage"/>)
+        /// on fields first, then properties (when true) or the other way around (when false)
+        /// </summary>
+        /// False by default, because <see cref="Toolkit.Messages.NetworkMessage{TMessage, TGroup, TProfile}.GroupID"/> is a property.
+        public static bool ImbeddedAttributeAnalysis_PrioritizeFields { get; set; } = false;
     }
 }
