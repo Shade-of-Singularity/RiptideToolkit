@@ -33,6 +33,7 @@ namespace Riptide.Toolkit
     /// </remarks>
     /// Note: (TODO) Allows multiple so you can define same methods in multiple groups.
     /// TODO: Support methods without method parameters (for flag messages) and with 1 parameter (for server-side flag messages)
+    /// TODO: Support <see cref="Enum"/> values, and use pattern matching for deciding between <see cref="bool"/> and <see cref="ushort"/>.
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
     public sealed class AdvancedMessageAttribute : Attribute
     {
