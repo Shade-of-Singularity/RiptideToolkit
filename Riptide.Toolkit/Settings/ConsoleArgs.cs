@@ -18,7 +18,7 @@ namespace Riptide.Toolkit.Settings
     /// Simple class to check for console args.
     /// </summary>
     /// <remarks>
-    /// Advanced: Should be called accessed anything else in <see cref="Toolkit"/> if you want it to have an effect on it.
+    /// Advanced: you should modify args before anything else in <see cref="Toolkit"/> accesses args if you want it to have an effect on the system.
     /// Note: Most of the things in <see cref="Toolkit"/> is initialized on direct reference, or when client/server is created.
     /// </remarks>
     public static class ConsoleArgs
