@@ -9,6 +9,7 @@
 /// 
 /// ]]>
 
+using Riptide.Toolkit.Settings;
 using Riptide.Utils;
 using System.Threading;
 using System.Threading.Tasks;
@@ -109,6 +110,8 @@ namespace Riptide.Toolkit.Examples
         {
             Client?.Disconnect();
             Server?.Stop();
+            Client = null;
+            Server = null;
 
             ShutdownToken.Cancel();
             ShutdownToken.Dispose();
@@ -163,6 +166,7 @@ namespace Riptide.Toolkit.Examples
 
         private static void StartServer(ushort port)
         {
+            if (ConsoleArgs.Has("-client")) return;
             RiptideLogger.Log(LogType.Info, $"Starting testing server on port ({port})...");
 
             Server = new AdvancedServer();
@@ -174,6 +178,7 @@ namespace Riptide.Toolkit.Examples
 
         private static void StartClient(string ip, ushort port)
         {
+            if (ConsoleArgs.Has("-server")) return;
             RiptideLogger.Log(LogType.Info, $"Connecting testing client to server at ({ip}:{port})...");
             Client = new AdvancedClient();
             Client.Connect($"{ip}:{port}");
@@ -194,36 +199,75 @@ namespace Riptide.Toolkit.Examples
         private static async Task LetServerAndClientEstablishConnection()
         {
             RiptideLogger.Log(LogType.Info, "Letting server and client settle...");
-            await Task.Delay(100);
+            while (Client?.IsConnected == false || Server?.ClientCount <= 0) await Task.Delay(2);
+            await Task.Delay(50);
 
             RiptideLogger.Log(LogType.Info, "Waiting is done.");
             await Task.Delay(50); // Additional delay, to make logs look better in console.
         }
 
-        private static async Task WaitForMessageToDeliver() => await Task.Delay(25);
+        private static async Task WaitForMessageToDeliver() => await Task.Delay(250);
         private static async Task TestClient()
         {
+            if (ConsoleArgs.Has("-server")) return;
             RiptideLogger.Log(LogType.Info, $"");
             RiptideLogger.Log(LogType.Info, "Testing client...");
 
-            Message message = NetMessage.Create(0, MessageSendMode.Reliable, ToServerMessages.RegisterUsername)
+            if (ConsoleArgs.Has("-ping"))
+            {
+                // Pings/sends testing message to server 5000 times. Useful for testing.
+                for (int i = 0; i < 5000; i++)
+                {
+                    Client.Send(
+                        NetMessage.Create(ExampleMod.ModID, MessageSendMode.Reliable, ToServerMessages.ReceivePlayerPosition)
+                        .AddFloat(i).AddFloat(20));
+                    await WaitForMessageToDeliver();
+                }
+
+
+                RiptideLogger.Log(LogType.Info, "Client-side pinging concluded.");
+                RiptideLogger.Log(LogType.Info, $"");
+                await Task.Delay(50);
+                return;
+            }
+
+            Message message = NetMessage.Create(ExampleMod.ModID, MessageSendMode.Reliable, ToServerMessages.RegisterUsername)
                 .AddString("New User");
             Client.Send(message);
             await WaitForMessageToDeliver();
 
             // TODO: Add more client-side testing methods.
 
-            RiptideLogger.Log(LogType.Info, "Client test finished.");
+            RiptideLogger.Log(LogType.Info, "Client-side tests concluded.");
             RiptideLogger.Log(LogType.Info, $"");
             await Task.Delay(50);
         }
 
         private static async Task TestServer()
         {
+            if (ConsoleArgs.Has("-client")) return;
             RiptideLogger.Log(LogType.Info, $"");
             RiptideLogger.Log(LogType.Info, "Testing server...");
 
             const ushort ClientID = 1;
+            if (ConsoleArgs.Has("-ping"))
+            {
+                // Pings/sends testing message to client 5000 times. Useful for testing.
+                for (int i = 0; i < 5000; i++)
+                {
+                    Server.SendToAll(
+                        NetMessage.Create(0, MessageSendMode.Reliable, ToClientMessages.UpdatePlayerPosition)
+                        .AddUShort(ClientID).AddFloat(i).AddFloat(20));
+                    await WaitForMessageToDeliver();
+                }
+
+                RiptideLogger.Log(LogType.Info, "Server-side pinging concluded.");
+                RiptideLogger.Log(LogType.Info, $"");
+                await Task.Delay(50);
+                return;
+            }
+
+            // Sends regular testing messages.
             Message message = NetMessage.Create(0, MessageSendMode.Reliable, ToClientMessages.UpdateUsername)
                 .AddUShort(ClientID).AddString("New User");
             Server.SendToAll(message);
@@ -231,7 +275,7 @@ namespace Riptide.Toolkit.Examples
 
             // TODO: Add more server-side testing methods.
 
-            RiptideLogger.Log(LogType.Info, "Server test finished.");
+            RiptideLogger.Log(LogType.Info, "Server-side tests concluded.");
             RiptideLogger.Log(LogType.Info, $"");
             await Task.Delay(50);
         }

@@ -9,6 +9,7 @@
 /// 
 /// ]]>
 
+using Riptide.Transports;
 using Riptide.Utils;
 
 namespace Riptide.Toolkit.Examples
@@ -35,7 +36,9 @@ namespace Riptide.Toolkit.Examples
         [AdvancedMessage(typeof(DefaultGroup), (ushort)ToClientMessages.UpdatePlayerPosition)]
         public static void UpdatePlayerPosition(Message message)
         {
-
+            RiptideLogger.Log(LogType.Warning, $"");
+            RiptideLogger.Log(LogType.Warning, $"[Client] Updated player position for ({message.GetUShort()}) to ({message.GetFloat()}, {message.GetFloat()})");
+            RiptideLogger.Log(LogType.Warning, $"");
         }
 
 
@@ -51,6 +54,15 @@ namespace Riptide.Toolkit.Examples
         {
             RiptideLogger.Log(LogType.Warning, $"");
             RiptideLogger.Log(LogType.Warning, $"[Server] Received new username ({message.GetString()}) for user ({client})");
+            RiptideLogger.Log(LogType.Warning, $"");
+        }
+
+
+        [AdvancedMessage(typeof(DefaultGroup), (ushort)ToServerMessages.ReceivePlayerPosition)]
+        public static void ReceivePlayerPosition(ushort client, Message message)
+        {
+            RiptideLogger.Log(LogType.Warning, $"");
+            RiptideLogger.Log(LogType.Warning, $"[Server] Received player position for ({client}) at ({message.GetFloat()}, {message.GetFloat()})");
             RiptideLogger.Log(LogType.Warning, $"");
         }
     }
