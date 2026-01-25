@@ -10,7 +10,6 @@
 /// ]]>
 
 using Riptide.Toolkit.Extensions;
-using System;
 using System.Collections.Generic;
 
 namespace Riptide.Toolkit.Handlers
@@ -32,20 +31,14 @@ namespace Riptide.Toolkit.Handlers
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Array of RegionMaps with all the handlers.
+        /// RegionMap with all the handlers.
         /// </summary>
-        private Dictionary<ushort, THandler>[] m_Handlers;
-
-        /// <summary>
-        /// Direct reference to RegionMap under core mod.
-        /// Saves few instructions.
-        /// </summary>
-        private readonly Dictionary<ushort, THandler> m_MainHandlers;
+        private Dictionary<uint, THandler> m_Handlers;
 
         /// <summary>
         /// Index of the next (probably) free cell in region array.
         /// </summary>
-        private int m_HeadIndex = 0;
+        private uint m_HeadIndex;
 
 
 
@@ -58,14 +51,7 @@ namespace Riptide.Toolkit.Handlers
         /// <summary>
         /// Constructor for <see cref="DictionaryHandlerCollection{THandler}"/>
         /// </summary>
-        /// <remarks>
-        /// <paramref name="size"/> MUST be "Power of Two"! (i.e. 2, 4, 8, 16, 32, ...)
-        /// </remarks>
-        public DictionaryHandlerCollection()
-        {
-            m_Handlers = new Dictionary<ushort, THandler>[1];
-            m_Handlers[0] = m_MainHandlers = new Dictionary<ushort, THandler>();
-        }
+        public DictionaryHandlerCollection() => m_Handlers = new Dictionary<uint, THandler>();
 
 
 
@@ -79,62 +65,24 @@ namespace Riptide.Toolkit.Handlers
         /// <exception cref="KeyNotFoundException">
         /// Means that handler under <paramref name="messageID"/> is not defined.
         /// </exception>
-        public override THandler Get(ushort messageID)
+        public override THandler Get(uint messageID)
         {
             NetworkIndex.Initialize();
-            return m_MainHandlers[messageID];
+            return m_Handlers[messageID];
         }
 
         /// <inheritdoc/>
-        /// <exception cref="KeyNotFoundException">
-        /// Means that handler under <paramref name="messageID"/> is not defined.
-        /// </exception>
-        /// <exception cref="NullReferenceException">
-        /// Mod under <paramref name="modID"/> is not defined.
-        /// </exception>
-        public override THandler Get(ushort modID, ushort messageID)
+        public override bool Has(uint messageID)
         {
             NetworkIndex.Initialize();
-            return m_Handlers[modID][messageID];
+            return m_Handlers.ContainsKey(messageID);
         }
 
         /// <inheritdoc/>
-        public override bool Has(ushort messageID)
+        public override bool TryGet(uint messageID, out THandler hander)
         {
             NetworkIndex.Initialize();
-            return m_MainHandlers.ContainsKey(messageID);
-        }
-
-        /// <inheritdoc/>
-        public override bool Has(ushort modID, ushort messageID)
-        {
-            NetworkIndex.Initialize();
-
-            // Assumes that mod lists are filled-in one-by-one.
-            if (modID >= m_Handlers.Length) return false;
-            var handlers = m_Handlers[modID];
-            if (handlers is null) return false;
-            return handlers.ContainsKey(messageID);
-        }
-
-        /// <inheritdoc/>
-        public override bool TryGet(ushort messageID, out THandler hander)
-        {
-            NetworkIndex.Initialize();
-            return m_MainHandlers.TryGetValue(messageID, out hander);
-        }
-
-        /// <inheritdoc/>
-        public override bool TryGet(ushort modID, ushort messageID, out THandler hander)
-        {
-            NetworkIndex.Initialize();
-            if (modID >= m_Handlers.Length)
-            {
-                hander = default;
-                return false;
-            }
-
-            return m_Handlers[modID].TryGetValue(messageID, out hander);
+            return m_Handlers.TryGetValue(messageID, out hander);
         }
 
 
@@ -146,79 +94,35 @@ namespace Riptide.Toolkit.Handlers
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <inheritdoc/>
-        protected override void Clear()
-        {
-            var mods = m_Handlers;
-            for (int i = 0; i < mods.Length; i++)
-            {
-                mods[i]?.Clear();
-            }
-        }
+        public override void Clear() => m_Handlers.Clear();
 
         /// <inheritdoc/>
-        protected override void Reset()
-        {
-            var mods = m_Handlers;
-            for (int i = 0; i < mods.Length; i++)
-            {
-                if (!(mods[i] is null)) mods[i] = new Dictionary<ushort, THandler>();
-            }
-        }
+        public override void Reset() => m_Handlers = new Dictionary<uint, THandler>();
 
         /// <inheritdoc/>
-        protected override void Set(ushort modID, ushort messageID, THandler handler)
-        {
-            if (modID >= m_Handlers.Length)
-            {
-                Array.Resize(ref m_Handlers, modID + 1);
-                m_Handlers[modID] = new Dictionary<ushort, THandler>();
-            }
-            else if (m_Handlers[modID] is null)
-            {
-                m_Handlers[modID] = new Dictionary<ushort, THandler>();
-            }
-
-            m_Handlers[modID][messageID] = handler;
-        }
+        public override void Set(uint messageID, THandler handler) => m_Handlers[messageID] = handler;
 
         /// <inheritdoc/>
-        protected override ushort Put(ushort modID, THandler handler)
+        public override uint Put(THandler handler)
         {
-            Dictionary<ushort, THandler> regions;
-            if (modID >= m_Handlers.Length)
-            {
-                Array.Resize(ref m_Handlers, modID + 1);
-                m_Handlers[modID] = regions = new Dictionary<ushort, THandler>();
-            }
-            else if (m_Handlers[modID] is null)
-            {
-                m_Handlers[modID] = regions = new Dictionary<ushort, THandler>();
-            }
-            else
-            {
-                regions = m_Handlers[modID];
-            }
+            var regions = m_Handlers;
 
             // Allocates local array variable to reduce instruction amount.
-            for (; m_HeadIndex <= ushort.MaxValue; m_HeadIndex++)
+            uint head = m_HeadIndex;
+            for (; head < uint.MaxValue; head++)
             {
-                if (!regions.ContainsKey((ushort)m_HeadIndex))
+                if (!regions.ContainsKey(head))
                 {
-                    regions[(ushort)m_HeadIndex] = handler;
+                    regions[head] = handler;
                 }
             }
 
             // Moves head to (potentially free) next ID. 
-            return (ushort)(++m_HeadIndex);
+            m_HeadIndex = head + 1;
+            return head;
         }
 
         /// <inheritdoc/>
-        protected override void Remove(ushort modID, ushort messageID)
-        {
-            if (modID >= m_Handlers.Length) return;
-            var handlers = m_Handlers[modID];
-            if (handlers is null) return;
-            handlers.Remove(messageID);
-        }
+        public override void Remove(uint messageID) => m_Handlers.Remove(messageID);
     }
 }

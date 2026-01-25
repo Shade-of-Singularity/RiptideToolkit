@@ -46,5 +46,27 @@ namespace Riptide.Toolkit.Settings
         /// </summary>
         /// False by default, because <see cref="Toolkit.Messages.NetworkMessage{TMessage, TGroup, TProfile}.GroupID"/> is a property.
         public static bool ImbeddedAttributeAnalysis_PrioritizeFields { get; set; } = false;
+
+        /// <summary>
+        /// This value controls how <see cref="AdvancedMessageAttribute"/> constructor with only one multicast type will treat multicast type.
+        /// Be default, we expect first multicast type to be <see cref="Toolkit.Messages.NetworkMessage"/><>,
+        /// and second <see cref="Toolkit.Messages.NetworkGroup"/>.
+        /// <para>
+        /// If you prefer using <see cref="Toolkit.Messages.NetworkGroup"/> as a first multicast and <see cref="Toolkit.Messages.NetworkMessage"/>
+        /// as second, you can set this value to false. It will flip order around.
+        /// </para>
+        /// </summary>
+        public static bool AdvancedMessageHandlerConstructor_ExpectSingleMulticastToBeAMessage { get; set; } = true;
+
+        /// <summary>
+        /// In <see cref="AdvancedMessageAttribute"/>, there is a constructor with two multicast types.
+        /// Be default, we expect first multicast type to be <see cref="Toolkit.Messages.NetworkMessage"/><>,
+        /// and second <see cref="Toolkit.Messages.NetworkGroup"/>.
+        /// <para>
+        /// If you prefer using <see cref="Toolkit.Messages.NetworkGroup"/> as a first multicast and <see cref="Toolkit.Messages.NetworkMessage"/>
+        /// as second, you can set this value to false. It will flip order around.
+        /// </para>
+        /// </summary>
+        public static bool AdvancedMessageHandlerConstructor_ExpectFirstMulticastToBeAMessage { get; set; } = true;
     }
 }

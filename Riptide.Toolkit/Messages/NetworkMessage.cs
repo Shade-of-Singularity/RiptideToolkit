@@ -55,22 +55,8 @@ namespace Riptide.Toolkit.Messages
     /// <typeparam name="TProfile"><see cref="StorageProfile{TProfile}"/> of this network message. Will pool some of the message instances based on it.</typeparam>
     public abstract class NetworkMessage<TMessage, TGroup, TProfile> : NetworkMessage
         where TMessage : NetworkMessage<TMessage, TGroup, TProfile>, new()
-        where TGroup : NetworkGroup<TGroup>
         where TProfile : StorageProfile<TProfile>, new()
     {
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
-        /// .
-        /// .                                              Static Properties
-        /// .
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        /// <summary>
-        /// <see cref="NetworkGroup{TGroup}"/> this <see cref="NetworkMessage{TMessage, TGroup, TLoad}"/> belongs to.
-        /// </summary>
-        [GroupID] public static byte GroupID => NetworkGroup<TGroup>.GroupID;
-
-
-
-
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
         /// .                                              Public Properties

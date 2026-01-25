@@ -17,7 +17,8 @@ namespace Riptide.Toolkit.Handlers
     /// Interface for <see cref="ClientHandlers"/> and <see cref="ServerHandlers"/> to implement.
     /// Specifies API for <see cref="MessageHandlerCollection{THandler}"/>.
     /// </summary>
-    public interface IMessageHandlerCollection<THandler> where THandler : IStructValidator
+    public interface IMessageHandlerCollection<THandler> : IReadOnlyMessageHandlerCollection<THandler>
+        where THandler : IStructValidator
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
@@ -25,50 +26,71 @@ namespace Riptide.Toolkit.Handlers
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Retrieves message handler under given <paramref name="messageID"/>.
+        /// Clears internal handler array.
         /// </summary>
-        /// <param name="messageID">ID associated with an message handler.</param>
-        /// <returns>Message handler under given ID, or throws.</returns>
-        THandler Get(ushort messageID);
+        /// <remarks>
+        /// Clears even system messages.
+        /// <para>
+        /// Will NOT initialize <see cref="NetworkIndex"/> when called, 
+        /// unlike <see cref="IReadOnlyMessageHandlerCollection{THandler}"/>,
+        /// to avoid deadlocks.
+        /// </para>
+        /// </remarks>
+        void Clear();
 
         /// <summary>
-        /// Retrieves message handler under given <paramref name="messageID"/>.
+        /// Clears internal handler array and resizes buffers to default size.
+        /// GC will be able to collect released resources, if there is any.
         /// </summary>
-        /// <param name="modID">ModID under which <paramref name="messageID"/> is registered.</param>
-        /// <param name="messageID">ID associated with an message handler.</param>
-        /// <returns>Message handler under given ID, or throws.</returns>
-        THandler Get(ushort modID, ushort messageID);
+        /// <remarks>
+        /// Clears even system messages.
+        /// <para>
+        /// Will NOT initialize <see cref="NetworkIndex"/> when called, 
+        /// unlike <see cref="IReadOnlyMessageHandlerCollection{THandler}"/>,
+        /// to avoid deadlocks.
+        /// </para>
+        /// </remarks>
+        void Reset();
 
         /// <summary>
-        /// Checks if handler is defined.
+        /// Registers message handler on target <paramref name="messageID"/>.
         /// </summary>
-        /// <param name="messageID">Handler MessageID to check.</param>
-        /// <returns><c>true</c> if defined. <c>false</c> otherwise.</returns>
-        bool Has(ushort messageID);
+        /// <remarks>
+        /// <para>
+        /// Will NOT initialize <see cref="NetworkIndex"/> when called, 
+        /// unlike <see cref="IReadOnlyMessageHandlerCollection{THandler}"/>,
+        /// to avoid deadlocks.
+        /// </para>
+        /// </remarks>
+        /// <param name="messageID">Handler MessageID to associate with <paramref name="handler"/>.</param>
+        /// <param name="handler">Message handler to register.</param>
+        void Set(uint messageID, THandler handler);
 
         /// <summary>
-        /// Checks if handler for a specific <paramref name="modID"/> is defined.
+        /// Puts <paramref name="handler"/> on the next free MessageID.
         /// </summary>
-        /// <param name="modID">ModID under which <paramref name="messageID"/> is registered.</param>
-        /// <param name="messageID">Handler MessageID to check.</param>
-        /// <returns><c>true</c> if defined. <c>false</c> otherwise.</returns>
-        bool Has(ushort modID, ushort messageID);
+        /// <remarks>
+        /// <para>
+        /// Will NOT initialize <see cref="NetworkIndex"/> when called, 
+        /// unlike <see cref="IReadOnlyMessageHandlerCollection{THandler}"/>,
+        /// to avoid deadlocks.
+        /// </para>
+        /// </remarks>
+        /// <param name="handler">Message handler to store.</param>
+        /// <returns>MessageID under which handler was registered.</returns>
+        uint Put(THandler handler);
 
         /// <summary>
-        /// Tries to find message handler under given <paramref name="messageID"/>.
+        /// Removes message handler under given <paramref name="messageID"/>.
         /// </summary>
-        /// <param name="messageID">ID associated with an message handler.</param>
-        /// <param name="hander">Message handler under given ID or default value.</param>
-        /// <returns><c>true</c> if handler was found. <c>false</c> otherwise.</returns>
-        bool TryGet(ushort messageID, out THandler hander);
-
-        /// <summary>
-        /// Tries to find message handler under given <paramref name="messageID"/>.
-        /// </summary>
-        /// <param name="modID">ModID under which <paramref name="messageID"/> is registered.</param>
-        /// <param name="messageID">ID associated with an message handler.</param>
-        /// <param name="hander">Message handler under given ID or default value.</param>
-        /// <returns><c>true</c> if handler was found. <c>false</c> otherwise.</returns>
-        bool TryGet(ushort modID, ushort messageID, out THandler hander);
+        /// <remarks>
+        /// <para>
+        /// Will NOT initialize <see cref="NetworkIndex"/> when called, 
+        /// unlike <see cref="IReadOnlyMessageHandlerCollection{THandler}"/>,
+        /// to avoid deadlocks.
+        /// </para>
+        /// </remarks>
+        /// <param name="messageID">Handler MessageID to check and remove.</param>
+        void Remove(uint messageID);
     }
 }

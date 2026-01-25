@@ -12,7 +12,6 @@
 using Riptide.Toolkit.Extensions;
 using Riptide.Toolkit.Settings;
 using System;
-using System.Drawing;
 
 namespace Riptide.Toolkit.Handlers
 {
@@ -24,6 +23,8 @@ namespace Riptide.Toolkit.Handlers
     /// Has higher memory usage, but 
     /// </remarks>
     /// Note: If in the future someone will create dictionary with ushort as a base - we will use it instead.
+    /// TODO: Benchmark! Compare this one with <see cref="DictionaryHandlerCollection{THandler}"/> CPU-wise and RAM-wise.
+    /// TODO: Bound-check once entire system is setup.
     public sealed class RegionHandlerCollection<THandler> : MessageHandlerCollection<THandler>
         where THandler : IStructValidator
     {
@@ -34,35 +35,46 @@ namespace Riptide.Toolkit.Handlers
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
         /// Array of RegionMaps with all the handlers.
+        /// With region size set to 32 in a constructor,
+        /// you will have arrays covering: [N][32][32] cells, totaling to [N][1024] per section.
         /// </summary>
-        private readonly THandler[][][] m_Regions;
+        private THandler[][][] m_Regions;
 
         /// <summary>
-        /// Direct reference to RegionMap under core mod.
-        /// Saves few instructions.
+        /// Mask which covers all the bits, not managed by main regions.
         /// </summary>
-        private readonly THandler[][] m_MainRegions;
+        private readonly uint m_RootMask;
 
         /// <summary>
-        /// Size of one handler region.
+        /// By how much bits inputs has to be offset to move bits in input value to a bit #0.
         /// </summary>
-        private readonly int m_RegionSize;
+        private readonly int m_RootOffset;
+
+        /// <summary>
+        /// Mask which covers all bits, representing values within a larger region.
+        /// </summary>
+        private readonly uint m_LargeRegionMask;
+
+        /// <summary>
+        /// By how much bits inputs has to be offset to move bits in input value to a bit #0.
+        /// </summary>
+        private readonly int m_LargeRegionOffset;
 
         /// <summary>
         /// Mask which covers all bits, representing values within a region.
         /// For example, with RegionSize set to 16, mask will be: 0b1111.
         /// </summary>
-        private readonly int m_RegionMask;
+        private readonly uint m_SmallRegionMask;
 
         /// <summary>
-        /// By how much bits inputs has to be offset to move bits in input value to a bit #0.
+        /// Size of one small handler region.
         /// </summary>
-        private readonly int m_RegionOffset;
+        private readonly uint m_RegionSize;
 
         /// <summary>
         /// Index of the next (probably) free cell in region array.
         /// </summary>
-        private int m_HeadIndex = 0;
+        private uint m_HeadIndex;
 
 
 
@@ -82,17 +94,22 @@ namespace Riptide.Toolkit.Handlers
         /// Constructor for <see cref="RegionHandlerCollection{THandler}"/>
         /// </summary>
         /// <remarks>
-        /// <paramref name="size"/> MUST be "Power of Two"! (i.e. 2, 4, 8, 16, 32, ...)
+        /// <paramref name="regionSize"/> MUST be "Power of Two"! (i.e. 2, 4, 8, 16, 32, ...)
         /// </remarks>
-        public RegionHandlerCollection(int size)
+        public RegionHandlerCollection(uint regionSize)
         {
-            size = Math.Max(2, size);
-            m_RegionSize = size;
-            m_RegionMask = size - 1;
-            m_RegionOffset = CountSetBits(m_RegionMask);
+            regionSize = Math.Max(2, Math.Min(256, regionSize));
+            m_RegionSize = regionSize;
 
-            m_Regions = new THandler[1][][]; // Only initializes region map for one mod.
-            m_Regions[0] = m_MainRegions = new THandler[(ushort.MaxValue + 1) / size][];
+            m_SmallRegionMask = regionSize - 1;
+            m_LargeRegionOffset = (int)CountSetBits(m_SmallRegionMask);
+            m_LargeRegionMask = (regionSize - 1) << m_LargeRegionOffset;
+            m_RootMask = uint.MaxValue ^ m_SmallRegionMask ^ m_LargeRegionMask;
+            m_RootOffset = (int)CountSetBits(m_RootMask) + m_LargeRegionOffset;
+
+            m_Regions = new THandler[1][][];
+            m_Regions[0] = new THandler[regionSize][];
+            m_Regions[0][0] = new THandler[regionSize];
         }
 
 
@@ -108,66 +125,43 @@ namespace Riptide.Toolkit.Handlers
         /// Means that region for handlers under <paramref name="messageID"/> is not defined.
         /// Implies that message under this ID was not registered.
         /// </exception>
-        public override THandler Get(ushort messageID)
+        public override THandler Get(uint messageID)
         {
             NetworkIndex.Initialize();
-            return m_MainRegions[messageID >> m_RegionOffset][messageID & m_RegionMask];
+            // Makes all bitmask and bit offset operations here to use CPU parallel instruction execution.
+            uint region = (messageID & m_LargeRegionMask) >> m_LargeRegionOffset;
+            uint rest = messageID >> m_RootOffset;
+            uint index = messageID & m_SmallRegionMask;
+            return m_Regions[rest][region][index];
         }
 
         /// <inheritdoc/>
-        /// <exception cref="NullReferenceException">
-        /// Means that region for handlers under <paramref name="messageID"/> is not defined.
-        /// Implies that message under this ID was not registered.
-        /// </exception>
-        public override THandler Get(ushort modID, ushort messageID)
+        public override bool Has(uint messageID)
         {
             NetworkIndex.Initialize();
-            return m_Regions[modID][messageID >> m_RegionOffset][messageID & m_RegionMask];
+            // Makes all bitmask and bit offset operations here to use CPU parallel instruction execution.
+            uint region = (messageID & m_LargeRegionMask) >> m_LargeRegionOffset;
+            uint rest = messageID >> m_RootOffset;
+            uint index = messageID & m_SmallRegionMask;
+            return m_Regions?[rest]?[region]?[index]?.IsDefault == false;
         }
 
         /// <inheritdoc/>
-        public override bool Has(ushort messageID)
+        public override bool TryGet(uint messageID, out THandler hander)
         {
             NetworkIndex.Initialize();
-            var region = m_MainRegions[messageID >> m_RegionOffset];
-            return !(region is null) && !region[messageID & m_RegionMask].IsDefault;
-        }
-
-        /// <inheritdoc/>
-        public override bool Has(ushort modID, ushort messageID)
-        {
-            NetworkIndex.Initialize();
-            var region = m_Regions[modID][messageID >> m_RegionOffset];
-            return !(region is null) && !region[messageID & m_RegionMask].IsDefault;
-        }
-
-        /// <inheritdoc/>
-        public override bool TryGet(ushort messageID, out THandler hander)
-        {
-            NetworkIndex.Initialize();
-            var region = m_MainRegions[messageID >> m_RegionOffset];
-            if (region is null)
+            // Makes all bitmask and bit offset operations here to use CPU parallel instruction execution.
+            uint region = (messageID & m_LargeRegionMask) >> m_LargeRegionOffset;
+            uint rest = messageID >> m_RootOffset;
+            uint index = messageID & m_SmallRegionMask;
+            THandler[] array = m_Regions?[rest]?[region];
+            if (array is null)
             {
                 hander = default;
                 return false;
             }
 
-            hander = region[messageID & m_RegionMask];
-            return !hander.IsDefault;
-        }
-
-        /// <inheritdoc/>
-        public override bool TryGet(ushort modID, ushort messageID, out THandler hander)
-        {
-            NetworkIndex.Initialize();
-            var region = m_Regions[modID][messageID >> m_RegionOffset];
-            if (region is null)
-            {
-                hander = default;
-                return false;
-            }
-
-            hander = region[messageID & m_RegionMask];
+            hander = array[index];
             return !hander.IsDefault;
         }
 
@@ -180,17 +174,17 @@ namespace Riptide.Toolkit.Handlers
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <inheritdoc/>
-        protected override void Clear()
+        public override void Clear()
         {
-            int size = m_RegionSize;
-            var mods = m_Regions;
-            for (int i = 0; i < mods.Length; i++)
+            int size = (int)m_RegionSize;
+            var all = m_Regions;
+            for (uint i = 0; i < all.Length; i++)
             {
-                var mod = mods[i];
-                if (mod is null) continue;
-                for (int j = 0; j < mod.Length; j++)
+                var area = all[i];
+                if (area is null) continue;
+                for (uint j = 0; j < area.Length; j++)
                 {
-                    var region = mod[i];
+                    var region = area[j];
                     if (region is null) continue;
                     Array.Clear(region, 0, size);
                 }
@@ -198,73 +192,119 @@ namespace Riptide.Toolkit.Handlers
         }
 
         /// <inheritdoc/>
-        protected override void Reset()
+        public override void Reset()
         {
-            var mods = m_Regions;
-            for (int i = 0; i < mods.Length; i++)
-            {
-                var mod = mods[i];
-                if (mod is null) continue;
-                for (int j = 0; j < mod.Length; j++)
-                {
-                    mod[j] = null;
-                }
-            }
+            int regionSize = (int)m_RegionSize;
+            m_Regions = new THandler[1][][];
+            m_Regions[0] = new THandler[regionSize][];
+            m_Regions[0][0] = new THandler[regionSize];
         }
 
         /// <inheritdoc/>
-        protected override void Set(ushort modID, ushort messageID, THandler handler)
+        public override void Set(uint messageID, THandler handler)
         {
-            int regionIndex = messageID >> m_RegionOffset;
-            int referenceIndex = messageID & m_RegionMask;
+            // Makes all bitmask and bit offset operations here to use CPU parallel instruction execution.
+            uint areaIndex = (messageID & m_LargeRegionMask) >> m_LargeRegionOffset;
+            uint restIndex = messageID >> m_RootOffset;
+            uint index = messageID & m_SmallRegionMask;
+            var rest = m_Regions;
+            if (restIndex >= rest.Length)
+            {
+                Array.Resize(ref rest, (int)(restIndex + 1));
+                m_Regions = rest;
+            }
 
-            var mods = m_Regions[modID];
-            var region = mods[regionIndex];
+            var area = rest[restIndex];
+            if (area is null)
+            {
+                rest[restIndex] = area = new THandler[m_RegionSize][];
+            }
+
+            var region = area[areaIndex];
             if (region is null)
             {
-                mods[regionIndex] = region = new THandler[m_RegionSize];
-                region[referenceIndex] = handler;
+                area[areaIndex] = region = new THandler[m_RegionSize];
             }
-            else
-            {
-                region[referenceIndex] = handler;
-            }
+
+            region[index] = handler;
         }
 
         /// <inheritdoc/>
-        protected override ushort Put(ushort modID, THandler handler)
+        public override uint Put(THandler handler)
         {
+            // TODO: Optimize by only updating references to larger regions after leaving range of a given region.
+            //  And do it without much branching.
             // Allocates local array variable to reduce instruction amount.
-            var regions = m_Regions[modID];
-            for (; m_HeadIndex <= ushort.MaxValue; m_HeadIndex++)
+            var rest = m_Regions;
+
+            // Allocates masks and offsets on stack to avoid often memory lookups, hopefully.
+            uint largeMask = m_LargeRegionMask;
+            int largeOffset = m_LargeRegionOffset;
+            uint smallMask = m_SmallRegionMask;
+            int restOffset = m_RootOffset;
+
+            uint head = m_HeadIndex;
+            for (; head < uint.MaxValue; head++)
             {
-                int regionIndex = m_HeadIndex >> m_RegionOffset;
-                int referenceIndex = m_HeadIndex & m_RegionMask;
-                THandler[] region = regions[regionIndex];
+                uint areaIndex = (head & largeMask) >> largeOffset;
+                uint restIndex = head >> restOffset;
+                uint index = head & smallMask;
+                if (restIndex >= rest.Length)
+                {
+                    Array.Resize(ref rest, (int)(restIndex + 1));
+                    m_Regions = rest;
+                }
+
+                var area = rest[restIndex];
+                if (area is null)
+                {
+                    rest[restIndex] = area = new THandler[m_RegionSize][];
+                }
+
+                var region = area[areaIndex];
                 if (region is null)
                 {
-                    regions[regionIndex] = region = new THandler[m_RegionSize];
-                    region[referenceIndex] = handler;
-                    break;
+                    area[areaIndex] = region = new THandler[m_RegionSize];
                 }
-                else if (region[referenceIndex].IsDefault)
+
+                if (region[index].IsDefault)
                 {
-                    region[referenceIndex] = handler;
+                    region[index] = handler;
+                    break;
                 }
             }
 
             // Moves head to (potentially free) next ID. 
-            return (ushort)(++m_HeadIndex);
+            m_HeadIndex = head + 1;
+            return head;
         }
 
         /// <inheritdoc/>
-        protected override void Remove(ushort modID, ushort messageID)
+        public override void Remove(uint messageID)
         {
-            var region = m_Regions[modID][messageID >> m_RegionOffset];
-            if (!(region is null))
+            // Makes all bitmask and bit offset operations here to use CPU parallel instruction execution.
+            uint areaIndex = (messageID & m_LargeRegionMask) >> m_LargeRegionOffset;
+            uint restIndex = messageID >> m_RootOffset;
+            uint index = messageID & m_SmallRegionMask;
+            var rest = m_Regions;
+            if (rest.Length < restIndex)
             {
-                region[messageID & m_RegionMask] = default;
+                return;
             }
+
+            var area = rest[restIndex];
+            if (area is null)
+            {
+                return;
+            }
+
+            var region = area[areaIndex];
+            if (region is null)
+            {
+                return;
+            }
+
+            region[index] = default;
         }
 
 
@@ -275,7 +315,7 @@ namespace Riptide.Toolkit.Handlers
         /// .                                               Private Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public static int CountSetBits(int i)
+        public static uint CountSetBits(uint i)
         {
             i -= (i >> 1) & 0x55555555;
             i = (i & 0x33333333) + ((i >> 2) & 0x33333333);

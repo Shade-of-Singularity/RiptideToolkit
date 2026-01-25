@@ -8,20 +8,17 @@
 ///                        "RiptideToolkit/LICENSE.md"
 /// 
 /// ]]>
+/// 
 
-using Riptide.Toolkit.Extensions;
 using Riptide.Toolkit.Settings;
 
 namespace Riptide.Toolkit.Handlers
 {
     /// <summary>
-    /// Base class for collections, which store client-side/server-side message handlers.
+    /// Stores info about which MessageIDs are defined under specific GroupIDs.
     /// </summary>
-    /// <remarks>
-    /// No reason to implement this one - Toolkit won't use any custom implementation (as of right now).
-    /// Implemented in <see cref="RegionHandlerCollection{THandler}"/> and {TODO: insert DictionaryHandlerCollection}.
-    /// </remarks>
-    public abstract class MessageHandlerCollection<THandler> : IMessageHandlerCollection<THandler> where THandler : IStructValidator
+    /// TODO: Implement both Dictionary-based and Region-based indexers.
+    public abstract class GroupMessageIndexer : IGroupMessageIndexer
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
@@ -31,17 +28,37 @@ namespace Riptide.Toolkit.Handlers
         /// <summary>
         /// Creates new instance of <see cref="MessageHandlerCollection{THandler}"/> optimized for <see cref="Performance.MessageHandlerFocus"/> mode.
         /// </summary>
-        public static MessageHandlerCollection<THandler> Create()
+        public static GroupMessageIndexer Create()
         {
             if (Performance.MessageHandlerFocus == PerformanceType.OptimizeCPU)
             {
-                return new RegionHandlerCollection<THandler>(Performance.RegionSize);
+                return new RegionGroupMessageIndexer();
             }
             else
             {
-                return new DictionaryHandlerCollection<THandler>();
+                return new DictionaryGroupMessageIndexer();
             }
         }
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                              Public Properties
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        public byte GroupID { get; } // Note: should we make it modifiable?
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                                Constructors
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        public GroupMessageIndexer(byte groupID) => GroupID = groupID;
 
 
 
@@ -52,13 +69,7 @@ namespace Riptide.Toolkit.Handlers
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <inheritdoc/>
-        public abstract THandler Get(uint messageID);
-
-        /// <inheritdoc/>
         public abstract bool Has(uint messageID);
-
-        /// <inheritdoc/>
-        public abstract bool TryGet(uint messageID, out THandler hander);
 
         /// <inheritdoc/>
         public abstract void Clear();
@@ -67,10 +78,7 @@ namespace Riptide.Toolkit.Handlers
         public abstract void Reset();
 
         /// <inheritdoc/>
-        public abstract void Set(uint messageID, THandler handler);
-
-        /// <inheritdoc/>
-        public abstract uint Put(THandler handler);
+        public abstract void Register(uint messageID);
 
         /// <inheritdoc/>
         public abstract void Remove(uint messageID);

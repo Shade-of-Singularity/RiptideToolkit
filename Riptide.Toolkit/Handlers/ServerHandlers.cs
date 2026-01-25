@@ -20,7 +20,7 @@ namespace Riptide.Toolkit.Handlers
     /// <summary>
     /// Collection of all server-side message handlers for specific handler group ID.
     /// </summary>
-    public sealed class ServerHandlers : IMessageHandlerCollection<ServerHandlers.HandlerInfo>
+    public sealed class ServerHandlers : IReadOnlyMessageHandlerCollection<ServerHandlers.HandlerInfo>
     {
         /// <summary>
         /// Client-side handler info.
@@ -63,7 +63,7 @@ namespace Riptide.Toolkit.Handlers
         /// .                                              Public Properties
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public MessageHandlerCollection<HandlerInfo> Handlers { get; }
+        public IReadOnlyMessageHandlerCollection<HandlerInfo> Handlers { get; }
 
 
 
@@ -73,18 +73,7 @@ namespace Riptide.Toolkit.Handlers
         /// .                                                Constructors
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public ServerHandlers()
-        {
-            if (Performance.MessageHandlerFocus == PerformanceType.OptimizeCPU)
-            {
-                Handlers = new RegionHandlerCollection<HandlerInfo>(Performance.RegionSize);
-            }
-            else
-            {
-                Handlers = new DictionaryHandlerCollection<HandlerInfo>();
-            }
-        }
-
+        public ServerHandlers() => Handlers = NetworkIndex.Handlers;
         public ServerHandlers(MessageHandlerCollection<HandlerInfo> handlers)
         {
             Handlers = handlers;

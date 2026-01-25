@@ -49,7 +49,7 @@ namespace Riptide.Toolkit
 
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
-        /// .                                                Public Fields
+        /// .                                               Public Fields
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
@@ -59,22 +59,22 @@ namespace Riptide.Toolkit
         /// <see cref="GroupIDAttribute"/> is already defined in <see cref="NetworkGroup{TGroup}"/>
         /// and also <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> types.
         /// </remarks>
-        public MemberInfo Group { get; set; }
+        public readonly MemberInfo Group;
         /// <summary>
         /// Reference to a <see cref="FieldInfo"/> or <see cref="PropertyInfo"/> with <see cref="MessageIDAttribute"/>.
         /// </summary>
         /// <remarks>
         /// <see cref="ModIDAttribute"/> is already declared in all <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> types.
         /// </remarks>
-        public MemberInfo Message { get; set; }
+        public readonly MemberInfo Message;
         /// <summary>
         /// Static GroupID of this message handler. Automatic ID assignment will avoid static IDs.
         /// </summary>
-        public byte? GroupID { get; set; }
+        public readonly byte? GroupID;
         /// <summary>
         /// Static MessageID of this message handler. Automatic ID assignment will avoid static IDs.
         /// </summary>
-        public uint? MessageID { get; set; }
+        public readonly uint? MessageID;
 
 
 
@@ -85,12 +85,13 @@ namespace Riptide.Toolkit
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Constructs handler, <see cref="MessageID"/> and <see cref="GroupID"/> for which
-        /// is evaluated from parameters of a method to which this attribute is attached to.
+        /// Constructs handler, <see cref="MessageID"/> for which is evaluated from parameters of a method to which this attribute is attached to.
+        /// Uses default <see cref="GroupID"/> of '0'.
         /// </summary>
-        public AdvancedMessageAttribute() { }
+        public AdvancedMessageAttribute() => GroupID = 0;
 
         /// <inheritdoc cref=" AdvancedMessageAttribute(uint)"/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public AdvancedMessageAttribute(Enum messageID) : this((uint)(object)messageID) { }
 
         /// <summary>
@@ -104,8 +105,9 @@ namespace Riptide.Toolkit
             MessageID = messageID;
         }
 
-        /// <inheritdoc cref=" AdvancedMessageAttribute(byte, uint)"/>
-        public AdvancedMessageAttribute(byte groupID, Enum messageID) : this(groupID, (uint)(object)messageID) { }
+        /// <inheritdoc cref="AdvancedMessageAttribute(uint, byte)"/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public AdvancedMessageAttribute(Enum messageID, byte groupID) : this((uint)(object)messageID, groupID) { }
 
         /// <summary>
         /// Constructs handler with both <see cref="GroupID"/> and <see cref="MessageID"/> manually defined.
@@ -116,7 +118,7 @@ namespace Riptide.Toolkit
         /// </remarks>
         /// <param name="groupID"></param>
         /// <param name="messageID"></param>
-        public AdvancedMessageAttribute(byte groupID, uint messageID)
+        public AdvancedMessageAttribute(uint messageID, byte groupID)
         {
             GroupID = groupID;
             MessageID = messageID;
@@ -130,10 +132,34 @@ namespace Riptide.Toolkit
         /// .                                                1 Multi-type
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public AdvancedMessageAttribute(Type multicast)
+        public AdvancedMessageAttribute(Type multicast, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1)
         {
-            ResolveMultitypePrioritizeMessage(multicast);
-            SetDefaults();
+            //if (typeof(NetworkGroup).IsAssignableFrom(multicast))
+            //{
+            //    if (!ResolveGroup(multicast))
+            //    {
+            //        throw new Exception($"Provided multicast type is not {nameof(NetworkMessage)}<> nor {nameof(NetworkGroup)}<> class type. Caused by Advanced message handler with multicast type ({multicast.Name}) at: ({source}) line: (#{line})");
+            //    }
+            //}
+
+            if (ResolveMessage(multicast))
+            {
+                // Two checks allows multicast type to have both MessageID and GroupID fields/parameters.
+                if (ResolveGroup(multicast))
+                {
+                    // Multicast contains has MessageID and GroupID fields/parameters.
+                }
+                else
+                {
+                    // Multicast is a NetworkMessage with MessageID only, but no GroupID.
+                    GroupID = 0;
+                }
+            }
+            else if (ResolveGroup(multicast))
+            {
+                GroupID = 0;
+            }
+            else throw new Exception($"Provided multicast type is not {nameof(NetworkMessage)}<> nor {nameof(NetworkGroup)}<> class type. Caused by Advanced message handler with multicast type ({multicast.Name}) at: ({source}) line: (#{line})");
         }
 
         /// <remarks>
@@ -141,23 +167,34 @@ namespace Riptide.Toolkit
         /// <para>- <c><![CDATA[AdvancedMessage(typeof(Message), 0)]]></c> - here '0' marks GroupID.</para>
         /// <para>- <c><![CDATA[AdvancedMessage(typeof(Group), 0u)]]></c> - here '0u' marks MessageID.</para>
         /// </remarks>
-        public AdvancedMessageAttribute(Type message, byte groupID)
+        public AdvancedMessageAttribute(Type message, byte groupID, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1)
         {
             GroupID = groupID;
-            ResolveMultitypePrioritizeMessage(message);
-            SetDefaults();
+            if (!ResolveMessage(message))
+            {
+                if (ResolveGroup(message)) throw new Exception($"GroupID was provided twice in an Advanced message handler with multicast type ({message.Name}) at: ({source}) line: (#{line})");
+                else throw new Exception($"Expected {nameof(NetworkMessage)}<> class type to be provided in Advanced message handler with multicast type ({message.Name}) at: ({source}) line: (#{line})");
+            }
         }
+
+        /// <inheritdoc cref="AdvancedMessageAttribute(uint, Type, string, int)"/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public AdvancedMessageAttribute(Enum messageID, Type group, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1)
+            : this((uint)(object)messageID, group, source, line) { }
 
         /// <remarks>
         /// Write ID as '0' instead of '0u' to use constructor for GroupID instead. Examples:
         /// <para>- <c><![CDATA[AdvancedMessage(typeof(Message), 0)]]></c> - here '0' marks GroupID.</para>
         /// <para>- <c><![CDATA[AdvancedMessage(typeof(Group), 0u)]]></c> - here '0u' marks MessageID.</para>
         /// </remarks>
-        public AdvancedMessageAttribute(Type group, uint messageID)
+        public AdvancedMessageAttribute(uint messageID, Type group, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1)
         {
             MessageID = messageID;
-            ResolveMultitypePrioritizeGroup(group);
-            SetDefaults();
+            if (!ResolveGroup(group))
+            {
+                if (ResolveMessage(group)) throw new Exception($"MessageID was provided twice in an Advanced message handler with multicast type ({group.Name}) at: ({source}) line: (#{line})");
+                else throw new Exception($"Expected {nameof(NetworkGroup)}<> class type to be provided in Advanced message handler with multicast type ({group.Name}) at: ({source}) line: (#{line})");
+            }
         }
 
 
@@ -168,11 +205,105 @@ namespace Riptide.Toolkit
         /// .                                                2 Multi-types
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public AdvancedMessageAttribute(Type multicast1, Type multicast2)
+        /// <remarks>
+        /// Recommended to be used on methods which use <see cref="Riptide.Message"/> in method parameters.
+        /// Allows specifying both <see cref="NetworkMessage"/> and <see cref="NetworkGroup"/> as types.
+        /// <para>
+        /// It will check if <paramref name="multicast1"/> is <see cref="NetworkMessage"/> before checking if it is <see cref="NetworkGroup"/>.
+        /// If you prefer having <paramref name="multicast1"/> as <see cref="NetworkGroup"/> instead, and <paramref name="multicast2"/>
+        /// as <see cref="NetworkMessage"/> - set <see cref="Reflections.AdvancedMessageHandlerConstructor_ExpectFirstMulticastToBeAMessage"/> to 'false'.
+        /// Changing this might improve performance a bit, but you need to be consistent with how you use message handlers.
+        /// </para>
+        /// </remarks>
+        /// <param name="multicast1"><see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> or <see cref="NetworkGroup{TGroup}"/>.</param>
+        /// <param name="multicast2"><see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> or <see cref="NetworkGroup{TGroup}"/>.</param>
+        public AdvancedMessageAttribute(Type multicast1, Type multicast2, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1)
         {
-            ResolveMultitypePrioritizeGroup(multicast1);
-            ResolveMultitypePrioritizeMessage(multicast2);
-            SetDefaults();
+            if (Reflections.AdvancedMessageHandlerConstructor_ExpectFirstMulticastToBeAMessage)
+            {
+                if (ResolveMessage(multicast1))
+                {
+                    if (ResolveGroup(multicast2))
+                    {
+                        // Prediction succeeded.
+                    }
+                    else
+                    {
+                        throw new Exception($"Since Advanced message handler got a {nameof(NetworkMessage)} as parameter '{nameof(multicast1)}' - expected {nameof(multicast2)} to be a {nameof(NetworkGroup)}, but it wasn't. Caused by Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
+                    }
+                }
+                else if (ResolveGroup(multicast1))
+                {
+                    if (ResolveMessage(multicast2))
+                    {
+
+                    }
+                }
+                else
+                {
+
+                }
+            }
+            else
+            {
+
+            }
+
+            throw new Exception($"One or all provided multicast types is not {nameof(NetworkMessage)}<> nor {nameof(NetworkGroup)}<> class type. Caused by Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
+
+
+
+            if (!ResolveMessage(multicast1))
+            {
+                if (!ResolveMessage(multicast2))
+                {
+
+                }
+            }
+
+            if (!ResolveMessage(multicast1) & !ResolveGroup(multicast1))
+            {
+
+            }
+
+            if (Message is null && ResolveMessage(multicast2))
+            {
+                // Multicast #1 is Group and Multicast #2 is Message here.
+            }
+            else if (Group is null && ResolveGroup(multicast2))
+            {
+
+            }
+
+            if (ResolveGroup(multicast1))
+            {
+                if (ResolveMessage(multicast2))
+                {
+                    // Prediction succeeded.
+                    // No default values have to be provided.
+                }
+                else
+                {
+                    if (ResolveGroup(multicast2))
+                        throw new Exception($"Provided two {nameof(NetworkGroup)}<> types for Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
+                    else throw new Exception($"{nameof(NetworkMessage)}<> was not provided for Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
+                }
+            }
+            else if (ResolveMessage(multicast1))
+            {
+                if (ResolveGroup(multicast2))
+                {
+                    // Second prediction succeeded.
+                    // No default values have to be provided.
+                }
+                else
+                {
+                    if (ResolveMessage(multicast2))
+                        throw new Exception($"Provided two {nameof(NetworkMessage)}<> types for Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
+                    else throw new Exception($"{nameof(NetworkGroup)}<> was not provided for Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
+                }
+            }
+
         }
 
 
@@ -207,7 +338,7 @@ namespace Riptide.Toolkit
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         private const BindingFlags MemberBindingFlags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
         private static readonly MemberInfo DefaultGroupIDSource;
-        private static MemberInfo LastGroupIDSource; // Not a mistake. Avoids null-check to remove 1 branch.
+        private static MemberInfo LastGroupIDSource;
 
 
 
@@ -217,77 +348,20 @@ namespace Riptide.Toolkit
         /// .                                               Private Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private void SetDefaults()
-        {
-            if (GroupID is null && Group is null)
-            {
-                if (Message is null)
-                {
-                    GroupID = 0;
-                }
-                else if (LookupMember<GroupIDAttribute>(Message.DeclaringType, out MemberInfo member,
-                        Reflections.ImbeddedAttributeAnalysis_PrioritizeFields))
-                {
-                    // Avoids defining GroupID to prioritize member's GroupID in field/parameter.
-                    Group = member;
-                }
-                else
-                {
-                    Group = DefaultGroupIDSource;
-                    GroupID = 0;
-                }
-            }
-        }
-
-        private void ResolveMultitypePrioritizeGroup(Type value)
-        {
-            if (!ResolveGroup(value) && !ResolveMessage(value))
-            {
-                throw GetResolvingFailedException(value);
-            }
-        }
-
-        private void ResolveMultitypePrioritizeMessage(Type value)
-        {
-            if (!ResolveMessage(value) && !ResolveGroup(value))
-            {
-                throw GetResolvingFailedException(value);
-            }
-        }
-
-        private void SetGroupID(byte groupID)
-        {
-            if (Group is null) GroupID = groupID;
-            else throw new ArgumentException($"Specified {nameof(NetworkGroup)} in two different ways - explicitly and via auto-type. This is not allowed!");
-        }
-
-        private void SetMessageID(ushort messageID)
-        {
-            if (Message is null) MessageID = messageID;
-            else throw new ArgumentException($"Specified {nameof(NetworkMessage)} in two different ways - explicitly and via auto-type. This is not allowed!");
-        }
-
-        private Exception GetResolvingFailedException(Type value)
-        {
-            // TODO: If all resolving attempts fail - run another analysis, more expensive one, but the one which gather debug info and log it.
-            return new NotSupportedException($"Cannot resolve multitype ({value.Name}) in {nameof(AdvancedMessageAttribute)}! Either invalid types are used, or IDs provided in multiple different ways.");
-        }
-
         private bool ResolveGroup(Type group)
         {
-            if (GroupID.HasValue) return false;
-            if (Group is null || Group == DefaultGroupIDSource)
-            {
-                // Starts from a fast cache lookup to avoid reflections.
-                if (LastGroupIDSource.DeclaringType.IsAssignableFrom(group))
-                {
-                    Group = LastGroupIDSource;
-                }
-                else if (LookupMemberRootLast<GroupIDAttribute>(group, out MemberInfo member, Reflections.GroupAttributeAnalysis_PrioritizeFields))
-                {
-                    LastGroupIDSource = Group = member;
-                }
+            if (!(Group is null)) return false;
 
+            // Starts from a fast cache lookup to avoid reflections if possible.
+            // TODO: Replace with dictionaries if it makes sense to do so. Don't forget to clear-out said array on global reload.
+            if (LastGroupIDSource.DeclaringType.IsAssignableFrom(group))
+            {
+                Group = LastGroupIDSource;
+                return true;
+            }
+            else if (LookupMemberRootLast<GroupIDAttribute>(group, out MemberInfo member, Reflections.GroupAttributeAnalysis_PrioritizeFields))
+            {
+                LastGroupIDSource = Group = member;
                 return true;
             }
 
@@ -296,14 +370,11 @@ namespace Riptide.Toolkit
 
         private bool ResolveMessage(Type message)
         {
-            if (MessageID.HasValue) return false;
-            if (Message is null)
-            {
-                if (LookupMemberRootLast<MessageIDAttribute>(message, out MemberInfo member, Reflections.MessageAttributeAnalysis_PrioritizeFields))
-                {
-                    Message = member;
-                }
+            if (!(Message is null)) return false;
 
+            if (LookupMemberRootLast<MessageIDAttribute>(message, out MemberInfo member, Reflections.MessageAttributeAnalysis_PrioritizeFields))
+            {
+                Message = member;
                 return true;
             }
 

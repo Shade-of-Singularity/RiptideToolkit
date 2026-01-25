@@ -20,7 +20,7 @@ namespace Riptide.Toolkit.Handlers
     /// <summary>
     /// Collection of all server-side message handlers for specific handler group ID.
     /// </summary>
-    public sealed class ClientHandlers : IMessageHandlerCollection<ClientHandlers.HandlerInfo>
+    public sealed class ClientHandlers : IReadOnlyMessageHandlerCollection<ClientHandlers.HandlerInfo>
     {
         /// <summary>
         /// Client-side handler info.

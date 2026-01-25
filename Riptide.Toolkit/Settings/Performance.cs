@@ -27,11 +27,12 @@ namespace Riptide.Toolkit.Settings
         /// .                                                Constructors
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public const string PerformanceTypeFlag = "-riptide.performance.handlers";
-        public const string PerformanceTypeCPU = "cpu";
-        public const string PerformanceTypeRAM = "ram";
-        public const string PerformanceTypeIO = "io";
-        public const string PerformanceTypeDisk = "disk";
+        public const string MessageHandlersPerformanceFocusFlag = "-riptide.performance.handlers";
+        public const string GroupIndexerPerformanceFocusFlag = "-riptide.performance.indexers";
+        public const string PerformanceFocusCPU = "cpu";
+        public const string PerformanceFocusRAM = "ram";
+        public const string PerformanceFocusIO = "io";
+        public const string PerformanceFocusDisk = "disk";
 
 
 
@@ -57,7 +58,8 @@ namespace Riptide.Toolkit.Settings
                 if (m_MessageHandlerFocus == value) return;
                 if (NetworkIndex.IsEverInitialized)
                 {
-                    throw new Exception($"Cannot modify performance settings after {nameof(NetworkIndex)} initialization! Set performance options on app launch.");
+                    throw new Exception(
+                        $"Cannot modify performance settings after {nameof(NetworkIndex)} initialization! Set performance options on app launch.");
                 }
 
                 m_MessageHandlerFocus = value;
@@ -65,9 +67,33 @@ namespace Riptide.Toolkit.Settings
         }
 
         /// <summary>
+        /// Type of optimization <see cref="Handlers.ClientHandlers"/> and <see cref="Handlers.ServerHandlers"/> will use.
+        /// </summary>
+        /// <remarks>
+        /// <para>With <see cref="PerformanceType.OptimizeCPU"/> - adds ~4MB of RAM overhead. Internal list access takes '1.477 ns'.</para>
+        /// <para>With <see cref="PerformanceType.OptimizeRAM"/> - adds ~32KB of overhead. Internal list access takes '7.035 ns'.</para>
+        /// </remarks>
+        /// TODO: Benchmark data was only tested in a lab environment. We need to test again using handler implementations directly.
+        public static PerformanceType GroupIndexerFocus
+        {
+            get => m_GroupIndexerFocus;
+            set
+            {
+                if (m_GroupIndexerFocus == value) return;
+                if (NetworkIndex.IsEverInitialized)
+                {
+                    throw new Exception(
+                        $"Cannot modify performance settings after {nameof(NetworkIndex)} initialization! Set performance options on app launch.");
+                }
+
+                m_GroupIndexerFocus = value;
+            }
+        }
+
+        /// <summary>
         /// Region size for <see cref="Handlers.RegionHandlerCollection"/>.
         /// </summary>
-        public static int RegionSize
+        public static uint RegionSize
         {
             get => m_RegionSize;
             set
@@ -75,7 +101,8 @@ namespace Riptide.Toolkit.Settings
                 if (m_RegionSize == value) return;
                 if (NetworkIndex.IsEverInitialized)
                 {
-                    throw new Exception($"Cannot modify performance settings after {nameof(NetworkIndex)} initialization! Set performance options on app launch.");
+                    throw new Exception(
+                        $"Cannot modify performance settings after {nameof(NetworkIndex)} initialization! Set performance options on app launch.");
                 }
 
                 m_RegionSize = value;
@@ -91,7 +118,8 @@ namespace Riptide.Toolkit.Settings
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         private static PerformanceType m_MessageHandlerFocus = PerformanceType.OptimizeCPU;
-        private static int m_RegionSize = 32;
+        private static PerformanceType m_GroupIndexerFocus = PerformanceType.OptimizeCPU;
+        private static uint m_RegionSize = 32;
 
 
 
@@ -103,45 +131,18 @@ namespace Riptide.Toolkit.Settings
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         static Performance()
         {
-            string[] args = Environment.GetCommandLineArgs();
-            if (TryFind(PerformanceTypeFlag, out string type))
+            if (ConsoleArgs.TryGet(GroupIndexerPerformanceFocusFlag, out string type))
             {
                 switch (type)
                 {
-                    case PerformanceTypeCPU: m_MessageHandlerFocus = PerformanceType.OptimizeCPU; break;
-                    case PerformanceTypeRAM: m_MessageHandlerFocus = PerformanceType.OptimizeRAM; break;
+                    case PerformanceFocusCPU: m_MessageHandlerFocus = PerformanceType.OptimizeCPU; break;
+                    case PerformanceFocusRAM: m_MessageHandlerFocus = PerformanceType.OptimizeRAM; break;
 
-                    case PerformanceTypeIO:
-                    case PerformanceTypeDisk: throw new Exception("Disk optimization is not supported yet.");
+                    case PerformanceFocusIO:
+                    case PerformanceFocusDisk: throw new Exception("Disk optimization is not supported yet.");
                     case "": break;
                     default: throw new Exception($"Unknown target performance type in command line args: {type}");
                 }
-            }
-
-            // Simplifications:
-            bool Has(string key) => Array.IndexOf(args, key) != -1;
-            bool TryFind(string key, out string value)
-            {
-                int index = Array.IndexOf(args, key);
-                if (index == -1)
-                {
-                    value = null;
-                    return false;
-                }
-
-                return TryGet(index + 1, out value);
-            }
-
-            bool TryGet(int index, out string value)
-            {
-                if (index < args.Length)
-                {
-                    value = args[index];
-                    return true;
-                }
-
-                value = null;
-                return false;
             }
         }
     }

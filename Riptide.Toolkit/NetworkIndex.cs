@@ -36,29 +36,19 @@ namespace Riptide.Toolkit
         public const string LogPrefix = "[" + nameof(NetworkIndex) + "]";
 
         /// <summary>
-        /// How many mods toolkit supports.
-        /// You can bypass this limit by not registering mods which doesn't use networking.
-        /// (Though, I have no idea how you can genuinely exhaust all 65536 available mod IDs)
-        /// </summary>
-        public const uint MaxModIDAmount = ushort.MaxValue + 1;
-
-        /// <summary>
         /// How many groups can be generated.
         /// </summary>
-        public const ushort MaxGroupIDAmount = byte.MaxValue + 1;
+        public const ushort MaxGroupIDAmount = 1 << (sizeof(byte) - 1);
 
         /// <summary>
         /// How many messages one group can hold.
         /// </summary>
-        public const uint MaxMessageIDAmount = ushort.MaxValue + 1;
+        public const uint MaxMessageIDAmount = uint.MaxValue;
 
         /// <summary>
-        /// How many handler array cells should be allocated for <see cref="SystemMessageID"/> enum.
+        /// <see cref="uint.MaxValue"/> is an invalid ID, since '0' are commonly used everywhere by developers.
         /// </summary>
-        /// <remarks>
-        /// System messages work with all groups - they are used to determine if systems are compatible or not, so kind of important.
-        /// </remarks>
-        internal const ushort SystemMessagesCount = 4;
+        public const uint InvalidMessageID = uint.MaxValue;
 
 
 
@@ -92,6 +82,11 @@ namespace Riptide.Toolkit
         /// </summary>
         public static bool IsValid => m_IsValid;
 
+        /// <summary>
+        /// Contains references to raw <see cref="MessageHandlerInfo"/> structs.
+        /// </summary>
+        public static IReadOnlyMessageHandlerCollection<MessageHandlerInfo> Handlers => m_MessageHandlers;
+
 
 
 
@@ -101,18 +96,16 @@ namespace Riptide.Toolkit
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         // System message handlers. Does not rely on GroupID - maps directly to MessageID.
-        private static readonly ClientSystemHandler[] m_ClientSystemHandlers = new ClientSystemHandler[SystemMessagesCount];
-        private static readonly ServerSystemHandler[] m_ServerSystemHandlers = new ServerSystemHandler[SystemMessagesCount];
+        private static readonly ClientSystemHandler[] m_ClientSystemHandlers = new ClientSystemHandler[SystemMessaging.TotalIDs];
+        private static readonly ServerSystemHandler[] m_ServerSystemHandlers = new ServerSystemHandler[SystemMessaging.TotalIDs];
 
         // GroupIDs:
-        private static readonly ulong[] m_GroupIDFlags = new ulong[MaxGroupIDAmount / 64]; // Describes 256 GroupIDs that can be taken.
-        private static ushort m_GroupIDHeadIndex = 0; // We use ushort instead of byte, to gracefully handle ID exhaustion.
-        private static readonly object _resizeLock = new object();
+        // Pre-allocates one for GroupID '0'.
+        private static readonly object _groupLock = new object();
+        private static readonly GroupMessageIndexer[] m_Groups = new GroupMessageIndexer[1] { GroupMessageIndexer.Create() };
 
-        // Message handlers mapped to a ModID then MessageID. Array cells are mapped to GroupIDs.
-        // Note: Later we might consider uniting all groups in one "GroupData" struct, to use internal DynamicArray extensions.
-        private static ClientHandlers[] m_ClientHandlers = new ClientHandlers[1] { new ClientHandlers() };
-        private static ServerHandlers[] m_ServerHandlers = new ServerHandlers[1] { new ServerHandlers() };
+        // MessageIDs: (doesn't map to Groups, rather Groups map to it instead)
+        private static readonly MessageHandlerCollection<MessageHandlerInfo> m_MessageHandlers = MessageHandlerCollection<MessageHandlerInfo>.Create();
 
         // MessageIDs: (maps to each GroupID)
         private static ulong[][] m_MessageIDFlags = new ulong[1][] { new ulong[MaxMessageIDAmount / 64] }; // Describes all 65536 MessageIDs that can be taken.
@@ -126,9 +119,6 @@ namespace Riptide.Toolkit
 
         // Lock will be locked on rescan.
         private static readonly object _lock = new object();
-
-        // ModID handling:
-        private static uint m_NextModID; // We use uint instead of ushort, to gracefully handle ID exhaustion.
 
 
 
@@ -157,14 +147,14 @@ namespace Riptide.Toolkit
 
         /// <summary>
         /// Activates all static fields in given class/type.
-        /// Can be used to Forcefully register ModIDs and GroupIDs from <see cref="NetworkGroup{TGroup}"/>s.
+        /// Can be used to Forcefully register GroupIDs from <see cref="NetworkGroup{TGroup}"/>s.
         /// </summary>
         /// <typeparam name="T">Type to initialize.</typeparam>
         public static void Register<T>() => System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(T).TypeHandle);
 
         /// <summary>
         /// Activates all static fields in given class/type.
-        /// Can be used to Forcefully register ModIDs and GroupIDs from <see cref="NetworkGroup{TGroup}"/>s.
+        /// Can be used to Forcefully register GroupIDs from <see cref="NetworkGroup{TGroup}"/>s.
         /// </summary>
         public static void Register(Type type) => System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(type.TypeHandle);
 
@@ -196,19 +186,6 @@ namespace Riptide.Toolkit
             }
 
             return m_ServerHandlers[groupID];
-        }
-
-        /// <summary>
-        /// Retrieves next mod id for internal usage.
-        /// </summary>
-        public static ushort NextModID()
-        {
-            if (m_NextModID >= MaxModIDAmount)
-            {
-                throw new Exception("Exhausted all Mod IDs for Riptide networking.");
-            }
-
-            return (ushort)++m_NextModID;
         }
 
         /// <summary>
@@ -329,8 +306,15 @@ namespace Riptide.Toolkit
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         internal static void Register(byte systemID, ClientSystemHandler handler) => m_ClientSystemHandlers[systemID] = handler;
         internal static void Register(byte systemID, ServerSystemHandler handler) => m_ServerSystemHandlers[systemID] = handler;
-        internal static void HandleClient(byte systemID, AdvancedClient client, MessageReceivedEventArgs args) => m_ClientSystemHandlers[systemID](client, args);
-        internal static void HandleServer(byte systemID, AdvancedServer server, MessageReceivedEventArgs args) => m_ServerSystemHandlers[systemID](server, args);
+        internal static void HandleClient(byte systemID, AdvancedClient client, MessageReceivedEventArgs args)
+        {
+            m_ClientSystemHandlers[systemID](client, args);
+        }
+
+        internal static void HandleServer(byte systemID, AdvancedServer server, MessageReceivedEventArgs args)
+        {
+            m_ServerSystemHandlers[systemID](server, args);
+        }
 
 
 
