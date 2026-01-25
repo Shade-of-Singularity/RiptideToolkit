@@ -187,12 +187,9 @@ namespace Riptide.Toolkit.Examples
                 // Pings/sends testing message to server 5000 times. Useful for testing.
                 for (int i = 0; i < 5000; i++)
                 {
-                    Client.Send(
-                        NetMessage.Create(MessageSendMode.Reliable, ToServerMessages.ReceivePlayerPosition)
-                        .AddFloat(i).AddFloat(20));
+                    Client.Send(NetMessage.Reliable(ToServerMessages.ReceivePlayerPosition).AddFloat(i).AddFloat(20));
                     await WaitForMessageToDeliver();
                 }
-
 
                 RiptideLogger.Log(LogType.Info, "Client-side pinging concluded.");
                 RiptideLogger.Log(LogType.Info, $"");
@@ -200,8 +197,7 @@ namespace Riptide.Toolkit.Examples
                 return;
             }
 
-            Message message = NetMessage.Create(MessageSendMode.Reliable, ToServerMessages.RegisterUsername)
-                .AddString("New User");
+            Message message = NetMessage.Reliable(ToServerMessages.RegisterUsername).AddString("New User");
             Client.Send(message);
             await WaitForMessageToDeliver();
 
@@ -225,8 +221,7 @@ namespace Riptide.Toolkit.Examples
                 for (int i = 0; i < 5000; i++)
                 {
                     Server.SendToAll(
-                        NetMessage.Create(MessageSendMode.Reliable, ToClientMessages.UpdatePlayerPosition)
-                        .AddUShort(ClientID).AddFloat(i).AddFloat(20));
+                        NetMessage.Reliable(ToClientMessages.UpdatePlayerPosition).AddUShort(ClientID).AddFloat(i).AddFloat(20));
                     await WaitForMessageToDeliver();
                 }
 
@@ -237,8 +232,7 @@ namespace Riptide.Toolkit.Examples
             }
 
             // Sends regular testing messages.
-            Message message = NetMessage.Create(MessageSendMode.Reliable, ToClientMessages.UpdateUsername)
-                .AddUShort(ClientID).AddString("New User");
+            Message message = NetMessage.Reliable(ToClientMessages.UpdateUsername).AddUShort(ClientID).AddString("New User");
             Server.SendToAll(message);
             await WaitForMessageToDeliver();
 

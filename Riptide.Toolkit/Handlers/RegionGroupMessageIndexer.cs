@@ -71,7 +71,7 @@ namespace Riptide.Toolkit.Handlers
         /// .                                                Constructors
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public RegionGroupMessageIndexer(byte groupID) : base(groupID) => m_Flags = new uint[1][][];
+        public RegionGroupMessageIndexer(byte groupID) : base(groupID) => m_Flags = new uint[0][][];
 
 
 
@@ -120,7 +120,7 @@ namespace Riptide.Toolkit.Handlers
         /// <inheritdoc/>
         public override void Reset()
         {
-            lock (_lock) m_Flags = new uint[1][][];
+            lock (_lock) m_Flags = new uint[0][][];
         }
 
         /// <inheritdoc/>

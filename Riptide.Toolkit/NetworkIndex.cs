@@ -122,6 +122,23 @@ namespace Riptide.Toolkit
 
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
+        /// .                                                 Constants
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        static NetworkIndex()
+        {
+            // Initializes it so clients and servers can initialize easily.
+            for (byte i = 0; i < MaxGroupIDAmount; i++)
+            {
+                m_Groups[i] = GroupMessageIndexer.Create(i);
+            }
+        }
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
         /// .                                               Public Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
@@ -185,23 +202,23 @@ namespace Riptide.Toolkit
         public static bool HasGroup(byte groupID) => !(m_Groups[groupID] is null);
 
         /// <summary>
-        /// Attempts to retrieve <see cref="GroupMessageIndexer"/> under given <paramref name="groupID"/>.
+        /// Attempts to retrieve <see cref="IReadOnlyGroupMessageIndexer"/> under given <paramref name="groupID"/>.
         /// </summary>
         /// <param name="groupID">GroupID to use.</param>
         /// <param name="indexer">Indexer under <paramref name="groupID"/>, or <c>null</c>.</param>
         /// <returns>Whether <paramref name="indexer"/> under <paramref name="groupID"/> was found.</returns>
-        public static bool TryGetGroup(byte groupID, out GroupMessageIndexer indexer)
+        public static bool TryGetGroup(byte groupID, out IReadOnlyGroupMessageIndexer indexer)
         {
             indexer = m_Groups[groupID];
             return !(indexer is null);
         }
 
         /// <summary>
-        /// Retrieves <see cref="GroupMessageIndexer"/> under given <paramref name="groupID"/>.
+        /// Retrieves <see cref="IReadOnlyGroupMessageIndexer"/> under given <paramref name="groupID"/>.
         /// </summary>
         /// <param name="groupID">GroupID to check.</param>
-        /// <returns><see cref="GroupMessageIndexer"/> or <c>null</c> if <paramref name="groupID"/> is not defined.</returns>
-        public static GroupMessageIndexer GetGroup(byte groupID) => m_Groups[groupID];
+        /// <returns><see cref="IReadOnlyGroupMessageIndexer"/> or <c>null</c> if <paramref name="groupID"/> is not defined.</returns>
+        public static IReadOnlyGroupMessageIndexer GetGroup(byte groupID) => m_Groups[groupID];
 
 
 

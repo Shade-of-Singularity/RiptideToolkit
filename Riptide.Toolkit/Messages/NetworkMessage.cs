@@ -51,21 +51,13 @@ namespace Riptide.Toolkit.Messages
         /// .                                              Public Properties
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        /// <inheritdoc cref="MessageID"/>
-        public override uint ID => MessageID;
-
-
-
-
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
-        /// .
-        /// .                                                Public Fields
-        /// .
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
         /// Message ID of this <see cref="NetworkMessage{TMessage, TGroup, TLoad}"/>.
         /// </summary>
         [MessageID] public static uint MessageID { get; private set; } = NetworkIndex.InvalidMessageID;
+
+        /// <inheritdoc cref="MessageID"/>
+        public override uint ID => MessageID;
 
 
 

@@ -39,7 +39,7 @@ namespace Riptide.Toolkit.Handlers
         /// .                                               Private Fields
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private Dictionary<uint, uint> m_Flags = new Dictionary<uint, uint>();
+        private Dictionary<uint, uint> m_Flags = new Dictionary<uint, uint>(0);
         private readonly object _lock = new object();
 
 
@@ -81,7 +81,7 @@ namespace Riptide.Toolkit.Handlers
         /// <inheritdoc/>
         public override void Reset()
         {
-            lock (_lock) m_Flags = new Dictionary<uint, uint>();
+            lock (_lock) m_Flags = new Dictionary<uint, uint>(0);
         }
 
         /// <inheritdoc/>

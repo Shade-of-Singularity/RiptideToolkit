@@ -58,6 +58,24 @@ namespace Riptide.Toolkit
                 .AddBits((byte)SystemMessageID.Regular, SystemMessaging.TotalBits);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Reliable(Enum messageID) => Create(MessageSendMode.Reliable, (uint)(object)messageID);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Reliable(uint messageID) => Create(MessageSendMode.Reliable, messageID);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Unreliable(Enum messageID) => Create(MessageSendMode.Unreliable, (uint)(object)messageID);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Unreliable(uint messageID) => Create(MessageSendMode.Unreliable, messageID);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Notify(Enum messageID) => Create(MessageSendMode.Unreliable, (uint)(object)messageID);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Notify(uint messageID) => Create(MessageSendMode.Unreliable, messageID);
+
 
 
 

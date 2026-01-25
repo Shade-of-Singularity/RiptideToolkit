@@ -24,7 +24,7 @@ namespace Riptide.Toolkit.Handlers
         /// .                                               Public Fields
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public readonly GroupMessageIndexer Group;
+        public readonly IReadOnlyGroupMessageIndexer Group;
 
 
 
@@ -34,7 +34,7 @@ namespace Riptide.Toolkit.Handlers
         /// .                                                Constructors
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public ClientHandlers(GroupMessageIndexer indexer) => Group = indexer;
+        public ClientHandlers(IReadOnlyGroupMessageIndexer indexer) => Group = indexer;
 
 
 
