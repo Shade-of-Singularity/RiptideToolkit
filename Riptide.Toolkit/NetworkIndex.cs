@@ -34,17 +34,14 @@ namespace Riptide.Toolkit
         /// Prefix for all logs sent from this class.
         /// </summary>
         public const string LogPrefix = "[" + nameof(NetworkIndex) + "]";
-
         /// <summary>
         /// How many groups can be generated.
         /// </summary>
-        public const ushort MaxGroupIDAmount = 1 << (sizeof(byte) - 1);
-
+        public const ushort MaxGroupIDAmount = 256;
         /// <summary>
         /// How many messages one group can hold.
         /// </summary>
         public const uint MaxMessageIDAmount = uint.MaxValue;
-
         /// <summary>
         /// <see cref="uint.MaxValue"/> is an invalid ID, since '0' are commonly used everywhere by developers.
         /// </summary>
@@ -76,12 +73,10 @@ namespace Riptide.Toolkit
         /// You will not be able to change settings in <see cref="Performance"/> category if this property is true.
         /// </remarks>
         public static bool IsEverInitialized => m_IsInitialized;
-
         /// <summary>
         /// Whether message handlers was loaded-in successfully.
         /// </summary>
         public static bool IsValid => m_IsValid;
-
         /// <summary>
         /// Contains references to raw <see cref="MessageHandlerInfo"/> structs.
         /// </summary>
@@ -100,16 +95,14 @@ namespace Riptide.Toolkit
         private static readonly ServerSystemHandler[] m_ServerSystemHandlers = new ServerSystemHandler[SystemMessaging.TotalIDs];
 
         // GroupIDs:
-        // Pre-allocates one for GroupID '0'.
         private static readonly object _groupLock = new object();
-        private static readonly GroupMessageIndexer[] m_Groups = new GroupMessageIndexer[1] { GroupMessageIndexer.Create() };
+        private static readonly GroupMessageIndexer[] m_Groups = new GroupMessageIndexer[MaxGroupIDAmount];
+        private static ushort m_GroupIDHeadIndex; // We use ushort instead of byte, to gracefully handle ID exhaustion.
 
         // MessageIDs: (doesn't map to Groups, rather Groups map to it instead)
+        private static readonly object _messageLock = new object();
         private static readonly MessageHandlerCollection<MessageHandlerInfo> m_MessageHandlers = MessageHandlerCollection<MessageHandlerInfo>.Create();
-
-        // MessageIDs: (maps to each GroupID)
-        private static ulong[][] m_MessageIDFlags = new ulong[1][] { new ulong[MaxMessageIDAmount / 64] }; // Describes all 65536 MessageIDs that can be taken.
-        private static uint[] m_MessageIDHeadIndex = new uint[1]; // We use uint instead of ushort, to gracefully handle ID exhaustion.
+        private static uint m_MessageIDHeadIndex; // Since uint.MaxValue is excluded from a set of valid IDs - we can use uint safely here.
 
         // Whether Networking systems were ever initialized.
         private static volatile bool m_IsInitialized = false;
@@ -132,8 +125,8 @@ namespace Riptide.Toolkit
         /// Invalidates initialization of the network handlers, forcing game to reload all message handlers before the next network call.
         /// All message IDs should stay the same, as long as client and server had same Assemblies loaded in the same order upon reloading.
         /// You should run <see cref="Initialize"/> immediate after <see cref="Invalidate"/> to be certain when initialization happens.
-        /// This is important, because re-initialization happens ONLY when someone uses <see cref="Handlers.ClientHandlers"/>
-        /// or <see cref="Handlers.ServerHandlers"/>.
+        /// This is important, because re-initialization happens ONLY when someone uses <see cref="ClientHandlers"/>
+        /// or <see cref="ServerHandlers"/>.
         /// </summary>
         /// <remarks>
         /// Using this method outside of initialization sequence is dangerous.
@@ -144,6 +137,8 @@ namespace Riptide.Toolkit
         {
             if (!m_IsValid) lock (_lock) UpdateHandlers();
         }
+
+        // TODO: Add Assembly loading and unloading (rescan for all classes containing MessageID and reset them to InvalidMessageI)
 
         /// <summary>
         /// Activates all static fields in given class/type.
@@ -159,34 +154,30 @@ namespace Riptide.Toolkit
         public static void Register(Type type) => System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(type.TypeHandle);
 
         /// <summary>
-        /// Retrieves collection of all message handlers - specifically for client-side message handlers.
+        /// Checks if group under given <paramref name="groupID"/> is defined.
         /// </summary>
-        /// <param name="groupID">Group ID of a collection of client-side message handlers.</param>
-        /// <returns>Collection of client-side message handlers.</returns>
-        public static ClientHandlers ClientHandlers(byte groupID = 0)
-        {
-            if (groupID >= m_ClientHandlers.Length)
-            {
-                throw new Exception($"Client message handler group ({groupID}) is not defined.");
-            }
+        /// <param name="groupID">GroupID to check.</param>
+        /// <returns>Whether group was registered.</returns>
+        public static bool HasGroup(byte groupID) => !(m_Groups[groupID] is null);
 
-            return m_ClientHandlers[groupID];
+        /// <summary>
+        /// Attempts to retrieve <see cref="GroupMessageIndexer"/> under given <paramref name="groupID"/>.
+        /// </summary>
+        /// <param name="groupID">GroupID to use.</param>
+        /// <param name="indexer">Indexer under <paramref name="groupID"/>, or <c>null</c>.</param>
+        /// <returns>Whether <paramref name="indexer"/> under <paramref name="groupID"/> was found.</returns>
+        public static bool TryGetGroup(byte groupID, out GroupMessageIndexer indexer)
+        {
+            indexer = m_Groups[groupID];
+            return !(indexer is null);
         }
 
         /// <summary>
-        /// Retrieves collection of all message handlers - specifically for server-side message handlers.
+        /// Retrieves <see cref="GroupMessageIndexer"/> under given <paramref name="groupID"/>.
         /// </summary>
-        /// <param name="groupID">Group ID of a collection of server-side message handlers.</param>
-        /// <returns>Collection of server-side message handlers.</returns>
-        public static ServerHandlers ServerHandlers(byte groupID = 0)
-        {
-            if (groupID >= m_ServerHandlers.Length)
-            {
-                throw new Exception($"Server message handler group ({groupID}) is not defined");
-            }
-
-            return m_ServerHandlers[groupID];
-        }
+        /// <param name="groupID">GroupID to check.</param>
+        /// <returns><see cref="GroupMessageIndexer"/> or <c>null</c> if <paramref name="groupID"/> is not defined.</returns>
+        public static GroupMessageIndexer GetGroup(byte groupID) => m_Groups[groupID];
 
         /// <summary>
         /// Retrieves new GroupID to use, and doesn't allow others use it.
@@ -202,71 +193,42 @@ namespace Riptide.Toolkit
         /// This is to make it possible for people to define their own default groups. No matter how confusing it is.
         public static byte NextGroupID()
         {
-            ushort head = m_GroupIDHeadIndex;
-            while (true)
+            lock (_groupLock)
             {
+                ushort head = m_GroupIDHeadIndex;
                 if (head >= MaxGroupIDAmount)
                 {
                     throw new Exception("Exhausted all network Group IDs for Riptide networking.");
                 }
 
-                int region = head >> 6; // Divides by 64, essentially.
-                ulong mask = m_GroupIDFlags[region];
-                int index = head & 0b111111; // Covers first [0-63] values.
-                ulong pin = 1uL << index;
-                if ((mask & pin) == 0)
-                {
-                    m_GroupIDFlags[region] = mask | pin;
-                    break;
-                }
-
-                head++;
+                m_Groups[head] = GroupMessageIndexer.Create();
+                m_GroupIDHeadIndex = (ushort)(head + 1);
+                return (byte)head;
             }
-
-            // We resize if group was not defined yet.
-            int size = head + 1;
-            int totalGroups = m_MessageIDHeadIndex.Length;
-            if (size >= totalGroups)
-            {
-                ClientHandlers[] clientHandlers = new ClientHandlers[size];
-                ServerHandlers[] serverHandlers = new ServerHandlers[size];
-                ulong[][] messageIDFlags = new ulong[size][];
-                uint[] messageIDHeadIndexes = new uint[size];
-
-                lock (_resizeLock)
-                {
-                    Array.Copy(m_ClientHandlers, clientHandlers, totalGroups);
-                    Array.Copy(m_ServerHandlers, serverHandlers, totalGroups);
-                    Array.Copy(m_MessageIDFlags, messageIDFlags, totalGroups);
-                    Array.Copy(m_MessageIDHeadIndex, messageIDHeadIndexes, totalGroups);
-                    for (int i = totalGroups; i < size; i++)
-                    {
-                        // We use "max >> 6" here instead of "max / 64", like in a constructor,
-                        // as this part only maintainers will read, and we can optimize it a bit.
-                        messageIDFlags[i] = new ulong[MaxMessageIDAmount >> 6];
-                    }
-
-                    m_ClientHandlers = clientHandlers;
-                    m_ServerHandlers = serverHandlers;
-                    m_MessageIDFlags = messageIDFlags;
-                    m_MessageIDHeadIndex = messageIDHeadIndexes;
-                }
-            }
-
-            // Read "size" as "head + 1" - we just avoid one addition here (translates to 3-4 instructions, I believe)
-            m_GroupIDHeadIndex = (ushort)size;
-            return (byte)head;
         }
 
         /// <summary>
-        /// Retrieves MessageID for a given <paramref name="groupID"/>.
+        /// Retrieves next available MessageID and don't let anyone else use it.
         /// </summary>
         /// <param name="groupID">GroupID for which you request new MessageID.</param>
         /// <returns>New MessageID.</returns>
         /// <exception cref="IndexOutOfRangeException">Provided GroupID was not taken and thus - invalid.</exception>
         /// <exception cref="Exception">Exhausted all network message IDs for Riptide networking.</exception>
-        public static ushort NextMessageID(byte groupID)
+        public static ushort NextMessageID()
         {
+            lock (_messageLock)
+            {
+                uint head = m_MessageIDHeadIndex;
+                if (head >= MaxMessageIDAmount)
+                {
+                    throw new Exception("Exhausted all network Message IDs for Riptide networking.");
+                }
+
+                //m_Groups[head] = GroupMessageIndexer.Create();
+                //m_GroupIDHeadIndex = (ushort)(head + 1);
+                //return (byte)head;
+            }
+
             lock (_resizeLock)
             {
                 uint head = m_MessageIDHeadIndex[groupID];
@@ -355,7 +317,7 @@ namespace Riptide.Toolkit
                 Array.ForEach(m_ServerHandlers, (server) => MessageHandlerCollection<ServerHandlers.HandlerInfo>.Unsafe.Clear(server.Handlers));
 
                 // Fetches own assembly first.
-                Action<Assembly> fetcher = Debugging.WarnAboutRiptideMessages 
+                Action<Assembly> fetcher = Debugging.WarnAboutRiptideMessages
                     ? (Action<Assembly>)FullHandlerFetching
                     : SimpleHandlerFetching;
                 Assembly current = Assembly.GetExecutingAssembly();
@@ -513,7 +475,7 @@ namespace Riptide.Toolkit
                 if (groupID is null) groupID = 0;
             }
 
-            
+
         }
 
         private static object GetMemberValue(MemberInfo member)

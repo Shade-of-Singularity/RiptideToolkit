@@ -31,7 +31,6 @@ namespace Riptide.Toolkit
         /// <summary>
         /// Creates regular message with <see cref="MessageSendMode.Reliable"/> mode.
         /// Doesn't encode MessageID (which makes it an invalid message until <see cref="Message.Add(ushort)"/> or similar is used)
-        /// Doesn't encode ModID in the message (In which case defaults to ModID '0')
         /// </summary>
         /// <seealso cref="Message.Create()"/>
         public static Message Create() => Message.Create();
@@ -39,7 +38,6 @@ namespace Riptide.Toolkit
         /// <summary>
         /// Creates regular message with custom send <paramref name="mode"/>.
         /// Doesn't encode MessageID (which makes it an invalid message until <see cref="Message.Add(ushort)"/> or similar is used)
-        /// Doesn't encode ModID in the message (In which case defaults to ModID '0')
         /// </summary>
         /// <seealso cref="Message.Create(MessageSendMode)"/>
         public static Message Create(MessageSendMode mode) => Message.Create(mode);
@@ -51,8 +49,7 @@ namespace Riptide.Toolkit
 
         /// <summary>
         /// Creates regular message with custom send <paramref name="mode"/>.
-        /// Encodes <paramref name="messageID"/> in a spot where ModID would have been (hence messages created without ModID cannot have one).
-        /// Doesn't encode ModID in the message (In which case defaults to ModID '0')
+        /// Encodes <paramref name="messageID"/>.
         /// </summary>
         public static Message Create(MessageSendMode mode, uint messageID)
         {
@@ -73,17 +70,14 @@ namespace Riptide.Toolkit
         /// Moves reader head over all custom message headers. Doesn't skip MessageID.
         /// </summary>
         /// <remarks>
-        /// Using twice will make you skip valid data as well!
+        /// Using twice will make you skip valid data!
         /// </remarks>
         public static Message SkipHeaders(this Message message) => message.SkipBits(SystemMessaging.TotalBits);
 
         /// <summary>
-        /// Adds <see cref="NetMessage"/> headers with **doesn't** support ModIDs.
+        /// Adds <see cref="NetMessage"/> default headers.
         /// Should be used on empty <see cref="Message"/>s only, as it doesn't overwrite the header. (TODO: Add SetHeaders methods with insert)
         /// </summary>
-        /// <remarks>
-        /// Use <see cref="AddHeaders(Message, SystemMessageID, ushort)"/> to define mod ModID.
-        /// </remarks>
         /// <param name="systemMessageID"><see cref="SystemMessageID"/> to add.</param>
         public static Message AddHeaders(this Message message, SystemMessageID systemMessageID)
         {

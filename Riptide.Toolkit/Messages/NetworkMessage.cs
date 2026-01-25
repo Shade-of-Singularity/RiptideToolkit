@@ -13,23 +13,13 @@ using Riptide.Toolkit.Storage;
 
 namespace Riptide.Toolkit.Messages
 {
-    /// <inheritdoc cref="NetworkMessage{TMessage, TGroup, TProfile}"/>
+    /// <inheritdoc cref="NetworkMessage{TMessage, TProfile}"/>
     /// <remarks>
-    /// <para>Implements <see cref="DefaultGroup"/> as <see cref="NetworkGroup{TGroup}"/> by default.</para>
     /// <para>Implements <see cref="S0"/> as <see cref="StorageProfile{TProfile}"/> by default.</para>
     /// </remarks>
     /// TODO: Add message pooling based on load.
-    public abstract class NetworkMessage<TMessage> : NetworkMessage<TMessage, DefaultGroup, S0>
-        where TMessage : NetworkMessage<TMessage, DefaultGroup, S0>, new()
-    { } // This instance doesn't override default behaviour.
-
-    /// <inheritdoc cref="NetworkMessage{TMessage, TGroup, TProfile}"/>
-    /// <remarks>
-    /// Implements <see cref="S0"/> as <see cref="StorageProfile{TProfile}"/> by default.
-    /// </remarks>
-    public abstract class NetworkMessage<TMessage, TGroup> : NetworkMessage<TMessage, TGroup, S0>
-        where TMessage : NetworkMessage<TMessage, TGroup, S0>, new()
-        where TGroup : NetworkGroup<TGroup>
+    public abstract class NetworkMessage<TMessage> : NetworkMessage<TMessage, S0>
+        where TMessage : NetworkMessage<TMessage, S0>, new()
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
@@ -42,7 +32,7 @@ namespace Riptide.Toolkit.Messages
         /// <remarks>
         /// Since this instance has <see cref="StorageProfile"/> set to <see cref="S0"/> - it guarantees that instance will always be collected by GC.
         /// Because of that, this method is empty. You can still override it, but outside of internal callback you will gain nothing from it.
-        /// So better to inherit <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> and change <see cref="S0"/> to at least <see cref="S1"/> storage.
+        /// So better to inherit <see cref="NetworkMessage{TMessage, TProfile}"/> and change <see cref="S0"/> to at least <see cref="S1"/> storage.
         /// </remarks>
         protected override void Dispose() { }
     }
@@ -50,11 +40,10 @@ namespace Riptide.Toolkit.Messages
     /// <summary>
     /// Base class for custom messages.
     /// </summary>
-    /// <typeparam name="TMessage">Class that inherited this <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/></typeparam>
-    /// <typeparam name="TGroup">Group this message should belong to.</typeparam>
+    /// <typeparam name="TMessage">Class that inherited this <see cref="NetworkMessage{TMessage, TProfile}"/></typeparam>
     /// <typeparam name="TProfile"><see cref="StorageProfile{TProfile}"/> of this network message. Will pool some of the message instances based on it.</typeparam>
-    public abstract class NetworkMessage<TMessage, TGroup, TProfile> : NetworkMessage
-        where TMessage : NetworkMessage<TMessage, TGroup, TProfile>, new()
+    public abstract class NetworkMessage<TMessage, TProfile> : NetworkMessage
+        where TMessage : NetworkMessage<TMessage, TProfile>, new()
         where TProfile : StorageProfile<TProfile>, new()
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
@@ -63,7 +52,7 @@ namespace Riptide.Toolkit.Messages
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <inheritdoc cref="MessageID"/>
-        public override ushort ID => MessageID;
+        public override uint ID => MessageID;
 
 
 
@@ -76,7 +65,7 @@ namespace Riptide.Toolkit.Messages
         /// <summary>
         /// Message ID of this <see cref="NetworkMessage{TMessage, TGroup, TLoad}"/>.
         /// </summary>
-        [MessageID] public static readonly ushort MessageID = NetworkIndex.NextMessageID(GroupID);
+        [MessageID] public static uint MessageID { get; private set; } = NetworkIndex.InvalidMessageID;
 
 
 
@@ -124,7 +113,7 @@ namespace Riptide.Toolkit.Messages
         /// Releases given <paramref name="message"/> by running <see cref="Dispose()"/> method on it and storing it in a pool, if available.
         /// </summary>
         /// <param name="message">Message data container to dispose and store.</param>
-        public static void Release(NetworkMessage<TMessage, TGroup, TProfile> message)
+        public static void Release(NetworkMessage<TMessage, TProfile> message)
         {
             // Always disposes.
             message.Dispose();
@@ -151,7 +140,7 @@ namespace Riptide.Toolkit.Messages
         /// <returns>Newly created message.</returns>
         public static Message Message(MessageSendMode mode)
         {
-            return Riptide.Message.Create(mode, MessageID);
+            return NetMessage.Create(mode, MessageID);
         }
 
 
@@ -172,7 +161,7 @@ namespace Riptide.Toolkit.Messages
         /// </summary>
         /// <param name="message">Message to unpack.</param>
         /// <returns>Itself, for convenience.</returns>
-        public NetworkMessage<TMessage, TGroup, TProfile> Unpack(Message message)
+        public NetworkMessage<TMessage, TProfile> Unpack(Message message)
         {
             Read(message);
             return this;
@@ -205,7 +194,7 @@ namespace Riptide.Toolkit.Messages
         /// <summary>
         /// ID of this message, retrieved during <see cref="NetworkIndex"/> initialization.
         /// </summary>
-        public abstract ushort ID { get; }
+        public abstract uint ID { get; }
 
 
 

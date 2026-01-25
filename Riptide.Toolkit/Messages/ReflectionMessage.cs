@@ -15,7 +15,7 @@ namespace Riptide.Toolkit.Messages
 {
     /// <summary>
     /// Exist with a sole purpose of simplifying reflections.
-    /// Never used in networking.
+    /// Never used in networking, and thus - never occupies an MessageID.
     /// </summary>
     public sealed class ReflectionMessage : NetworkMessage<ReflectionMessage>
     {

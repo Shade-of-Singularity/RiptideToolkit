@@ -14,12 +14,14 @@ using System;
 namespace Riptide.Toolkit
 {
     /// <summary>
-    /// Marks MessageID in a custom base mod class.
-    /// Can be used on both fields and properties.
+    /// Marks MessageID in a custom base class.
+    /// By default, set this property to <see cref="NetworkIndex.InvalidMessageID"/> to avoid confusion, and probably bugs.
     /// </summary>
     /// <remarks>
-    /// ModID field/property should be static.
+    /// Property MUST define both <c>getter</c> and <c>setter</c>.
+    /// <c>setter</c> can be private, e.g.: <c>{ get; private set; }</c>.
+    /// MessageID will be provided by <see cref="NetworkIndex"/> via <see cref="System.Reflection"/>.
     /// </remarks>
-    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Property)]
     public sealed class MessageIDAttribute : Attribute { }
 }

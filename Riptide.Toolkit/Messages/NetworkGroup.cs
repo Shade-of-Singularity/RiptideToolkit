@@ -21,7 +21,7 @@ namespace Riptide.Toolkit.Messages
         /// <summary>
         /// ID to which this group was mapped.
         /// </summary>
-        [GroupID] public static readonly byte GroupID = NetworkIndex.NextGroupID();
+        [GroupID] public static byte GroupID { get; private set; }
     }
 
     /// <summary>

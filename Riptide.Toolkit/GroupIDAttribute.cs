@@ -14,12 +14,13 @@ using System;
 namespace Riptide.Toolkit
 {
     /// <summary>
-    /// Marks ModID in a custom base mod class.
-    /// Can be used on both fields and properties.
+    /// Marks GroupID in a custom base class.
     /// </summary>
     /// <remarks>
-    /// ModID field/property should be static.
+    /// Property MUST define both <c>getter</c> and <c>setter</c>.
+    /// <c>setter</c> can be private, e.g.: <c>{ get; private set; }</c>.
+    /// GroupID will be provided by <see cref="NetworkIndex"/> via <see cref="System.Reflection"/>.
     /// </remarks>
-    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Property)]
     public sealed class GroupIDAttribute : Attribute { }
 }
