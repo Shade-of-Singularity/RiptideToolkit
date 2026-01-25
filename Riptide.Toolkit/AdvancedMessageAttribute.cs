@@ -59,22 +59,22 @@ namespace Riptide.Toolkit
         /// <see cref="GroupIDAttribute"/> is already defined in <see cref="NetworkGroup{TGroup}"/>
         /// and also <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> types.
         /// </remarks>
-        public readonly MemberInfo Group;
+        public readonly PropertyInfo Group;
         /// <summary>
         /// Reference to a <see cref="FieldInfo"/> or <see cref="PropertyInfo"/> with <see cref="MessageIDAttribute"/>.
         /// </summary>
         /// <remarks>
         /// <see cref="ModIDAttribute"/> is already declared in all <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> types.
         /// </remarks>
-        public readonly MemberInfo Message;
+        public readonly PropertyInfo Message;
         /// <summary>
         /// Static GroupID of this message handler. Automatic ID assignment will avoid static IDs.
         /// </summary>
-        public readonly byte? GroupID;
+        public readonly byte? GroupID; // Not read-only, to allow NetworkIndex to set ID to it, to speed-up analysis.
         /// <summary>
         /// Static MessageID of this message handler. Automatic ID assignment will avoid static IDs.
         /// </summary>
-        public readonly uint? MessageID;
+        public uint? MessageID; // Not read-only, to allow NetworkIndex to set ID to it, to speed-up analysis.
 
 
 
@@ -90,10 +90,6 @@ namespace Riptide.Toolkit
         /// </summary>
         public AdvancedMessageAttribute() => GroupID = 0;
 
-        /// <inheritdoc cref=" AdvancedMessageAttribute(uint)"/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public AdvancedMessageAttribute(Enum messageID) : this((uint)(object)messageID) { }
-
         /// <summary>
         /// <para>Constructs handler attribute with given <paramref name="messageID"/>.</para>
         /// <para><see cref="GroupID"/> will be set to 0 (see also: <seealso cref="DefaultGroup"/>)</para>
@@ -104,10 +100,6 @@ namespace Riptide.Toolkit
             GroupID = 0;
             MessageID = messageID;
         }
-
-        /// <inheritdoc cref="AdvancedMessageAttribute(uint, byte)"/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public AdvancedMessageAttribute(Enum messageID, byte groupID) : this((uint)(object)messageID, groupID) { }
 
         /// <summary>
         /// Constructs handler with both <see cref="GroupID"/> and <see cref="MessageID"/> manually defined.
@@ -142,10 +134,10 @@ namespace Riptide.Toolkit
             //    }
             //}
 
-            if (ResolveMessage(multicast))
+            if (ResolveMessage(multicast, ref Message))
             {
                 // Two checks allows multicast type to have both MessageID and GroupID fields/parameters.
-                if (ResolveGroup(multicast))
+                if (ResolveGroup(multicast, ref Group))
                 {
                     // Multicast contains has MessageID and GroupID fields/parameters.
                 }
@@ -155,9 +147,9 @@ namespace Riptide.Toolkit
                     GroupID = 0;
                 }
             }
-            else if (ResolveGroup(multicast))
+            else if (ResolveGroup(multicast, ref Group))
             {
-                GroupID = 0;
+                // Both MessageID and GroupID can be defined from one class.
             }
             else throw new Exception($"Provided multicast type is not {nameof(NetworkMessage)}<> nor {nameof(NetworkGroup)}<> class type. Caused by Advanced message handler with multicast type ({multicast.Name}) at: ({source}) line: (#{line})");
         }
@@ -170,17 +162,13 @@ namespace Riptide.Toolkit
         public AdvancedMessageAttribute(Type message, byte groupID, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1)
         {
             GroupID = groupID;
-            if (!ResolveMessage(message))
+            if (!ResolveMessage(message, ref Message))
             {
-                if (ResolveGroup(message)) throw new Exception($"GroupID was provided twice in an Advanced message handler with multicast type ({message.Name}) at: ({source}) line: (#{line})");
+                PropertyInfo _ = null;
+                if (ResolveGroup(message, ref _)) throw new Exception($"GroupID was provided twice in an Advanced message handler with multicast type ({message.Name}) at: ({source}) line: (#{line})");
                 else throw new Exception($"Expected {nameof(NetworkMessage)}<> class type to be provided in Advanced message handler with multicast type ({message.Name}) at: ({source}) line: (#{line})");
             }
         }
-
-        /// <inheritdoc cref="AdvancedMessageAttribute(uint, Type, string, int)"/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public AdvancedMessageAttribute(Enum messageID, Type group, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1)
-            : this((uint)(object)messageID, group, source, line) { }
 
         /// <remarks>
         /// Write ID as '0' instead of '0u' to use constructor for GroupID instead. Examples:
@@ -190,9 +178,10 @@ namespace Riptide.Toolkit
         public AdvancedMessageAttribute(uint messageID, Type group, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1)
         {
             MessageID = messageID;
-            if (!ResolveGroup(group))
+            if (!ResolveGroup(group, ref Group))
             {
-                if (ResolveMessage(group)) throw new Exception($"MessageID was provided twice in an Advanced message handler with multicast type ({group.Name}) at: ({source}) line: (#{line})");
+                PropertyInfo _ = null;
+                if (ResolveMessage(group, ref _)) throw new Exception($"MessageID was provided twice in an Advanced message handler with multicast type ({group.Name}) at: ({source}) line: (#{line})");
                 else throw new Exception($"Expected {nameof(NetworkGroup)}<> class type to be provided in Advanced message handler with multicast type ({group.Name}) at: ({source}) line: (#{line})");
             }
         }
@@ -316,8 +305,7 @@ namespace Riptide.Toolkit
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         static AdvancedMessageAttribute()
         {
-            if (LookupMemberRootLast(typeof(GroupIDAttribute), typeof(DefaultGroup), out MemberInfo member,
-                Reflections.GroupAttributeAnalysis_PrioritizeFields))
+            if (LookupMemberRootLast(typeof(GroupIDAttribute), typeof(DefaultGroup), out PropertyInfo member))
             {
                 DefaultGroupIDSource = member;
                 LastGroupIDSource = member;
@@ -337,8 +325,8 @@ namespace Riptide.Toolkit
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         private const BindingFlags MemberBindingFlags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
-        private static readonly MemberInfo DefaultGroupIDSource;
-        private static MemberInfo LastGroupIDSource;
+        private static readonly PropertyInfo DefaultGroupIDSource;
+        private static PropertyInfo LastGroupIDSource;
 
 
 
@@ -348,192 +336,106 @@ namespace Riptide.Toolkit
         /// .                                               Private Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private bool ResolveGroup(Type group)
+        private bool ResolveGroup(Type multicast, ref PropertyInfo groupID)
         {
-            if (!(Group is null)) return false;
+            if (!(groupID is null)) return false;
 
             // Starts from a fast cache lookup to avoid reflections if possible.
             // TODO: Replace with dictionaries if it makes sense to do so. Don't forget to clear-out said array on global reload.
-            if (LastGroupIDSource.DeclaringType.IsAssignableFrom(group))
+            if (LastGroupIDSource.DeclaringType.IsAssignableFrom(multicast))
             {
-                Group = LastGroupIDSource;
+                groupID = LastGroupIDSource;
                 return true;
             }
-            else if (LookupMemberRootLast<GroupIDAttribute>(group, out MemberInfo member, Reflections.GroupAttributeAnalysis_PrioritizeFields))
+            else if (LookupMemberRootLast<GroupIDAttribute>(multicast, out PropertyInfo member))
             {
-                LastGroupIDSource = Group = member;
+                LastGroupIDSource = groupID = member;
                 return true;
             }
 
             return false;
         }
 
-        private bool ResolveMessage(Type message)
+        private bool ResolveMessage(Type multicast, ref PropertyInfo messageID)
         {
-            if (!(Message is null)) return false;
+            if (!(messageID is null)) return false;
 
-            if (LookupMemberRootLast<MessageIDAttribute>(message, out MemberInfo member, Reflections.MessageAttributeAnalysis_PrioritizeFields))
+            if (LookupMemberRootLast<MessageIDAttribute>(multicast, out PropertyInfo member))
             {
-                Message = member;
+                messageID = member;
                 return true;
             }
 
             return false;
         }
 
-        /// <inheritdoc cref="LookupMemberRootLast(Type, Type, out MemberInfo, bool)"/>
+        /// <inheritdoc cref="LookupMemberRootLast(Type, Type, out PropertyInfo, bool)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool LookupMemberRootLast<T>(Type target, out MemberInfo member, bool fieldsFirst) where T : Attribute
+        internal static bool LookupMemberRootLast<T>(Type target, out PropertyInfo member) where T : Attribute
         {
-            return LookupMemberRootLast(typeof(T), target, out member, fieldsFirst);
+            return LookupMemberRootLast(typeof(T), target, out member);
         }
 
         /// <remarks>
         /// Checks <paramref name="target"/> type last,
         /// as sometimes we can be fairly certain that it won't contain our <paramref name="attribute"/>.
         /// </remarks>
-        internal static bool LookupMemberRootLast(Type attribute, Type target, out MemberInfo member, bool fieldsFirst)
+        internal static bool LookupMemberRootLast(Type attribute, Type target, out PropertyInfo member)
         {
-            if (fieldsFirst)
+            Type temp = target.BaseType;
+            while (temp != null)
             {
-                if (CheckFields(out member)) return true;
-                if (CheckProperties(out member)) return true;
-            }
-            else
-            {
-                if (CheckProperties(out member)) return true;
-                if (CheckFields(out member)) return true;
+                foreach (var field in temp.GetProperties(MemberBindingFlags))
+                {
+                    if (field.IsDefined(attribute))
+                    {
+                        member = field;
+                        return true;
+                    }
+                }
+
+                temp = temp.BaseType;
             }
 
+            foreach (var field in target.GetProperties(MemberBindingFlags))
+            {
+                if (field.IsDefined(attribute))
+                {
+                    member = field;
+                    return true;
+                }
+            }
+
+            member = null;
             return false;
-
-            // Simplifications:
-            bool CheckFields(out MemberInfo ret)
-            {
-                Type temp = target.BaseType;
-                while (temp != null)
-                {
-                    foreach (var field in temp.GetFields(MemberBindingFlags))
-                    {
-                        if (field.IsDefined(attribute))
-                        {
-                            ret = field;
-                            return true;
-                        }
-                    }
-
-                    temp = temp.BaseType;
-                }
-
-                foreach (var field in target.GetFields(MemberBindingFlags))
-                {
-                    if (field.IsDefined(attribute))
-                    {
-                        ret = field;
-                        return true;
-                    }
-                }
-
-                ret = null;
-                return false;
-            }
-
-            bool CheckProperties(out MemberInfo ret)
-            {
-                Type temp = target.BaseType;
-                while (temp != null)
-                {
-                    foreach (var field in temp.GetProperties(MemberBindingFlags))
-                    {
-                        if (field.IsDefined(attribute))
-                        {
-                            ret = field;
-                            return true;
-                        }
-                    }
-
-                    temp = temp.BaseType;
-                }
-
-                foreach (var field in target.GetProperties(MemberBindingFlags))
-                {
-                    if (field.IsDefined(attribute))
-                    {
-                        ret = field;
-                        return true;
-                    }
-                }
-
-                ret = null;
-                return false;
-            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool LookupMember<T>(Type target, out MemberInfo member, bool fieldsFirst) where T : Attribute
+        internal static bool LookupMember<T>(Type target, out PropertyInfo member) where T : Attribute
         {
-            return LookupMemberRootLast(typeof(T), target, out member, fieldsFirst);
+            return LookupMember(typeof(T), target, out member);
         }
 
-        internal static bool LookupMember(Type attribute, Type target, out MemberInfo member, bool fieldsFirst)
+        internal static bool LookupMember(Type attribute, Type target, out PropertyInfo member)
         {
-            if (fieldsFirst)
+            Type temp = target;
+            do
             {
-                if (CheckFields(out member)) return true;
-                if (CheckProperties(out member)) return true;
-            }
-            else
-            {
-                if (CheckProperties(out member)) return true;
-                if (CheckFields(out member)) return true;
-            }
+                foreach (var field in temp.GetProperties(MemberBindingFlags))
+                {
+                    if (field.IsDefined(attribute))
+                    {
+                        member = field;
+                        return true;
+                    }
+                }
 
+                temp = temp.BaseType;
+            }
+            while (!(temp is null));
+
+            member = null;
             return false;
-
-            // Simplifications:
-            bool CheckFields(out MemberInfo ret)
-            {
-                Type temp = target;
-                do
-                {
-                    foreach (var field in temp.GetFields(MemberBindingFlags))
-                    {
-                        if (field.IsDefined(attribute))
-                        {
-                            ret = field;
-                            return true;
-                        }
-                    }
-
-                    temp = temp.BaseType;
-                }
-                while (!(temp is null));
-
-                ret = null;
-                return false;
-            }
-
-            bool CheckProperties(out MemberInfo ret)
-            {
-                Type temp = target;
-                do
-                {
-                    foreach (var field in temp.GetProperties(MemberBindingFlags))
-                    {
-                        if (field.IsDefined(attribute))
-                        {
-                            ret = field;
-                            return true;
-                        }
-                    }
-
-                    temp = temp.BaseType;
-                }
-                while (!(temp is null));
-
-                ret = null;
-                return false;
-            }
         }
     }
 }

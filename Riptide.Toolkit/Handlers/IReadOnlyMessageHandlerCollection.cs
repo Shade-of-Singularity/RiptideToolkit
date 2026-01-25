@@ -25,7 +25,7 @@ namespace Riptide.Toolkit.Handlers
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Retrieves message handler under given <paramref name="messageID"/>.
+        /// Retrieves message handler under given <paramref name="messageID"/>. Throws if handler wasn't found.
         /// </summary>
         /// <param name="messageID">ID associated with an message handler.</param>
         /// <returns>Message handler under given ID, or throws.</returns>

@@ -15,7 +15,7 @@ namespace Riptide.Toolkit
 {
     /// <summary>
     /// Marks MessageID in a custom base class.
-    /// By default, set this property to <see cref="NetworkIndex.InvalidMessageID"/> to avoid confusion, and probably bugs.
+    /// By default, set this property to <see cref="NetworkIndex.InvalidMessageID"/> to allow <see cref="NetworkIndex"/> to register it.
     /// </summary>
     /// <remarks>
     /// Property MUST define both <c>getter</c> and <c>setter</c>.

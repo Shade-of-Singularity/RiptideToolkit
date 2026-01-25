@@ -30,7 +30,7 @@ namespace Riptide.Toolkit.Extensions
             if (message.SendMode != mode)
             {
                 message.Release();
-                message = Message.Create(mode);
+                message = NetMessage.Create(mode);
             }
             else
             {

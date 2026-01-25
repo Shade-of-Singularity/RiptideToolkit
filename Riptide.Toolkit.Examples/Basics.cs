@@ -188,7 +188,7 @@ namespace Riptide.Toolkit.Examples
                 for (int i = 0; i < 5000; i++)
                 {
                     Client.Send(
-                        NetMessage.Create(ExampleMod.ModID, MessageSendMode.Reliable, ToServerMessages.ReceivePlayerPosition)
+                        NetMessage.Create(MessageSendMode.Reliable, ToServerMessages.ReceivePlayerPosition)
                         .AddFloat(i).AddFloat(20));
                     await WaitForMessageToDeliver();
                 }
@@ -200,7 +200,7 @@ namespace Riptide.Toolkit.Examples
                 return;
             }
 
-            Message message = NetMessage.Create(ExampleMod.ModID, MessageSendMode.Reliable, ToServerMessages.RegisterUsername)
+            Message message = NetMessage.Create(MessageSendMode.Reliable, ToServerMessages.RegisterUsername)
                 .AddString("New User");
             Client.Send(message);
             await WaitForMessageToDeliver();
@@ -225,7 +225,7 @@ namespace Riptide.Toolkit.Examples
                 for (int i = 0; i < 5000; i++)
                 {
                     Server.SendToAll(
-                        NetMessage.Create(0, MessageSendMode.Reliable, ToClientMessages.UpdatePlayerPosition)
+                        NetMessage.Create(MessageSendMode.Reliable, ToClientMessages.UpdatePlayerPosition)
                         .AddUShort(ClientID).AddFloat(i).AddFloat(20));
                     await WaitForMessageToDeliver();
                 }
@@ -237,7 +237,7 @@ namespace Riptide.Toolkit.Examples
             }
 
             // Sends regular testing messages.
-            Message message = NetMessage.Create(0, MessageSendMode.Reliable, ToClientMessages.UpdateUsername)
+            Message message = NetMessage.Create(MessageSendMode.Reliable, ToClientMessages.UpdateUsername)
                 .AddUShort(ClientID).AddString("New User");
             Server.SendToAll(message);
             await WaitForMessageToDeliver();

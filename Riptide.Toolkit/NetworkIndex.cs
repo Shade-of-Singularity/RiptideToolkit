@@ -14,6 +14,7 @@ using Riptide.Toolkit.Messages;
 using Riptide.Toolkit.Settings;
 using Riptide.Utils;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace Riptide.Toolkit
@@ -35,15 +36,21 @@ namespace Riptide.Toolkit
         /// </summary>
         public const string LogPrefix = "[" + nameof(NetworkIndex) + "]";
         /// <summary>
-        /// How many groups can be generated.
+        /// How many groups is there.
         /// </summary>
-        public const ushort MaxGroupIDAmount = 256;
+        public const byte MaxGroupIDAmount = 255;
+        /// <summary>
+        /// GroupID which indicates that ID was not assigned yet.
+        /// <see cref="byte.MaxValue"/> is an invalid ID, since '0' is commonly used everywhere by <see cref="Toolkit"/>.
+        /// </summary>
+        public const byte InvalidGroupID = byte.MaxValue;
         /// <summary>
         /// How many messages one group can hold.
         /// </summary>
         public const uint MaxMessageIDAmount = uint.MaxValue;
         /// <summary>
-        /// <see cref="uint.MaxValue"/> is an invalid ID, since '0' are commonly used everywhere by developers.
+        /// MessageID which indicates that ID was not assigned yet.
+        /// <see cref="uint.MaxValue"/> is an invalid ID, since '0' is commonly used everywhere by developers.
         /// </summary>
         public const uint InvalidMessageID = uint.MaxValue;
 
@@ -95,14 +102,11 @@ namespace Riptide.Toolkit
         private static readonly ServerSystemHandler[] m_ServerSystemHandlers = new ServerSystemHandler[SystemMessaging.TotalIDs];
 
         // GroupIDs:
-        private static readonly object _groupLock = new object();
         private static readonly GroupMessageIndexer[] m_Groups = new GroupMessageIndexer[MaxGroupIDAmount];
         private static ushort m_GroupIDHeadIndex; // We use ushort instead of byte, to gracefully handle ID exhaustion.
 
         // MessageIDs: (doesn't map to Groups, rather Groups map to it instead)
-        private static readonly object _messageLock = new object();
         private static readonly MessageHandlerCollection<MessageHandlerInfo> m_MessageHandlers = MessageHandlerCollection<MessageHandlerInfo>.Create();
-        private static uint m_MessageIDHeadIndex; // Since uint.MaxValue is excluded from a set of valid IDs - we can use uint safely here.
 
         // Whether Networking systems were ever initialized.
         private static volatile bool m_IsInitialized = false;
@@ -132,7 +136,13 @@ namespace Riptide.Toolkit
         /// Using this method outside of initialization sequence is dangerous.
         /// In <see cref="Riptide"/>, it might be used only once after <see cref="Engine"/> loads-in mod assemblies.
         /// </remarks>
-        public static void Invalidate() => m_IsValid = false;
+        [Obsolete("Not obsolete, but will throw if used. Method will function properly in one of the upcoming updates.")]
+        public static void Invalidate()
+        {
+            throw new NotImplementedException("Invalidation is temporary not supported after renovation.");
+            //m_IsValid = false;
+        }
+
         public static void Initialize()
         {
             if (!m_IsValid) lock (_lock) UpdateHandlers();
@@ -179,85 +189,6 @@ namespace Riptide.Toolkit
         /// <returns><see cref="GroupMessageIndexer"/> or <c>null</c> if <paramref name="groupID"/> is not defined.</returns>
         public static GroupMessageIndexer GetGroup(byte groupID) => m_Groups[groupID];
 
-        /// <summary>
-        /// Retrieves new GroupID to use, and doesn't allow others use it.
-        /// </summary>
-        /// <returns>New GroupID.</returns>
-        /// <exception cref="IndexOutOfRangeException">Provided GroupID was not taken and thus - invalid.</exception>
-        /// <exception cref="Exception">Exhausted all network message IDs for Riptide networking.</exception>
-        /// <summary>
-        /// Retrieves next group ID for networking with <see cref="Toolkit"/>.
-        /// </summary>
-        /// TODO: Make sure that <see cref="DefaultGroup"/> is initialized first, to take 0th group ID.
-        /// However, do not force it - only initialize it first if any message handlers in main assembly define it.
-        /// This is to make it possible for people to define their own default groups. No matter how confusing it is.
-        public static byte NextGroupID()
-        {
-            lock (_groupLock)
-            {
-                ushort head = m_GroupIDHeadIndex;
-                if (head >= MaxGroupIDAmount)
-                {
-                    throw new Exception("Exhausted all network Group IDs for Riptide networking.");
-                }
-
-                m_Groups[head] = GroupMessageIndexer.Create();
-                m_GroupIDHeadIndex = (ushort)(head + 1);
-                return (byte)head;
-            }
-        }
-
-        /// <summary>
-        /// Retrieves next available MessageID and don't let anyone else use it.
-        /// </summary>
-        /// <param name="groupID">GroupID for which you request new MessageID.</param>
-        /// <returns>New MessageID.</returns>
-        /// <exception cref="IndexOutOfRangeException">Provided GroupID was not taken and thus - invalid.</exception>
-        /// <exception cref="Exception">Exhausted all network message IDs for Riptide networking.</exception>
-        public static ushort NextMessageID()
-        {
-            lock (_messageLock)
-            {
-                uint head = m_MessageIDHeadIndex;
-                if (head >= MaxMessageIDAmount)
-                {
-                    throw new Exception("Exhausted all network Message IDs for Riptide networking.");
-                }
-
-                //m_Groups[head] = GroupMessageIndexer.Create();
-                //m_GroupIDHeadIndex = (ushort)(head + 1);
-                //return (byte)head;
-            }
-
-            lock (_resizeLock)
-            {
-                uint head = m_MessageIDHeadIndex[groupID];
-                ulong[] flags = m_MessageIDFlags[groupID];
-                while (true)
-                {
-                    if (head >= MaxMessageIDAmount)
-                    {
-                        throw new Exception("Exhausted all network Message IDs for Riptide networking.");
-                    }
-
-                    uint region = head >> 6; // Divides by 64, essentially.
-                    ulong mask = flags[region];
-                    int index = (int)(head & 0b111111); // Covers first [0-63] values.
-                    ulong pin = 1uL << index;
-                    if ((mask & pin) == 0)
-                    {
-                        flags[region] = mask | pin;
-                        break;
-                    }
-
-                    head++;
-                }
-
-                m_MessageIDHeadIndex[groupID] = head + 1;
-                return (ushort)head;
-            }
-        }
-
 
 
 
@@ -294,6 +225,39 @@ namespace Riptide.Toolkit
             // Doesn't initialize anything, but might do it in the future.
         }
 
+        /// <summary>
+        /// Retrieves new GroupID to use, and don't allow others to use it.
+        /// </summary>
+        /// <returns>New GroupID.</returns>
+        /// <exception cref="IndexOutOfRangeException">Provided GroupID was not taken and thus - invalid.</exception>
+        /// <exception cref="Exception">Exhausted all network message IDs for Riptide networking.</exception>
+        /// <summary>
+        /// Retrieves next group ID for networking with <see cref="Toolkit"/>.
+        /// </summary>
+        /// TODO: Make sure that <see cref="DefaultGroup"/> is initialized first, to take 0th group ID.
+        /// However, do not force it - only initialize it first if any message handlers in main assembly define it.
+        /// This is to make it possible for people to define their own default groups. No matter how confusing it is.
+        private static byte NextGroupID()
+        {
+            ushort head = m_GroupIDHeadIndex;
+            if (head >= MaxGroupIDAmount)
+            {
+                throw new Exception("Exhausted all network Group IDs for Riptide networking.");
+            }
+
+            if (m_Groups[head] is null)
+            {
+                m_Groups[head] = GroupMessageIndexer.Create((byte)head);
+            }
+            else
+            {
+                m_Groups[head].Clear();
+            }
+
+            m_GroupIDHeadIndex = (ushort)(head + 1);
+            return (byte)head;
+        }
+
         private static void UpdateHandlers()
         {
             if (!m_IsInitialized)
@@ -313,8 +277,12 @@ namespace Riptide.Toolkit
                 // Resets all handlers first.
                 // Note: All managed handlers will be locked at this point, so mutation is safe, even in multi-threaded context (untested though)
                 // TODO: Avoid clearing of the entire database on first Initialization. All handlers will be empty at this point anyway.
-                Array.ForEach(m_ClientHandlers, (client) => MessageHandlerCollection<ClientHandlers.HandlerInfo>.Unsafe.Clear(client.Handlers));
-                Array.ForEach(m_ServerHandlers, (server) => MessageHandlerCollection<ServerHandlers.HandlerInfo>.Unsafe.Clear(server.Handlers));
+                m_MessageHandlers.Clear();
+                Array.ForEach(m_Groups, g => g.Clear());
+                m_GroupIDHeadIndex = 0;
+
+                // Starts fetching message handlers:
+                List<(MethodInfo method, AdvancedMessageAttribute attribute)> handlers = new List<(MethodInfo, AdvancedMessageAttribute)>();
 
                 // Fetches own assembly first.
                 Action<Assembly> fetcher = Debugging.WarnAboutRiptideMessages
@@ -343,6 +311,143 @@ namespace Riptide.Toolkit
                         }
                     }
                 }
+
+                // Registers MessageIDs first:
+                foreach (var (method, attribute) in handlers)
+                {
+                    if (!attribute.MessageID.HasValue) continue;
+                    ParameterInfo[] parameters = method.GetParameters();
+                    int target;
+                    switch (parameters.Length)
+                    {
+                        case 0: throw new Exception($"Message handler ({method.Name}) has no method parameters.");
+                        case 1: target = 0; break; // Client-side method.
+                        case 2: target = 1; break; // Server-side method.
+                        default: throw new Exception($"Message handler ({method.Name}) has too many parameters.");
+                    }
+
+                    // TODO: Add toggleable type check.
+                    m_MessageHandlers.Set(attribute.MessageID.Value, new MessageHandlerInfo(method, parameters[target].ParameterType));
+                }
+
+                foreach (var (method, attribute) in handlers)
+                {
+                    if (attribute.MessageID.HasValue) continue;
+                    ParameterInfo[] parameters = method.GetParameters();
+                    int target;
+                    switch (parameters.Length)
+                    {
+                        case 0: throw new Exception($"Message handler ({method.Name}) has no method parameters.");
+                        case 1: target = 0; break; // Client-side method.
+                        case 2: target = 1; break; // Server-side method.
+                        default: throw new Exception($"Message handler ({method.Name}) has too many parameters.");
+                    }
+                    Type dataType = parameters[target].ParameterType;
+
+                    PropertyInfo member;
+                    if (attribute.Message is null)
+                    {
+                        // TODO: Optimize method parameter checks.
+                        // At this point, maybe iterating over the entire code database and creating a few dictionaries will be faster?
+                        if (!AdvancedMessageAttribute.LookupMemberRootLast(typeof(MessageIDAttribute), dataType, out member))
+                        {
+                            throw new Exception($"MessageID was not provided in any way for message handler ({method.Name}).");
+                        }
+                    }
+                    else member = attribute.Message;
+                    uint messageID = (uint)member.GetValue(null);
+                    if (messageID == InvalidMessageID)
+                    {
+                        continue;
+                    }
+
+                    messageID = m_MessageHandlers.Put(new MessageHandlerInfo(method, dataType));
+                    member.SetValue(null, messageID);
+                    attribute.MessageID = messageID; // Needed for working with GroupIDs.
+                }
+
+                // Registers GroupIDs:
+                foreach (var (method, attribute) in handlers)
+                {
+                    if (!attribute.GroupID.HasValue) continue;
+                    byte groupID = attribute.GroupID.Value;
+                    GroupMessageIndexer group = m_Groups[groupID];
+                    if (group is null)
+                    {
+                        m_Groups[groupID] = group = GroupMessageIndexer.Create(groupID);
+                    }
+
+                    group.Register(attribute.MessageID.Value);
+                }
+
+                foreach (var (method, attribute) in handlers)
+                {
+                    if (attribute.GroupID.HasValue) continue;
+                    byte groupID;
+                    if (attribute.Group is null)
+                    {
+                        groupID = 0;
+                    }
+                    else
+                    {
+                        groupID = (byte)attribute.Group.GetValue(null);
+                        if (groupID == InvalidGroupID)
+                        {
+                            groupID = NextGroupID();
+                            attribute.Group.SetValue(null, groupID);
+                        }
+                    }
+
+                    GroupMessageIndexer group = m_Groups[groupID];
+                    if (group is null)
+                    {
+                        m_Groups[groupID] = group = GroupMessageIndexer.Create(groupID);
+                    }
+
+                    group.Register(attribute.MessageID.Value);
+                }
+
+                // Simplifications:
+                void SimpleHandlerFetching(Assembly assembly)
+                {
+                    foreach (var type in assembly.GetTypes())
+                    {
+                        foreach (var method in type.GetMethods(AdvancedMessageAttribute.MethodBindingFlags))
+                        {
+                            if (method.IsDefined(typeof(AdvancedMessageAttribute)))
+                            {
+                                QueueAdvancedHandlers(method);
+                            }
+                        }
+                    }
+                }
+
+                void FullHandlerFetching(Assembly assembly)
+                {
+                    foreach (var type in assembly.GetTypes())
+                    {
+                        foreach (var method in type.GetMethods(AdvancedMessageAttribute.MethodBindingFlags))
+                        {
+                            if (method.IsDefined(typeof(MessageHandlerAttribute)))
+                            {
+                                RiptideLogger.Log(LogType.Warning, $"{LogPrefix} Found method ({method.Name}) with regular {nameof(MessageHandlerAttribute)}. Those methods are ignored with {nameof(AdvancedClient)}s and {nameof(AdvancedServer)}s. Consider using {nameof(AdvancedMessageAttribute)}s instead.");
+                            }
+
+                            if (method.IsDefined(typeof(AdvancedMessageAttribute)))
+                            {
+                                QueueAdvancedHandlers(method);
+                            }
+                        }
+                    }
+                }
+
+                void QueueAdvancedHandlers(MethodInfo method)
+                {
+                    foreach (var attribute in method.GetCustomAttributes<AdvancedMessageAttribute>())
+                    {
+                        handlers.Add((method, attribute));
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -351,141 +456,6 @@ namespace Riptide.Toolkit
             }
 
             m_IsValid = true;
-        }
-
-        private static void SimpleHandlerFetching(Assembly assembly)
-        {
-            foreach (var type in assembly.GetTypes())
-            {
-                foreach (var method in type.GetMethods(AdvancedMessageAttribute.MethodBindingFlags))
-                {
-                    if (method.IsDefined(typeof(AdvancedMessageAttribute)))
-                    {
-                        ProcessAdvancedHandlers(method);
-                    }
-                }
-            }
-        }
-
-        private static void FullHandlerFetching(Assembly assembly)
-        {
-            foreach (var type in assembly.GetTypes())
-            {
-                foreach (var method in type.GetMethods(AdvancedMessageAttribute.MethodBindingFlags))
-                {
-                    if (method.IsDefined(typeof(MessageHandlerAttribute)))
-                    {
-                        RiptideLogger.Log(LogType.Warning, $"{LogPrefix} Found method ({method.Name}) with regular {nameof(MessageHandlerAttribute)}. Those methods are ignored with {nameof(AdvancedClient)}s and {nameof(AdvancedServer)}s. Consider using {nameof(AdvancedMessageAttribute)}s instead.");
-                    }
-
-                    if (method.IsDefined(typeof(AdvancedMessageAttribute)))
-                    {
-                        ProcessAdvancedHandlers(method);
-                    }
-                }
-            }
-        }
-
-        private static void ProcessAdvancedHandlers(MethodInfo method)
-        {
-            foreach (var attribute in method.GetCustomAttributes<AdvancedMessageAttribute>())
-            {
-                RegisterHandler(method, attribute);
-            }
-        }
-
-        private static void RegisterHandler(MethodInfo method, AdvancedMessageAttribute attribute)
-        {
-            // TODO: Update, so it works better.
-            // Note: Differentiates client-side and server-side message handlers by the parameter types they specify.
-            ParameterInfo[] parameters = method.GetParameters();
-            Type dataType;
-            byte? groupID = attribute.GroupID is null ? (byte)(GetMemberValue(attribute.Group) ?? null) : attribute.GroupID.Value;
-            ushort modID = attribute.Mod is null ? (ushort)0 : (ushort)GetMemberValue(attribute.Mod);
-            ushort messageID = 0;
-            switch (parameters.Length)
-            {
-                // Likely client-side method - they only have the NetworkMessage in parameters.
-                case 1:
-                    SeekIDs(method, dataType = parameters[0].ParameterType, attribute, ref groupID, ref messageID);
-                    ClientHandlers.HandlerInfo clientHandler = new ClientHandlers.HandlerInfo(method, dataType);
-                    MessageHandlerCollection<ClientHandlers.HandlerInfo>.Unsafe.Set(m_ClientHandlers[groupID.Value].Handlers, modID, messageID, clientHandler);
-                    break;
-
-                // Likely server-side method - they have UserID and INetworkMessage in parameters.
-                case 2:
-                    if (parameters[0].ParameterType != typeof(ushort))
-                    {
-                        throw new Exception($"Message handler ({method.Name}) is likely server-side, but doesn't have ClientID (ushort) as first parameter.");
-                    }
-
-                    // Commentary: Oh, well... Supporting random parameter type order might be hell (but fun), if we want to make it optimized, ha-ha)
-                    SeekIDs(method, dataType = parameters[1].ParameterType, attribute, ref groupID, ref messageID);
-                    ServerHandlers.HandlerInfo serverHandler = new ServerHandlers.HandlerInfo(method, dataType);
-                    MessageHandlerCollection<ServerHandlers.HandlerInfo>.Unsafe.Set(m_ServerHandlers[groupID.Value].Handlers, modID, messageID, serverHandler);
-                    break;
-
-                // Any other kind of signature is not supported at the moment.
-                default:
-                case 0: throw new Exception($"Message handler ({method.Name}) doesn't have client-side nor server-side Riptide message signature.");
-            }
-        }
-
-        private static void SeekIDs(MethodInfo method, Type dataType, AdvancedMessageAttribute attribute, ref byte? groupID, ref ushort messageID)
-        {
-            // Retrieves IDs in all possible ways.
-            if (typeof(NetworkMessage).IsAssignableFrom(dataType))
-            {
-                if (AdvancedMessageAttribute.LookupMemberRootLast<MessageIDAttribute>(dataType, out MemberInfo member,
-                    fieldsFirst: Reflections.MessageAttributeAnalysis_PrioritizeFields))
-                {
-                    messageID = (ushort)GetMemberValue(member);
-                }
-                else
-                {
-                    throw new Exception($"{LogPrefix} Cannot find {nameof(MessageIDAttribute)} in {nameof(NetworkMessage)} inside {method.Name} body.");
-                }
-
-                // Additional group check in case it was provided in network message itself.
-                // This check will pass by default for all generic NetworkMessages, since we have this attribute,
-                // however, it might be unclear as to why this succeeds, so we might remove this feature later.
-                if (groupID is null && AdvancedMessageAttribute.LookupMemberRootLast<GroupIDAttribute>(dataType, out member,
-                    fieldsFirst: Reflections.ImbeddedAttributeAnalysis_PrioritizeFields))
-                {
-                    groupID = (byte)GetMemberValue(member);
-                }
-                else
-                {
-                    groupID = 0; // Defaults to default group.
-                }
-            }
-            else if (attribute.MessageID.HasValue)
-            {
-                messageID = attribute.MessageID.Value;
-                if (groupID is null) groupID = 0;
-            }
-            else if (attribute.Message is null)
-            {
-                throw new Exception($"{LogPrefix} MessageID for {method.Name} was not provided by any of 3 known methods" +
-                    $"({nameof(NetworkMessage)} as parameter in method params, MessageID in attribute as ushort/uint, or {nameof(NetworkMessage)} in attribute)");
-            }
-            else
-            {
-                messageID = (ushort)GetMemberValue(attribute.Message);
-                if (groupID is null) groupID = 0;
-            }
-
-
-        }
-
-        private static object GetMemberValue(MemberInfo member)
-        {
-            switch (member)
-            {
-                case FieldInfo field: return field.GetValue(null);
-                case PropertyInfo property: return property.GetValue(null);
-                default: return null;
-            }
         }
     }
 }

@@ -11,6 +11,7 @@
 /// 
 
 using Riptide.Toolkit.Settings;
+using System;
 
 namespace Riptide.Toolkit.Handlers
 {
@@ -28,15 +29,16 @@ namespace Riptide.Toolkit.Handlers
         /// <summary>
         /// Creates new instance of <see cref="MessageHandlerCollection{THandler}"/> optimized for <see cref="Performance.MessageHandlerFocus"/> mode.
         /// </summary>
-        public static GroupMessageIndexer Create()
+        /// <param name="groupID">GroupID to associate new <see cref="GroupMessageIndexer"/> with.</param>
+        public static GroupMessageIndexer Create(byte groupID)
         {
             if (Performance.MessageHandlerFocus == PerformanceType.OptimizeCPU)
             {
-                return new RegionGroupMessageIndexer();
+                return new RegionGroupMessageIndexer(groupID);
             }
             else
             {
-                return new DictionaryGroupMessageIndexer();
+                return new DictionaryGroupMessageIndexer(groupID);
             }
         }
 

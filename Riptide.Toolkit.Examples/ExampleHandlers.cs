@@ -9,7 +9,6 @@
 /// 
 /// ]]>
 
-using Riptide.Transports;
 using Riptide.Utils;
 
 namespace Riptide.Toolkit.Examples
@@ -25,7 +24,7 @@ namespace Riptide.Toolkit.Examples
         /// .                                                Client-side
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        [AdvancedMessage((ushort)ToClientMessages.UpdateUsername)]
+        [AdvancedMessage((uint)ToClientMessages.UpdateUsername)]
         public static void UpdateUsername(Message message)
         {
             RiptideLogger.Log(LogType.Warning, $"");
@@ -33,7 +32,7 @@ namespace Riptide.Toolkit.Examples
             RiptideLogger.Log(LogType.Warning, $"");
         }
 
-        [AdvancedMessage(typeof(DefaultGroup), (ushort)ToClientMessages.UpdatePlayerPosition)]
+        [AdvancedMessage((uint)ToClientMessages.UpdatePlayerPosition, typeof(DefaultGroup))]
         public static void UpdatePlayerPosition(Message message)
         {
             RiptideLogger.Log(LogType.Warning, $"");
@@ -49,7 +48,7 @@ namespace Riptide.Toolkit.Examples
         /// .                                                Server-side
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        [AdvancedMessage((ushort)ToServerMessages.RegisterUsername)]
+        [AdvancedMessage((uint)ToServerMessages.RegisterUsername)]
         public static void RequestHandler(ushort client, Message message)
         {
             RiptideLogger.Log(LogType.Warning, $"");
@@ -58,7 +57,7 @@ namespace Riptide.Toolkit.Examples
         }
 
 
-        [AdvancedMessage(typeof(DefaultGroup), (ushort)ToServerMessages.ReceivePlayerPosition)]
+        [AdvancedMessage((uint)ToServerMessages.ReceivePlayerPosition, typeof(DefaultGroup))]
         public static void ReceivePlayerPosition(ushort client, Message message)
         {
             RiptideLogger.Log(LogType.Warning, $"");

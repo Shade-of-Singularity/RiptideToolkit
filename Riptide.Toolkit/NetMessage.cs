@@ -54,7 +54,7 @@ namespace Riptide.Toolkit
         public static Message Create(MessageSendMode mode, uint messageID)
         {
             return Message.Create(mode)
-                .AddVarULong(messageID)
+                .AddVarULong(messageID) // TODO: Create the same method, but for uint.
                 .AddBits((byte)SystemMessageID.Regular, SystemMessaging.TotalBits);
         }
 
