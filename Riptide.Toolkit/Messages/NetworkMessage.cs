@@ -250,7 +250,7 @@ namespace Riptide.Toolkit.Messages
         /// </summary>
         /// <param name="mode"><see cref="Riptide"/> Send mode of the <see cref="Message"/>.</param>
         /// <returns>Fully prepared <see cref="Message"/>, ready to be sent to another party.</returns>
-        public Message Pack(MessageSendMode mode) => Write(Message.Create(mode, ID));
+        public Message Pack(MessageSendMode mode) => Write(NetMessage.Create(mode, ID));
 
         /// <summary>
         /// Packs <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> into a message, including its <see cref="MessageID"/> in the data,

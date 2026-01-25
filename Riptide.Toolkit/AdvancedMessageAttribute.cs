@@ -53,10 +53,6 @@ namespace Riptide.Toolkit
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Reference to a <see cref="FieldInfo"/> or <see cref="PropertyInfo"/> with <see cref="ModIDAttribute"/>.
-        /// </summary>
-        public MemberInfo Mod { get; set; }
-        /// <summary>
         /// Reference to a <see cref="FieldInfo"/> or <see cref="PropertyInfo"/> with <see cref="GroupIDAttribute"/>.
         /// </summary>
         /// <remarks>
@@ -78,7 +74,7 @@ namespace Riptide.Toolkit
         /// <summary>
         /// Static MessageID of this message handler. Automatic ID assignment will avoid static IDs.
         /// </summary>
-        public ushort? MessageID { get; set; }
+        public uint? MessageID { get; set; }
 
 
 
@@ -88,42 +84,42 @@ namespace Riptide.Toolkit
         /// .                                                Constructors
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public AdvancedMessageAttribute() => SetDefaults();
-        public AdvancedMessageAttribute(byte groupID)
-        {
-            GroupID = groupID;
-            SetDefaults();
-        }
+        /// <summary>
+        /// Constructs handler, <see cref="MessageID"/> and <see cref="GroupID"/> for which
+        /// is evaluated from parameters of a method to which this attribute is attached to.
+        /// </summary>
+        public AdvancedMessageAttribute() { }
 
-        /// <inheritdoc cref="AdvancedMessageAttribute(ushort)"/>
-        /// <remarks>
-        /// Introduced for prototyping, so you can define attributes with only <paramref name="messageID"/> like so:
-        /// <![CDATA[AdvancedMessage(0u)]]>
-        /// </remarks>
-        public AdvancedMessageAttribute(uint messageID) : this((ushort)messageID) { }
+        /// <inheritdoc cref=" AdvancedMessageAttribute(uint)"/>
+        public AdvancedMessageAttribute(Enum messageID) : this((uint)(object)messageID) { }
 
         /// <summary>
         /// <para>Constructs handler attribute with given <paramref name="messageID"/>.</para>
         /// <para><see cref="GroupID"/> will be set to 0 (see also: <seealso cref="DefaultGroup"/>)</para>
         /// </summary>
         /// <param name="messageID">MessageID to associate a handler with.</param>
-        public AdvancedMessageAttribute(ushort messageID)
+        public AdvancedMessageAttribute(uint messageID)
         {
+            GroupID = 0;
             MessageID = messageID;
-            SetDefaults();
         }
 
-        /// <inheritdoc cref="AdvancedMessageAttribute(byte, ushort)"/>
+        /// <inheritdoc cref=" AdvancedMessageAttribute(byte, uint)"/>
+        public AdvancedMessageAttribute(byte groupID, Enum messageID) : this(groupID, (uint)(object)messageID) { }
+
+        /// <summary>
+        /// Constructs handler with both <see cref="GroupID"/> and <see cref="MessageID"/> manually defined.
+        /// </summary>
         /// <remarks>
-        /// Introduced for prototyping, so you can define attributes with only <paramref name="messageID"/> like so:
-        /// <![CDATA[AdvancedMessage(0, 0u)]]>
+        /// This constructor should NOT be used by mods - mods should inherit <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> instead.
+        /// But as a game developer (not mod developer) you are free to use it. It's a lot easier to use it for prototyping.
         /// </remarks>
-        public AdvancedMessageAttribute(byte groupID, uint messageID) : this(groupID, (ushort)messageID) { }
-        public AdvancedMessageAttribute(byte groupID, ushort messageID)
+        /// <param name="groupID"></param>
+        /// <param name="messageID"></param>
+        public AdvancedMessageAttribute(byte groupID, uint messageID)
         {
             GroupID = groupID;
             MessageID = messageID;
-            SetDefaults();
         }
 
 
@@ -140,37 +136,27 @@ namespace Riptide.Toolkit
             SetDefaults();
         }
 
-        public AdvancedMessageAttribute(Type multicast, byte groupID)
+        /// <remarks>
+        /// Write ID as '0u' instead of '0' to use constructor for MessageID instead. Examples:
+        /// <para>- <c><![CDATA[AdvancedMessage(typeof(Message), 0)]]></c> - here '0' marks GroupID.</para>
+        /// <para>- <c><![CDATA[AdvancedMessage(typeof(Group), 0u)]]></c> - here '0u' marks MessageID.</para>
+        /// </remarks>
+        public AdvancedMessageAttribute(Type message, byte groupID)
         {
             GroupID = groupID;
-            ResolveMultitypePrioritizeMessage(multicast);
+            ResolveMultitypePrioritizeMessage(message);
             SetDefaults();
         }
 
-        /// <inheritdoc cref="AdvancedMessageAttribute(Type, ushort)"/>
         /// <remarks>
-        /// Introduced for prototyping, so you can define attributes with only <paramref name="messageID"/> like so:
-        /// <![CDATA[AdvancedMessage(typeof(Mod), 0u)]]>
+        /// Write ID as '0' instead of '0u' to use constructor for GroupID instead. Examples:
+        /// <para>- <c><![CDATA[AdvancedMessage(typeof(Message), 0)]]></c> - here '0' marks GroupID.</para>
+        /// <para>- <c><![CDATA[AdvancedMessage(typeof(Group), 0u)]]></c> - here '0u' marks MessageID.</para>
         /// </remarks>
-        public AdvancedMessageAttribute(Type multicast, uint messageID) : this(multicast, (ushort)messageID) { }
-        public AdvancedMessageAttribute(Type multicast, ushort messageID)
+        public AdvancedMessageAttribute(Type group, uint messageID)
         {
             MessageID = messageID;
-            ResolveMultitypePrioritizeGroup(multicast);
-            SetDefaults();
-        }
-
-        /// <inheritdoc cref="AdvancedMessageAttribute(Type, byte, ushort)"/>
-        /// <remarks>
-        /// Introduced for prototyping, so you can define attributes with only <paramref name="messageID"/> like so:
-        /// <![CDATA[AdvancedMessage(typeof(Mod), 0, 0u)]]>
-        /// </remarks>
-        public AdvancedMessageAttribute(Type multicast, byte groupID, uint messageID) : this(multicast, groupID, (ushort)messageID) { }
-        public AdvancedMessageAttribute(Type multicast, byte groupID, ushort messageID)
-        {
-            GroupID = groupID;
-            MessageID = messageID;
-            ResolveMultitypePrioritizeMod(multicast);
+            ResolveMultitypePrioritizeGroup(group);
             SetDefaults();
         }
 
@@ -189,44 +175,6 @@ namespace Riptide.Toolkit
             SetDefaults();
         }
 
-        public AdvancedMessageAttribute(Type multicast1, Type multicast2, byte groupID)
-        {
-            GroupID = groupID;
-            ResolveMultitypePrioritizeMod(multicast1);
-            ResolveMultitypePrioritizeMessage(multicast2);
-            SetDefaults();
-        }
-
-        /// <inheritdoc cref="AdvancedMessageAttribute(Type, Type, ushort)"/>
-        /// <remarks>
-        /// Introduced for prototyping, so you can define attributes with only <paramref name="messageID"/> like so:
-        /// <![CDATA[AdvancedMessage(typeof(Mod), typeof(Group), 0u)]]>
-        /// </remarks>
-        public AdvancedMessageAttribute(Type multicast1, Type multicast2, uint messageID) : this(multicast1, multicast2, (ushort)messageID) { }
-        public AdvancedMessageAttribute(Type multicast1, Type multicast2, ushort messageID)
-        {
-            MessageID = messageID;
-            ResolveMultitypePrioritizeMod(multicast1);
-            ResolveMultitypePrioritizeGroup(multicast2);
-            SetDefaults();
-        }
-
-
-
-
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
-        /// .
-        /// .                                                3 Multi-types
-        /// .
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public AdvancedMessageAttribute(Type multicast1, Type multicast2, Type multicast3)
-        {
-            ResolveMultitypePrioritizeMod(multicast1);
-            ResolveMultitypePrioritizeGroup(multicast2);
-            ResolveMultitypePrioritizeMessage(multicast3);
-            SetDefaults();
-        }
-
 
 
 
@@ -237,10 +185,10 @@ namespace Riptide.Toolkit
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         static AdvancedMessageAttribute()
         {
-            if (LookupMemberRootLast(typeof(GroupIDAttribute), typeof(DefaultGroup), out MemberInfo member, Reflections.ModAttributeAnalysis_PrioritizeFields))
+            if (LookupMemberRootLast(typeof(GroupIDAttribute), typeof(DefaultGroup), out MemberInfo member,
+                Reflections.GroupAttributeAnalysis_PrioritizeFields))
             {
                 DefaultGroupIDSource = member;
-                LastModIDSource = member;
                 LastGroupIDSource = member;
             }
             else
@@ -260,7 +208,6 @@ namespace Riptide.Toolkit
         private const BindingFlags MemberBindingFlags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
         private static readonly MemberInfo DefaultGroupIDSource;
         private static MemberInfo LastGroupIDSource; // Not a mistake. Avoids null-check to remove 1 branch.
-        private static MemberInfo LastModIDSource; // Not a mistake. Avoids null-check to remove 1 branch.
 
 
 
@@ -292,17 +239,9 @@ namespace Riptide.Toolkit
             }
         }
 
-        private void ResolveMultitypePrioritizeMod(Type value)
-        {
-            if (!ResolveMod(value) && !ResolveGroup(value) && !ResolveMessage(value))
-            {
-                throw GetResolvingFailedException(value);
-            }
-        }
-
         private void ResolveMultitypePrioritizeGroup(Type value)
         {
-            if (!ResolveGroup(value) && !ResolveMod(value) && !ResolveMessage(value))
+            if (!ResolveGroup(value) && !ResolveMessage(value))
             {
                 throw GetResolvingFailedException(value);
             }
@@ -310,7 +249,7 @@ namespace Riptide.Toolkit
 
         private void ResolveMultitypePrioritizeMessage(Type value)
         {
-            if (!ResolveMessage(value) && !ResolveGroup(value) && !ResolveMod(value))
+            if (!ResolveMessage(value) && !ResolveGroup(value))
             {
                 throw GetResolvingFailedException(value);
             }
@@ -334,26 +273,6 @@ namespace Riptide.Toolkit
             return new NotSupportedException($"Cannot resolve multitype ({value.Name}) in {nameof(AdvancedMessageAttribute)}! Either invalid types are used, or IDs provided in multiple different ways.");
         }
 
-        private bool ResolveMod(Type mod)
-        {
-            if (Mod is null)
-            {
-                // Starts from a fast cache lookup to avoid reflections.
-                if (LastModIDSource.DeclaringType.IsAssignableFrom(mod))
-                {
-                    Mod = LastModIDSource;
-                }
-                else if (LookupMemberRootLast<ModIDAttribute>(mod, out MemberInfo member, Reflections.ModAttributeAnalysis_PrioritizeFields))
-                {
-                    LastModIDSource = Mod = member;
-                }
-
-                return true;
-            }
-
-            return false;
-        }
-
         private bool ResolveGroup(Type group)
         {
             if (GroupID.HasValue) return false;
@@ -364,7 +283,7 @@ namespace Riptide.Toolkit
                 {
                     Group = LastGroupIDSource;
                 }
-                else if (LookupMemberRootLast<GroupIDAttribute>(group, out MemberInfo member, Reflections.ModAttributeAnalysis_PrioritizeFields))
+                else if (LookupMemberRootLast<GroupIDAttribute>(group, out MemberInfo member, Reflections.GroupAttributeAnalysis_PrioritizeFields))
                 {
                     LastGroupIDSource = Group = member;
                 }
@@ -380,7 +299,7 @@ namespace Riptide.Toolkit
             if (MessageID.HasValue) return false;
             if (Message is null)
             {
-                if (LookupMemberRootLast<GroupIDAttribute>(message, out MemberInfo member, Reflections.ModAttributeAnalysis_PrioritizeFields))
+                if (LookupMemberRootLast<MessageIDAttribute>(message, out MemberInfo member, Reflections.MessageAttributeAnalysis_PrioritizeFields))
                 {
                     Message = member;
                 }
@@ -399,7 +318,8 @@ namespace Riptide.Toolkit
         }
 
         /// <remarks>
-        /// Checks <paramref name="target"/> type last, as sometimes we can be fairly certain that it won't contain our <paramref name="attribute"/>.
+        /// Checks <paramref name="target"/> type last,
+        /// as sometimes we can be fairly certain that it won't contain our <paramref name="attribute"/>.
         /// </remarks>
         internal static bool LookupMemberRootLast(Type attribute, Type target, out MemberInfo member, bool fieldsFirst)
         {

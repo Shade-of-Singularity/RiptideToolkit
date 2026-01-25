@@ -24,15 +24,6 @@ namespace Riptide.Toolkit.Settings
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Whether to check for <see cref="ModIDAttribute"/>
-        /// on fields first, then properties (when true) or the other way around (when false)
-        /// </summary>
-        /// True by default, to match flags for group and message analysis.
-        /// Though, I (Dark) can easily see how developers would opt to use ModID as parameter here instead.
-        /// But static readonly field is still more optimized, so Riptide's target audience might prefer them more, I assume.
-        public static bool ModAttributeAnalysis_PrioritizeFields { get; set; } = true;
-
-        /// <summary>
         /// Whether to check for <see cref="GroupIDAttribute"/>
         /// on fields first, then properties (when true) or the other way around (when false)
         /// </summary>

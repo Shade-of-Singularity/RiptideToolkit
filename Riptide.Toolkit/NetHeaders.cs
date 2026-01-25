@@ -9,7 +9,6 @@
 /// 
 /// ]]>
 
-using Riptide.Toolkit.Settings;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -31,20 +30,6 @@ namespace Riptide.Toolkit
         public const int ReliableHeaderBits = 20;
         public const int UnreliableHeaderBits = 4;
 
-        /// <summary>Comes right after <see cref="SystemMessageIDLocation"/> bit.</summary>
-        /// <remarks>Occupies exactly one bit.</remarks>
-        public const int IsModdedLocation = 0;
-        public const int IsModdedTotalBits = 1;
-
-        /// <summary>Always '0' - written first. (Written right after a header)</summary>
-        /// <remarks>Length is defined in <see cref="SystemMessaging.TotalBits"/>.</remarks>
-        public const int SystemMessageIDLocation = IsModdedLocation + IsModdedTotalBits;
-
-        /// <summary>Where ModID is stored (occupies 16 bits (TODO: make dynamic))</summary>
-        /// <remarks>Length is defined in <see cref="Modding.ModIDTotalBits"/></remarks>
-        /// TODO: Define ModID header size dynamically.
-        public const int ModIDLocation = SystemMessageIDLocation + SystemMessaging.TotalBits;
-
 
 
 
@@ -53,6 +38,28 @@ namespace Riptide.Toolkit
         /// .                                               Public Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        /// <inheritdoc cref="GetMessageBase(MessageSendMode)"/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetMessageBase(Message message) => GetMessageBase(message.SendMode);
+
+        /// <summary>
+        /// Retrieves position in a message data where message content starts.
+        /// </summary>
+        /// <remarks>
+        /// Needed because <see cref="Toolkit"/> uses some of the first bits to encode system message IDs and such.
+        /// </remarks>
+        public static int GetMessageBase(MessageSendMode mode)
+        {
+            switch (mode)
+            {
+                case MessageSendMode.Notify: return NotifyHeaderBits + SystemMessaging.TotalBits;
+                case MessageSendMode.Unreliable: return UnreliableHeaderBits + SystemMessaging.TotalBits;
+                case MessageSendMode.Reliable: return ReliableHeaderBits + SystemMessaging.TotalBits;
+                default: throw new NotSupportedException($"Cannot retrieve header base for {nameof(MessageSendMode)} of ({mode})!");
+            }
+        }
+
+        /// <inheritdoc cref="GetHeaderBase(MessageSendMode)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetHeaderBase(Message message) => GetHeaderBase(message.SendMode);
         public static int GetHeaderBase(MessageSendMode mode)
@@ -66,13 +73,6 @@ namespace Riptide.Toolkit
             }
         }
 
-        public static int GetMessageBase(Message message)
-        {
-            message.PeekBits(IsModdedTotalBits, IsModdedLocation, out byte result);
-            return GetHeaderBase(message.SendMode) + result == 0
-                ? (IsModdedTotalBits + SystemMessaging.TotalBits + Modding.ModIDTotalBits)
-                : (IsModdedTotalBits + SystemMessaging.TotalBits);
-        }
 
 
 
@@ -83,7 +83,10 @@ namespace Riptide.Toolkit
         /// .                              (W.I.P.) - hard to implement conditional headers.
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        [Obsolete("WIP", error: true)]
         internal static byte GetHeaderID() => 0;
+
+        [Obsolete("WIP", error: true)]
         internal abstract class Header<T>
         {
             public static readonly byte ID = GetHeaderID();
@@ -94,25 +97,12 @@ namespace Riptide.Toolkit
             public abstract Message Read(Message message);
         }
 
-        internal sealed class IsModdedHeader : Header<IsModdedHeader>
-        {
-            public override ushort Length => 1;
-            public override Message Read(Message message) => throw new System.NotImplementedException();
-            public override Message Write(Message message) => throw new System.NotImplementedException();
-        }
-
-        internal sealed class SystemIDHeader : Header<IsModdedHeader>
+        [Obsolete("WIP", error: true)]
+        internal sealed class SystemIDHeader : Header<SystemIDHeader>
         {
             public override ushort Length => SystemMessaging.TotalBits;
-            public override Message Read(Message message) => throw new System.NotImplementedException();
-            public override Message Write(Message message) => throw new System.NotImplementedException();
-        }
-
-        internal sealed class ModIDHeader : Header<IsModdedHeader>
-        {
-            public override ushort Length => Modding.ModIDTotalBits;
-            public override Message Read(Message message) => throw new System.NotImplementedException();
-            public override Message Write(Message message) => throw new System.NotImplementedException();
+            public override Message Read(Message message) => throw new NotImplementedException();
+            public override Message Write(Message message) => throw new NotImplementedException();
         }
     }
 }

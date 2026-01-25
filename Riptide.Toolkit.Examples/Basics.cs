@@ -54,18 +54,6 @@ namespace Riptide.Toolkit.Examples
         /// TODO: Automatically change if occupied.
         public const ushort DefaultServerPort = 45840;
 
-        /// <summary>
-        /// Lists all the example mods.
-        /// </summary>
-        /// <remarks>
-        /// Ignore that it is not <see cref="BaseMod{T}"/> but <see cref="IDirectModAccess"/>.
-        /// <see cref="IDirectModAccess"/> - is an interface, which hides methods mod developers should not access.
-        /// </remarks>
-        internal static readonly IDirectModAccess[] Mods = new IDirectModAccess[]
-        {
-            ExampleMod.Instance,
-        };
-
 
 
 
@@ -116,12 +104,6 @@ namespace Riptide.Toolkit.Examples
             ShutdownToken.Cancel();
             ShutdownToken.Dispose();
             ShutdownToken = new CancellationTokenSource();
-
-            // As an example - unloads all mods as well.
-            foreach (var mod in Mods)
-            {
-                mod.InvokeUnload();
-            }
         }
 
 
@@ -149,19 +131,6 @@ namespace Riptide.Toolkit.Examples
             IsRunning = true;
             RiptideLogger.Log(LogType.Info, "Initializing Riptide.Toolkit Basics test.");
             Message.MaxPayloadSize = Message.MaxHeaderSize + ushort.MaxValue + 1;
-
-            // Here mods can register custom message handlers.
-            foreach (var mod in Mods)
-            {
-                mod.InvokeRegisterMessages();
-            }
-
-            // Initializes mod as an example.
-            // Note: It is recommended that you first run message registration on all mods, before initialization.
-            foreach (var mod in Mods)
-            {
-                mod.InvokeInitialize();
-            }
         }
 
         private static void StartServer(ushort port)
