@@ -93,13 +93,15 @@ namespace Riptide.Toolkit
         private void ServerBroadcastMessage(object sender, MessageReceivedEventArgs args)
         {
             if (!m_BroadcastToHandlers) return;
-            NetMessage.ReadHeaders(args.Message, out bool isModded, out SystemMessageID systemMessageID, out ushort modID);
+            NetMessage.ReadHeaders(args.Message, out SystemMessageID systemMessageID);
             switch (systemMessageID)
             {
                 // Allows regular execution.
                 case SystemMessageID.Regular: break;
 
                 // Sends message data to a requesting side. Timeouts if response is not satisfied in time.
+                case SystemMessageID.ToSingle:
+                case SystemMessageID.ToAll:
                 case SystemMessageID.Request:
                 case SystemMessageID.Response: throw new NotImplementedException();
 
@@ -108,19 +110,9 @@ namespace Riptide.Toolkit
             }
 
             // Handles regular messages:
-            if (isModded)
+            if (m_MessageHandlers.TryFire(this, args.MessageId, args.FromConnection.Id, args.Message) != true)
             {
-                if (m_MessageHandlers?.TryFire(this, modID, args.MessageId, args.FromConnection.Id, args.Message) != true)
-                {
-                    RiptideLogger.Log(LogType.Warning, $"No Server-side advanced message handler found in mod ({modID}) for MessageID ({args.MessageId})!");
-                }
-            }
-            else
-            {
-                if (m_MessageHandlers?.TryFire(this, args.MessageId, args.FromConnection.Id, args.Message) != true)
-                {
-                    RiptideLogger.Log(LogType.Warning, $"No Server-side advanced message handler found for MessageID ({args.MessageId})!");
-                }
+                RiptideLogger.Log(LogType.Warning, $"No Server-side advanced message handler found for MessageID ({args.MessageId})!");
             }
         }
     }

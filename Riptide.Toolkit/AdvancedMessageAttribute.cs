@@ -208,90 +208,91 @@ namespace Riptide.Toolkit
         /// <param name="multicast2"><see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> or <see cref="NetworkGroup{TGroup}"/>.</param>
         public AdvancedMessageAttribute(Type multicast1, Type multicast2, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1)
         {
-            if (Reflections.AdvancedMessageHandlerConstructor_ExpectFirstMulticastToBeAMessage)
-            {
-                if (ResolveMessage(multicast1))
-                {
-                    if (ResolveGroup(multicast2))
-                    {
-                        // Prediction succeeded.
-                    }
-                    else
-                    {
-                        throw new Exception($"Since Advanced message handler got a {nameof(NetworkMessage)} as parameter '{nameof(multicast1)}' - expected {nameof(multicast2)} to be a {nameof(NetworkGroup)}, but it wasn't. Caused by Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
-                    }
-                }
-                else if (ResolveGroup(multicast1))
-                {
-                    if (ResolveMessage(multicast2))
-                    {
+            throw new NotImplementedException("WIP");
+            //if (Reflections.AdvancedMessageHandlerConstructor_ExpectFirstMulticastToBeAMessage)
+            //{
+            //    if (ResolveMessage(multicast1))
+            //    {
+            //        if (ResolveGroup(multicast2))
+            //        {
+            //            // Prediction succeeded.
+            //        }
+            //        else
+            //        {
+            //            throw new Exception($"Since Advanced message handler got a {nameof(NetworkMessage)} as parameter '{nameof(multicast1)}' - expected {nameof(multicast2)} to be a {nameof(NetworkGroup)}, but it wasn't. Caused by Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
+            //        }
+            //    }
+            //    else if (ResolveGroup(multicast1))
+            //    {
+            //        if (ResolveMessage(multicast2))
+            //        {
 
-                    }
-                }
-                else
-                {
+            //        }
+            //    }
+            //    else
+            //    {
 
-                }
-            }
-            else
-            {
+            //    }
+            //}
+            //else
+            //{
 
-            }
+            //}
 
-            throw new Exception($"One or all provided multicast types is not {nameof(NetworkMessage)}<> nor {nameof(NetworkGroup)}<> class type. Caused by Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
+            //throw new Exception($"One or all provided multicast types is not {nameof(NetworkMessage)}<> nor {nameof(NetworkGroup)}<> class type. Caused by Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
 
 
 
-            if (!ResolveMessage(multicast1))
-            {
-                if (!ResolveMessage(multicast2))
-                {
+            //if (!ResolveMessage(multicast1))
+            //{
+            //    if (!ResolveMessage(multicast2))
+            //    {
 
-                }
-            }
+            //    }
+            //}
 
-            if (!ResolveMessage(multicast1) & !ResolveGroup(multicast1))
-            {
+            //if (!ResolveMessage(multicast1) & !ResolveGroup(multicast1))
+            //{
 
-            }
+            //}
 
-            if (Message is null && ResolveMessage(multicast2))
-            {
-                // Multicast #1 is Group and Multicast #2 is Message here.
-            }
-            else if (Group is null && ResolveGroup(multicast2))
-            {
+            //if (Message is null && ResolveMessage(multicast2))
+            //{
+            //    // Multicast #1 is Group and Multicast #2 is Message here.
+            //}
+            //else if (Group is null && ResolveGroup(multicast2))
+            //{
 
-            }
+            //}
 
-            if (ResolveGroup(multicast1))
-            {
-                if (ResolveMessage(multicast2))
-                {
-                    // Prediction succeeded.
-                    // No default values have to be provided.
-                }
-                else
-                {
-                    if (ResolveGroup(multicast2))
-                        throw new Exception($"Provided two {nameof(NetworkGroup)}<> types for Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
-                    else throw new Exception($"{nameof(NetworkMessage)}<> was not provided for Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
-                }
-            }
-            else if (ResolveMessage(multicast1))
-            {
-                if (ResolveGroup(multicast2))
-                {
-                    // Second prediction succeeded.
-                    // No default values have to be provided.
-                }
-                else
-                {
-                    if (ResolveMessage(multicast2))
-                        throw new Exception($"Provided two {nameof(NetworkMessage)}<> types for Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
-                    else throw new Exception($"{nameof(NetworkGroup)}<> was not provided for Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
-                }
-            }
+            //if (ResolveGroup(multicast1))
+            //{
+            //    if (ResolveMessage(multicast2))
+            //    {
+            //        // Prediction succeeded.
+            //        // No default values have to be provided.
+            //    }
+            //    else
+            //    {
+            //        if (ResolveGroup(multicast2))
+            //            throw new Exception($"Provided two {nameof(NetworkGroup)}<> types for Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
+            //        else throw new Exception($"{nameof(NetworkMessage)}<> was not provided for Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
+            //    }
+            //}
+            //else if (ResolveMessage(multicast1))
+            //{
+            //    if (ResolveGroup(multicast2))
+            //    {
+            //        // Second prediction succeeded.
+            //        // No default values have to be provided.
+            //    }
+            //    else
+            //    {
+            //        if (ResolveMessage(multicast2))
+            //            throw new Exception($"Provided two {nameof(NetworkMessage)}<> types for Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
+            //        else throw new Exception($"{nameof(NetworkGroup)}<> was not provided for Advanced message handler with multicast types ({multicast1.Name} and {multicast2.Name}) at: ({source}) line: (#{line})");
+            //    }
+            //}
 
         }
 

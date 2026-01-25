@@ -164,6 +164,20 @@ namespace Riptide.Toolkit
         public static void Register(Type type) => System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(type.TypeHandle);
 
         /// <summary>
+        /// Retrieves data, needed for clients to easily fire message handlers.
+        /// </summary>
+        /// <param name="groupID">GroupID to use for a client.</param>
+        /// <returns>Struct, which has plenty of useful methods and shortcuts.</returns>
+        public static ClientHandlers ClientHandlers(byte groupID) => new ClientHandlers(m_Groups[groupID]);
+
+        /// <summary>
+        /// Retrieves data, needed for servers to easily fire message handlers.
+        /// </summary>
+        /// <param name="groupID">GroupID to use for a client.</param>
+        /// <returns>Struct, which has plenty of useful methods and shortcuts.</returns>
+        public static ServerHandlers ServerHandlers(byte groupID) => new ServerHandlers(m_Groups[groupID]);
+
+        /// <summary>
         /// Checks if group under given <paramref name="groupID"/> is defined.
         /// </summary>
         /// <param name="groupID">GroupID to check.</param>

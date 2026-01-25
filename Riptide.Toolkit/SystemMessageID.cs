@@ -37,8 +37,28 @@ namespace Riptide.Toolkit
     /// <summary>
     /// All message IDs used with <see cref="Riptide"/> networking to determine if modified game versions are compatible or not.
     /// </summary>
+    /// TODO: Tinker messages a bit.
     public enum SystemMessageID : byte
     {
+        /// <summary>
+        /// Special message for Network Relays to indicate that message should only be send to one specific client in a virtual lobby.
+        /// Implemented to support 3rdParty services.
+        /// </summary>
+        /// <remarks>
+        /// Should ALWAYS you first message bit for indication.
+        /// </remarks>
+        ToSingle = 0b0,
+
+        /// <summary>
+        /// Special message for Network Relays to indicate that message should be sent to all clients in a virtual lobby.
+        /// It allows sending only one UDP package to the remote server instead of multiple ones per client.
+        /// Implemented to support 3rdParty services.
+        /// </summary>
+        /// <remarks>
+        /// Should ALWAYS use first message bit for indication.
+        /// </remarks>
+        ToAll = 0b1,
+
         /// <summary>
         /// Regular message. Messages with this data will be passed down as regular messages.
         /// </summary>
@@ -46,19 +66,19 @@ namespace Riptide.Toolkit
         /// Anything other than regular message will be read as system message.
         /// <see cref="Client.MessageReceived"/> or <see cref="Server.MessageReceived"/> won't fire for those messages.
         /// </remarks>
-        Regular = 0,
+        Regular = 2,
 
         /// <summary>
         /// Message ID used in on-demand requests.
         /// </summary>
         /// <seealso cref="Response"/>
-        Request = 1,
+        Request = 3,
 
         /// <summary>
         /// Message ID used in on-demand responses to requests.
         /// </summary>
         /// <seealso cref="Request"/>
-        Response = 2,
+        Response = 4,
 
         /// <summary>
         /// Message handler used to compare whether all message handlers have the same IDs or not.
