@@ -53,6 +53,13 @@ namespace Riptide.Toolkit
         /// <see cref="uint.MaxValue"/> is an invalid ID, since '0' is commonly used everywhere by developers.
         /// </summary>
         public const uint InvalidMessageID = uint.MaxValue;
+        /// <summary>
+        /// Recommended first ID for server message ID enum.
+        /// </summary>
+        /// <remarks>
+        /// It's needed because, again - Server-side and Client-side IDs are shared now!
+        /// </remarks>
+        public const uint ServerIDOrigin = 0xFFFFFFFF >> 1 + 1; // In the middle of uint, essentially. +1 for better byte alignment.
 
 
 
@@ -102,7 +109,9 @@ namespace Riptide.Toolkit
         private static readonly ServerSystemHandler[] m_ServerSystemHandlers = new ServerSystemHandler[SystemMessaging.TotalIDs];
 
         // GroupIDs:
-        private static readonly GroupMessageIndexer[] m_Groups = new GroupMessageIndexer[MaxGroupIDAmount];
+        private static readonly object _groupLock = new object();
+        private static readonly GroupMessageIndexer[] m_ClientGroups = new GroupMessageIndexer[MaxGroupIDAmount];
+        private static readonly GroupMessageIndexer[] m_ServerGroups = new GroupMessageIndexer[MaxGroupIDAmount];
         private static ushort m_GroupIDHeadIndex; // We use ushort instead of byte, to gracefully handle ID exhaustion.
 
         // MessageIDs: (doesn't map to Groups, rather Groups map to it instead)
@@ -130,7 +139,8 @@ namespace Riptide.Toolkit
             // Initializes it so clients and servers can initialize easily.
             for (byte i = 0; i < MaxGroupIDAmount; i++)
             {
-                m_Groups[i] = GroupMessageIndexer.Create(i);
+                m_ClientGroups[i] = GroupMessageIndexer.Create(i);
+                m_ServerGroups[i] = GroupMessageIndexer.Create(i);
             }
         }
 
@@ -180,45 +190,114 @@ namespace Riptide.Toolkit
         /// </summary>
         public static void Register(Type type) => System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(type.TypeHandle);
 
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                               Client Handlers
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Retrieves data, needed for clients to easily fire message handlers.
+        /// Retrieves data, needed for clients to easily fire client-side message handlers.
         /// </summary>
         /// <param name="groupID">GroupID to use for a client.</param>
         /// <returns>Struct, which has plenty of useful methods and shortcuts.</returns>
-        public static ClientHandlers ClientHandlers(byte groupID) => new ClientHandlers(m_Groups[groupID]);
+        public static ClientHandlers ClientHandlers(byte groupID) => new ClientHandlers(GetClientGroup(groupID));
 
         /// <summary>
-        /// Retrieves data, needed for servers to easily fire message handlers.
-        /// </summary>
-        /// <param name="groupID">GroupID to use for a client.</param>
-        /// <returns>Struct, which has plenty of useful methods and shortcuts.</returns>
-        public static ServerHandlers ServerHandlers(byte groupID) => new ServerHandlers(m_Groups[groupID]);
-
-        /// <summary>
-        /// Checks if group under given <paramref name="groupID"/> is defined.
+        /// Checks if group under given <paramref name="groupID"/> (for client-side messages) is defined.
         /// </summary>
         /// <param name="groupID">GroupID to check.</param>
         /// <returns>Whether group was registered.</returns>
-        public static bool HasGroup(byte groupID) => !(m_Groups[groupID] is null);
-
-        /// <summary>
-        /// Attempts to retrieve <see cref="IReadOnlyGroupMessageIndexer"/> under given <paramref name="groupID"/>.
-        /// </summary>
-        /// <param name="groupID">GroupID to use.</param>
-        /// <param name="indexer">Indexer under <paramref name="groupID"/>, or <c>null</c>.</param>
-        /// <returns>Whether <paramref name="indexer"/> under <paramref name="groupID"/> was found.</returns>
-        public static bool TryGetGroup(byte groupID, out IReadOnlyGroupMessageIndexer indexer)
+        public static bool HasClientGroup(byte groupID)
         {
-            indexer = m_Groups[groupID];
-            return !(indexer is null);
+            lock (_groupLock) return !(m_ClientGroups[groupID] is null);
         }
 
         /// <summary>
-        /// Retrieves <see cref="IReadOnlyGroupMessageIndexer"/> under given <paramref name="groupID"/>.
+        /// Attempts to retrieve <see cref="IReadOnlyGroupMessageIndexer"/> under given <paramref name="groupID"/> (for client-side messages).
+        /// </summary>
+        /// <param name="groupID">GroupID to use.</param>
+        /// <param name="group">Indexer under <paramref name="groupID"/>, or <c>null</c>.</param>
+        /// <returns>Whether <paramref name="group"/> under <paramref name="groupID"/> was found.</returns>
+        public static bool TryGetClientGroup(byte groupID, out IReadOnlyGroupMessageIndexer group)
+        {
+            lock (_groupLock)
+            {
+                group = m_ClientGroups[groupID];
+                return !(group is null);
+            }
+        }
+
+        /// <summary>
+        /// Retrieves <see cref="IReadOnlyGroupMessageIndexer"/> under given <paramref name="groupID"/> (for client-side messages).
         /// </summary>
         /// <param name="groupID">GroupID to check.</param>
         /// <returns><see cref="IReadOnlyGroupMessageIndexer"/> or <c>null</c> if <paramref name="groupID"/> is not defined.</returns>
-        public static IReadOnlyGroupMessageIndexer GetGroup(byte groupID) => m_Groups[groupID];
+        public static IReadOnlyGroupMessageIndexer GetClientGroup(byte groupID)
+        {
+            lock (_groupLock)
+            {
+                var group = m_ClientGroups[groupID];
+                if (group is null) return m_ClientGroups[groupID] = GroupMessageIndexer.Create(groupID);
+                else return group;
+            }
+        }
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                               Server Handlers
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        /// <summary>
+        /// Retrieves data, needed for clients to easily fire server-side message handlers.
+        /// </summary>
+        /// <param name="groupID">GroupID to use for a client.</param>
+        /// <returns>Struct, which has plenty of useful methods and shortcuts.</returns>
+        public static ServerHandlers ServerHandlers(byte groupID) => new ServerHandlers(GetServerGroup(groupID));
+        /// <summary>
+        /// Checks if group under given <paramref name="groupID"/> (for server-side messages) is defined.
+        /// </summary>
+        /// <param name="groupID">GroupID to check.</param>
+        /// <returns>Whether group was registered.</returns>
+        public static bool HasServerGroup(byte groupID)
+        {
+            lock (_groupLock) return !(m_ServerGroups[groupID] is null);
+        }
+
+        /// <summary>
+        /// Attempts to retrieve <see cref="IReadOnlyGroupMessageIndexer"/> under given <paramref name="groupID"/> (for server-side messages).
+        /// </summary>
+        /// <param name="groupID">GroupID to use.</param>
+        /// <param name="group">Indexer under <paramref name="groupID"/>, or <c>null</c>.</param>
+        /// <returns>Whether <paramref name="group"/> under <paramref name="groupID"/> was found.</returns>
+        public static bool TryGetServerGroup(byte groupID, out IReadOnlyGroupMessageIndexer group)
+        {
+            lock (_groupLock)
+            {
+                group = m_ServerGroups[groupID];
+                return !(group is null);
+            }
+        }
+
+        /// <summary>
+        /// Retrieves <see cref="IReadOnlyGroupMessageIndexer"/> under given <paramref name="groupID"/> (for server-side messages).
+        /// </summary>
+        /// <param name="groupID">GroupID to check.</param>
+        /// <returns><see cref="IReadOnlyGroupMessageIndexer"/> or <c>null</c> if <paramref name="groupID"/> is not defined.</returns>
+        public static IReadOnlyGroupMessageIndexer GetServerGroup(byte groupID)
+        {
+            lock (_groupLock)
+            {
+                var group = m_ServerGroups[groupID];
+                if (group is null) return m_ServerGroups[groupID] = GroupMessageIndexer.Create(groupID);
+                else return group;
+            }
+        }
 
 
 
@@ -228,6 +307,8 @@ namespace Riptide.Toolkit
         /// .                                                  Internal
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        // TODO: Make some internal methods public, especially for those system handlers. Sometimes you want to overwrite them.
+        //  It also implies that we need to make public ALL code which previously internal methods touch.
         internal static void Register(byte systemID, ClientSystemHandler handler) => m_ClientSystemHandlers[systemID] = handler;
         internal static void Register(byte systemID, ServerSystemHandler handler) => m_ServerSystemHandlers[systemID] = handler;
         internal static void HandleClient(byte systemID, AdvancedClient client, AdvancedMessageReceivedEventArgs args)
@@ -276,13 +357,13 @@ namespace Riptide.Toolkit
                 throw new Exception("Exhausted all network Group IDs for Riptide networking.");
             }
 
-            if (m_Groups[head] is null)
+            if (m_ClientGroups[head] is null)
             {
-                m_Groups[head] = GroupMessageIndexer.Create((byte)head);
+                m_ClientGroups[head] = GroupMessageIndexer.Create((byte)head);
             }
             else
             {
-                m_Groups[head].Clear();
+                m_ClientGroups[head].Clear();
             }
 
             m_GroupIDHeadIndex = (ushort)(head + 1);
@@ -309,11 +390,13 @@ namespace Riptide.Toolkit
                 // Note: All managed handlers will be locked at this point, so mutation is safe, even in multi-threaded context (untested though)
                 // TODO: Avoid clearing of the entire database on first Initialization. All handlers will be empty at this point anyway.
                 m_MessageHandlers.Clear();
-                Array.ForEach(m_Groups, g => g.Clear());
+                Array.ForEach(m_ClientGroups, g => g.Clear());
+                Array.ForEach(m_ServerGroups, g => g.Clear());
                 m_GroupIDHeadIndex = 0;
 
                 // Starts fetching message handlers:
-                List<(MethodInfo method, AdvancedMessageAttribute attribute)> handlers = new List<(MethodInfo, AdvancedMessageAttribute)>();
+                List<(MethodInfo method, AdvancedMessageAttribute attribute, bool isServerSide)> handlers
+                    = new List<(MethodInfo, AdvancedMessageAttribute, bool isServerSide)>();
 
                 // Fetches own assembly first.
                 Action<Assembly> fetcher = Debugging.WarnAboutRiptideMessages
@@ -344,8 +427,10 @@ namespace Riptide.Toolkit
                 }
 
                 // Registers MessageIDs first:
-                foreach (var (method, attribute) in handlers)
+                int length = handlers.Count;
+                for (int i = 0; i < length; i++)
                 {
+                    var (method, attribute, isServerSide) = handlers[i];
                     if (!attribute.MessageID.HasValue) continue;
                     ParameterInfo[] parameters = method.GetParameters();
                     int target;
@@ -359,10 +444,12 @@ namespace Riptide.Toolkit
 
                     // TODO: Add toggleable type check.
                     m_MessageHandlers.Set(attribute.MessageID.Value, new MessageHandlerInfo(method, parameters[target].ParameterType));
+                    handlers[i] = (method, attribute, isServerSide: target == 1);
                 }
 
-                foreach (var (method, attribute) in handlers)
+                for (int i = 0; i < length; i++)
                 {
+                    var (method, attribute, isServerSide) = handlers[i];
                     if (attribute.MessageID.HasValue) continue;
                     ParameterInfo[] parameters = method.GetParameters();
                     int target;
@@ -395,25 +482,42 @@ namespace Riptide.Toolkit
                     messageID = m_MessageHandlers.Put(new MessageHandlerInfo(method, dataType));
                     member.SetValue(null, messageID);
                     attribute.MessageID = messageID; // Needed for working with GroupIDs.
+                    handlers[i] = (method, attribute, isServerSide: target == 1);
                 }
 
                 // Registers GroupIDs:
-                foreach (var (method, attribute) in handlers)
+                for (int i = 0; i < length; i++)
                 {
+                    var (method, attribute, isServerSide) = handlers[i];
                     if (!attribute.GroupID.HasValue) continue;
                     byte groupID = attribute.GroupID.Value;
-                    GroupMessageIndexer group = m_Groups[groupID];
-                    if (group is null)
+
+                    GroupMessageIndexer group;
+                    if (isServerSide)
                     {
-                        m_Groups[groupID] = group = GroupMessageIndexer.Create(groupID);
+                        group = m_ServerGroups[groupID];
+                        if (group is null)
+                        {
+                            m_ServerGroups[groupID] = group = GroupMessageIndexer.Create(groupID);
+                        }
+                    }
+                    else
+                    {
+                        group = m_ClientGroups[groupID];
+                        if (group is null)
+                        {
+                            m_ClientGroups[groupID] = group = GroupMessageIndexer.Create(groupID);
+                        }
                     }
 
                     group.Register(attribute.MessageID.Value);
                 }
 
-                foreach (var (method, attribute) in handlers)
+                for (int i = 0; i < length; i++)
                 {
+                    var (method, attribute, isServerSide) = handlers[i];
                     if (attribute.GroupID.HasValue) continue;
+
                     byte groupID;
                     if (attribute.Group is null)
                     {
@@ -429,10 +533,22 @@ namespace Riptide.Toolkit
                         }
                     }
 
-                    GroupMessageIndexer group = m_Groups[groupID];
-                    if (group is null)
+                    GroupMessageIndexer group;
+                    if (isServerSide)
                     {
-                        m_Groups[groupID] = group = GroupMessageIndexer.Create(groupID);
+                        group = m_ServerGroups[groupID];
+                        if (group is null)
+                        {
+                            m_ServerGroups[groupID] = group = GroupMessageIndexer.Create(groupID);
+                        }
+                    }
+                    else
+                    {
+                        group = m_ClientGroups[groupID];
+                        if (group is null)
+                        {
+                            m_ClientGroups[groupID] = group = GroupMessageIndexer.Create(groupID);
+                        }
                     }
 
                     group.Register(attribute.MessageID.Value);
@@ -476,7 +592,7 @@ namespace Riptide.Toolkit
                 {
                     foreach (var attribute in method.GetCustomAttributes<AdvancedMessageAttribute>())
                     {
-                        handlers.Add((method, attribute));
+                        handlers.Add((method, attribute, isServerSide: default));
                     }
                 }
             }
