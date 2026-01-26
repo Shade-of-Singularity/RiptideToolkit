@@ -306,15 +306,7 @@ namespace Riptide.Toolkit
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         static AdvancedMessageAttribute()
         {
-            if (LookupMemberRootLast(typeof(GroupIDAttribute), typeof(DefaultGroup), out PropertyInfo member))
-            {
-                DefaultGroupIDSource = member;
-                LastGroupIDSource = member;
-            }
-            else
-            {
-                throw new Exception($"[{nameof(AdvancedMessageAttribute)}] Cannot retrieve {nameof(GroupIDAttribute)} from a {nameof(DefaultGroup)}.");
-            }
+            LastGroupIDSource = typeof(DefaultGroup).GetProperty(nameof(DefaultGroup.GroupID), MemberBindingFlags | BindingFlags.FlattenHierarchy);
         }
 
 
@@ -326,7 +318,6 @@ namespace Riptide.Toolkit
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         private const BindingFlags MemberBindingFlags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
-        private static readonly PropertyInfo DefaultGroupIDSource;
         private static PropertyInfo LastGroupIDSource;
 
 

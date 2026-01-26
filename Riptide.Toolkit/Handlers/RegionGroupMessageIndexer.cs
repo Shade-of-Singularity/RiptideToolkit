@@ -92,8 +92,16 @@ namespace Riptide.Toolkit.Handlers
             uint bit = 1u << (int)(messageID & RegionMask);
             lock (_lock)
             {
-                uint? flag = m_Flags?[areaIndex]?[regionIndex]?[index];
-                return flag.HasValue && (flag & bit) != 0;
+                var area = m_Flags;
+                if (area is null || areaIndex >= area.Length) return false;
+
+                var region = area[areaIndex];
+                if (region is null) return false;
+
+                var flags = region[regionIndex];
+                if (flags is null) return false;
+
+                return (flags[index] & bit) != 0;
             }
         }
 
