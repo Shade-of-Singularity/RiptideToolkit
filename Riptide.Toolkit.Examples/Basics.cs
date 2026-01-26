@@ -201,6 +201,10 @@ namespace Riptide.Toolkit.Examples
             Client.Send(message);
             await WaitForMessageToDeliver();
 
+            message = VFXSignal.Message(MessageSendMode.Reliable);
+            Client.Send(message);
+            await WaitForMessageToDeliver();
+
             // TODO: Add more client-side testing methods.
 
             RiptideLogger.Log(LogType.Info, "Client-side tests concluded.");
@@ -233,6 +237,10 @@ namespace Riptide.Toolkit.Examples
 
             // Sends regular testing messages.
             Message message = NetMessage.Reliable(ToClientMessages.UpdateUsername).AddUShort(ClientID).AddString("New User");
+            Server.SendToAll(message);
+            await WaitForMessageToDeliver();
+
+            message = VFXSignal.Message(MessageSendMode.Reliable);
             Server.SendToAll(message);
             await WaitForMessageToDeliver();
 

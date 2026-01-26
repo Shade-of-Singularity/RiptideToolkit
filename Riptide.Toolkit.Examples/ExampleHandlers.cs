@@ -76,5 +76,14 @@ namespace Riptide.Toolkit.Examples
             RiptideLogger.Log(LogType.Warning, $"[Server] Received player position for ({client}) at ({message.GetFloat()}, {message.GetFloat()})");
             RiptideLogger.Log(LogType.Warning, $"");
         }
+
+        [AdvancedMessage(typeof(DefaultGroup))]
+        [AdvancedMessage(typeof(ExampleGroup))]
+        public static void ReceiveVFXSignal(ushort client, VFXSignal _)
+        {
+            RiptideLogger.Log(LogType.Warning, $"");
+            RiptideLogger.Log(LogType.Warning, $"[Server] VFX Signal received.");
+            RiptideLogger.Log(LogType.Warning, $"");
+        }
     }
 }
