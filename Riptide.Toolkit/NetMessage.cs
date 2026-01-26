@@ -55,8 +55,8 @@ namespace Riptide.Toolkit
         public static Message Create(MessageSendMode mode, uint messageID)
         {
             return Message.Create(mode)
-                .AddVarULong(messageID) // TODO: Create the same method, but for uint.
-                .AddBits((byte)SystemMessageID.Regular, SystemMessaging.TotalBits);
+                .AddBits((byte)SystemMessageID.Regular, SystemMessaging.TotalBits)
+                .AddVarULong(messageID);// TODO: Create the same method, but for uint.;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -108,6 +108,9 @@ namespace Riptide.Toolkit
         /// Should only be ran once. Used internally by <see cref="AdvancedClient"/> and <see cref="AdvancedServer"/>.
         /// You **should not** run it yourself, unless you make custom <see cref="Client"/> and <see cref="Server"/> implementation.
         /// </summary>
+        /// <remarks>
+        /// Headers ALWAYS go before regular MessageID, because they are used for 3rdParty server relaying.
+        /// </remarks>
         /// <param name="message">Message to read.</param>
         /// <param name="systemMessageID">Internal message type of the message.</param>
         /// <returns></returns>
