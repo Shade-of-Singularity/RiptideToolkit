@@ -168,6 +168,8 @@ namespace Riptide.Toolkit
         [Obsolete("Not obsolete, but will throw if used. Method will function properly in one of the upcoming updates.", error: true)]
         public static void Invalidate()
         {
+            // TODO: To support it, we need to make sure to set MessageIDs of all NetworkMessages back to InvalidID.
+            // We might need to implement it with selective assembly loading.
             throw new NotImplementedException("Invalidation is temporary not supported after renovation.");
             //m_IsValid = false;
         }
@@ -417,6 +419,7 @@ namespace Riptide.Toolkit
                 }
 
                 // Registers MessageIDs first:
+                // TODO: Handle invalid MessageID.
                 int length = handlers.Count;
                 for (int i = 0; i < length; i++)
                 {
@@ -457,15 +460,16 @@ namespace Riptide.Toolkit
                     {
                         // TODO: Optimize method parameter checks.
                         // At this point, maybe iterating over the entire code database and creating a few dictionaries will be faster?
-                        if (!AdvancedMessageAttribute.LookupMemberRootLast(typeof(MessageIDAttribute), dataType, out member))
+                        if (!AdvancedMessageAttribute.LookupMemberRootLast<MessageIDAttribute>(dataType, out member))
                         {
                             throw new Exception($"MessageID was not provided in any way for message handler ({method.Name}).");
                         }
                     }
                     else member = attribute.Message;
                     uint messageID = (uint)member.GetValue(null);
-                    if (messageID == InvalidMessageID)
+                    if (messageID != InvalidMessageID)
                     {
+                        attribute.MessageID = messageID; // Needed for working with GroupIDs.
                         continue;
                     }
 
@@ -477,6 +481,7 @@ namespace Riptide.Toolkit
                 }
 
                 // Registers GroupIDs:
+                // TODO: Handle invalid GroupID.
                 for (int i = 0; i < length; i++)
                 {
                     var (method, attribute, isServerSide) = handlers[i];
