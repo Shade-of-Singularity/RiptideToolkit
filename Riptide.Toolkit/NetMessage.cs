@@ -9,6 +9,7 @@
 /// 
 /// ]]>
 
+using Riptide.Transports;
 using System;
 using System.Runtime.CompilerServices;
 

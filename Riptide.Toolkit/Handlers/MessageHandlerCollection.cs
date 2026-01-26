@@ -11,6 +11,8 @@
 
 using Riptide.Toolkit.Extensions;
 using Riptide.Toolkit.Settings;
+using System;
+using System.Text.RegularExpressions;
 
 namespace Riptide.Toolkit.Handlers
 {
@@ -33,13 +35,14 @@ namespace Riptide.Toolkit.Handlers
         /// </summary>
         public static MessageHandlerCollection<THandler> Create()
         {
-            if (Performance.MessageHandlerFocus == PerformanceType.OptimizeCPU)
+            // TODO: Use RegionMap/Dictionary instead of switch, as to allow overwriting.
+            switch (Performance.GroupIndexerFocus)
             {
-                return new RegionHandlerCollection<THandler>(Performance.RegionSize);
-            }
-            else
-            {
-                return new DictionaryHandlerCollection<THandler>();
+                case PerformanceType.OptimizeCPU: return new RegionHandlerCollection<THandler>(Performance.RegionSize);
+                case PerformanceType.OptimizeRAM: return new DictionaryHandlerCollection<THandler>();
+                default:
+                    throw new NotSupportedException(
+                        $"{nameof(GroupMessageIndexer)} performance focus of ({Performance.GroupIndexerFocus}) is not supported.");
             }
         }
 

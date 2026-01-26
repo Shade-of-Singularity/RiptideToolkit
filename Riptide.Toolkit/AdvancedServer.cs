@@ -10,6 +10,8 @@
 /// ]]>
 
 using Riptide.Toolkit.Handlers;
+using Riptide.Toolkit.Relaying;
+using Riptide.Toolkit.Settings;
 using Riptide.Transports;
 using Riptide.Transports.Udp;
 using Riptide.Utils;
@@ -20,16 +22,46 @@ namespace Riptide.Toolkit
     /// <summary>
     /// Custom <see cref="Riptide"/> <see cref="Server"/> which supports runtime Message ID identification.
     /// </summary>
+    /// <remarks>
+    /// HEADS-UP! <see cref="Server.RelayFilter"/> is NOT supported at the moment!
+    /// </remarks>
     /// Note: "Advanced" because of a lack of a better name. Might be changed before final release.
-    public sealed class AdvancedServer : Server
+    public class AdvancedServer : Server
     {
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                                   Events
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        /// <inheritdoc cref="Server.MessageReceived"/>
+        /// <remarks>
+        /// Original <see cref="Server.MessageReceived"/> will not fire!
+        /// </remarks>
+        public new event EventHandler<AdvancedMessageReceivedEventArgs> MessageReceived;
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                               Public Fields
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        /// <inheritdoc cref="Server.RelayFilter"/>
+        /// <remarks>
+        /// Original <see cref="Server.RelayFilter"/> will not fire!
+        /// </remarks>
+        public new AdvancedRelayFilter RelayFilter;
+
+
+
+
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
         /// .                                               Private Fields
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         private ServerHandlers m_MessageHandlers;
-        private bool m_BroadcastToHandlers;
 
 
 
@@ -51,11 +83,7 @@ namespace Riptide.Toolkit
         /// </summary>
         /// <param name="transport">The transport to use for sending and receiving data.</param>
         /// <param name="logName">The name to use when logging messages via <see cref="RiptideLogger"/>.</param>
-        public AdvancedServer(IServer transport, string logName = "SERVER") : base(transport, logName)
-        {
-            // We also cannot override built-in handling method without breaking the message, so we just route message manually via callback.
-            MessageReceived += ServerBroadcastMessage;
-        }
+        public AdvancedServer(IServer transport, string logName = "SERVER") : base(transport, logName) { }
 
 
 
@@ -68,51 +96,39 @@ namespace Riptide.Toolkit
         protected override void CreateMessageHandlersDictionary(byte groupID) => m_MessageHandlers = NetworkIndex.ServerHandlers(groupID);
         protected override void OnMessageReceived(Message message, Connection fromConnection)
         {
-            bool flag = useMessageHandlers;
-
-            // We use custom handling method, so we need silence built-in handling as a result.
-            useMessageHandlers = false;
-            m_BroadcastToHandlers = flag;
-
-            // This will fire MessageReceived callback, no matter the handler flag.
-            base.OnMessageReceived(message, fromConnection);
-
-            // Restores previous state.
-            m_BroadcastToHandlers = false;
-            useMessageHandlers = flag;
-        }
-
-
-
-
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
-        /// .
-        /// .                                               Private Methods
-        /// .
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private void ServerBroadcastMessage(object sender, MessageReceivedEventArgs args)
-        {
-            if (!m_BroadcastToHandlers) return;
-            NetMessage.ReadHeaders(args.Message, out SystemMessageID systemMessageID);
-            switch (systemMessageID)
+            uint messageID = (uint)message.GetVarULong();
+            if (RelayFilter != null && RelayFilter.ShouldRelay(messageID))
             {
-                // Allows regular execution.
-                case SystemMessageID.Regular: break;
-
-                // Sends message data to a requesting side. Timeouts if response is not satisfied in time.
-                case SystemMessageID.ToSingle:
-                case SystemMessageID.ToAll:
-                case SystemMessageID.Request:
-                case SystemMessageID.Response: throw new NotImplementedException();
-
-                // Fires custom handlers.
-                default: NetworkIndex.HandleServer((byte)systemMessageID, this, args); return;
+                // The message should be automatically relayed to clients instead of being handled on the server
+                SendToAll(message, fromConnection.Id);
+                return;
             }
 
-            // Handles regular messages:
-            if (m_MessageHandlers.TryFire(this, args.MessageId, args.FromConnection.Id, args.Message) != true)
+            var args = new AdvancedMessageReceivedEventArgs(fromConnection, messageID, message);
+            MessageReceived?.Invoke(this, args);
+            if (useMessageHandlers)
             {
-                RiptideLogger.Log(LogType.Warning, $"No Server-side advanced message handler found for MessageID ({args.MessageId})!");
+                NetMessage.ReadHeaders(message, out SystemMessageID systemMessageID);
+                switch (systemMessageID)
+                {
+                    // Allows regular execution.
+                    case SystemMessageID.Regular: break;
+
+                    // Sends message data to a requesting side. Timeouts if response is not satisfied in time.
+                    case SystemMessageID.ToSingle:
+                    case SystemMessageID.ToAll:
+                    case SystemMessageID.Request:
+                    case SystemMessageID.Response: throw new NotImplementedException();
+
+                    // Fires custom handlers.
+                    default: NetworkIndex.HandleServer((byte)systemMessageID, this, args); return;
+                }
+
+                // Handles regular messages:
+                if (!m_MessageHandlers.TryFire(this, messageID, fromConnection.Id, message))
+                {
+                    RiptideLogger.Log(LogType.Warning, $"No Server-side advanced message handler found for MessageID ({messageID})!");
+                }
             }
         }
     }

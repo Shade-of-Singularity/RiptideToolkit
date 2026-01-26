@@ -29,6 +29,7 @@ namespace Riptide.Toolkit.Settings
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         public const string MessageHandlersPerformanceFocusFlag = "-riptide.performance.handlers";
         public const string GroupIndexerPerformanceFocusFlag = "-riptide.performance.indexers";
+        public const string RelayFiltersPerformanceFocusFlag = "-riptide.performance.relay-filters";
         public const string PerformanceFocusCPU = "cpu";
         public const string PerformanceFocusRAM = "ram";
         public const string PerformanceFocusIO = "io";
@@ -67,30 +68,6 @@ namespace Riptide.Toolkit.Settings
         }
 
         /// <summary>
-        /// Type of optimization <see cref="Handlers.ClientHandlers"/> and <see cref="Handlers.ServerHandlers"/> will use.
-        /// </summary>
-        /// <remarks>
-        /// <para>With <see cref="PerformanceType.OptimizeCPU"/> - adds ~4MB of RAM overhead. Internal list access takes '1.477 ns'.</para>
-        /// <para>With <see cref="PerformanceType.OptimizeRAM"/> - adds ~32KB of overhead. Internal list access takes '7.035 ns'.</para>
-        /// </remarks>
-        /// TODO: Benchmark data was only tested in a lab environment. We need to test again using handler implementations directly.
-        public static PerformanceType GroupIndexerFocus
-        {
-            get => m_GroupIndexerFocus;
-            set
-            {
-                if (m_GroupIndexerFocus == value) return;
-                if (NetworkIndex.IsEverInitialized)
-                {
-                    throw new Exception(
-                        $"Cannot modify performance settings after {nameof(NetworkIndex)} initialization! Set performance options on app launch.");
-                }
-
-                m_GroupIndexerFocus = value;
-            }
-        }
-
-        /// <summary>
         /// Region size for <see cref="Handlers.RegionHandlerCollection"/>.
         /// </summary>
         public static uint RegionSize
@@ -109,6 +86,44 @@ namespace Riptide.Toolkit.Settings
             }
         }
 
+        /// <summary>
+        /// Type of optimization <see cref="Handlers.GroupMessageIndexer"/>s should use.
+        /// </summary>
+        public static PerformanceType GroupIndexerFocus
+        {
+            get => m_GroupIndexerFocus;
+            set
+            {
+                if (m_GroupIndexerFocus == value) return;
+                if (NetworkIndex.IsEverInitialized)
+                {
+                    throw new Exception(
+                        $"Cannot modify performance settings after {nameof(NetworkIndex)} initialization! Set performance options on app launch.");
+                }
+
+                m_GroupIndexerFocus = value;
+            }
+        }
+
+        /// <summary>
+        /// Type of optimization <see cref="Relaying.AdvancedRelayFilter"/> should use.
+        /// </summary>
+        public static PerformanceType RelayFiltersFocus
+        {
+            get => m_RelayFiltersFocus;
+            set
+            {
+                if (m_RelayFiltersFocus == value) return;
+                if (NetworkIndex.IsEverInitialized)
+                {
+                    throw new Exception(
+                        $"Cannot modify performance settings after {nameof(NetworkIndex)} initialization! Set performance options on app launch.");
+                }
+
+                m_RelayFiltersFocus = value;
+            }
+        }
+
 
 
 
@@ -119,6 +134,7 @@ namespace Riptide.Toolkit.Settings
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         private static PerformanceType m_MessageHandlerFocus = PerformanceType.OptimizeCPU;
         private static PerformanceType m_GroupIndexerFocus = PerformanceType.OptimizeCPU;
+        private static PerformanceType m_RelayFiltersFocus = PerformanceType.OptimizeCPU;
         private static uint m_RegionSize = 32;
 
 
@@ -131,18 +147,33 @@ namespace Riptide.Toolkit.Settings
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         static Performance()
         {
-            if (ConsoleArgs.TryGet(GroupIndexerPerformanceFocusFlag, out string type))
+            if (ConsoleArgs.TryGet(MessageHandlersPerformanceFocusFlag, out string type))
             {
-                switch (type)
-                {
-                    case PerformanceFocusCPU: m_MessageHandlerFocus = PerformanceType.OptimizeCPU; break;
-                    case PerformanceFocusRAM: m_MessageHandlerFocus = PerformanceType.OptimizeRAM; break;
+                RetrieveFocus(type, out m_MessageHandlerFocus);
+            }
 
-                    case PerformanceFocusIO:
-                    case PerformanceFocusDisk: throw new Exception("Disk optimization is not supported yet.");
-                    case "": break;
-                    default: throw new Exception($"Unknown target performance type in command line args: {type}");
-                }
+            if (ConsoleArgs.TryGet(GroupIndexerPerformanceFocusFlag, out type))
+            {
+                RetrieveFocus(type, out m_GroupIndexerFocus);
+            }
+
+            if (ConsoleArgs.TryGet(RelayFiltersPerformanceFocusFlag, out type))
+            {
+                RetrieveFocus(type, out m_RelayFiltersFocus);
+            }
+        }
+
+        static void RetrieveFocus(string type, out PerformanceType result)
+        {
+            switch (type)
+            {
+                case PerformanceFocusCPU: result = PerformanceType.OptimizeCPU; return;
+                case PerformanceFocusRAM: result = PerformanceType.OptimizeRAM; return;
+
+                case PerformanceFocusIO:
+                case PerformanceFocusDisk: throw new Exception("Disk optimization is not supported yet.");
+                case "": result = default; break;
+                default: throw new Exception($"Unknown target performance type in command line args: {type}");
             }
         }
     }

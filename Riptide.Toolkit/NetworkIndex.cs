@@ -62,8 +62,8 @@ namespace Riptide.Toolkit
         /// .                                                 Delegates
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        internal delegate void ClientSystemHandler(AdvancedClient sender, MessageReceivedEventArgs args);
-        internal delegate void ServerSystemHandler(AdvancedServer sender, MessageReceivedEventArgs args);
+        internal delegate void ClientSystemHandler(AdvancedClient sender, AdvancedMessageReceivedEventArgs args);
+        internal delegate void ServerSystemHandler(AdvancedServer sender, AdvancedMessageReceivedEventArgs args);
 
 
 
@@ -230,12 +230,12 @@ namespace Riptide.Toolkit
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         internal static void Register(byte systemID, ClientSystemHandler handler) => m_ClientSystemHandlers[systemID] = handler;
         internal static void Register(byte systemID, ServerSystemHandler handler) => m_ServerSystemHandlers[systemID] = handler;
-        internal static void HandleClient(byte systemID, AdvancedClient client, MessageReceivedEventArgs args)
+        internal static void HandleClient(byte systemID, AdvancedClient client, AdvancedMessageReceivedEventArgs args)
         {
             m_ClientSystemHandlers[systemID](client, args);
         }
 
-        internal static void HandleServer(byte systemID, AdvancedServer server, MessageReceivedEventArgs args)
+        internal static void HandleServer(byte systemID, AdvancedServer server, AdvancedMessageReceivedEventArgs args)
         {
             m_ServerSystemHandlers[systemID](server, args);
         }

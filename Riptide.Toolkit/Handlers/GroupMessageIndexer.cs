@@ -10,6 +10,7 @@
 /// ]]>
 /// 
 
+using Riptide.Toolkit.Relaying;
 using Riptide.Toolkit.Settings;
 using System;
 
@@ -32,13 +33,14 @@ namespace Riptide.Toolkit.Handlers
         /// <param name="groupID">GroupID to associate new <see cref="GroupMessageIndexer"/> with.</param>
         public static GroupMessageIndexer Create(byte groupID)
         {
-            if (Performance.MessageHandlerFocus == PerformanceType.OptimizeCPU)
+            // TODO: Use RegionMap/Dictionary instead of switch, as to allow overwriting.
+            switch (Performance.GroupIndexerFocus)
             {
-                return new RegionGroupMessageIndexer(groupID);
-            }
-            else
-            {
-                return new DictionaryGroupMessageIndexer(groupID);
+                case PerformanceType.OptimizeCPU: return new RegionGroupMessageIndexer(groupID);
+                case PerformanceType.OptimizeRAM: return new DictionaryGroupMessageIndexer(groupID);
+                default:
+                    throw new NotSupportedException(
+                        $"{nameof(GroupMessageIndexer)} performance focus of ({Performance.GroupIndexerFocus}) is not supported.");
             }
         }
 

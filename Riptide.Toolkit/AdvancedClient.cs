@@ -21,15 +21,30 @@ namespace Riptide.Toolkit
     /// Custom <see cref="Riptide"/> <see cref="Client"/> which supports runtime Message ID identification.
     /// </summary>
     /// Note: "Advanced" because of a lack of a better name. Might be changed before final release.
-    public sealed class AdvancedClient : Client
+    /// Note #2: Replica of <see cref="Client"/>, but with custom method implementations.
+    /// Later, we might decide on compatibility options with Tom Weiland.
+    public class AdvancedClient : Client
     {
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                                   Events
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        /// <inheritdoc cref="Client.MessageReceived"/>
+        /// <remarks>
+        /// Original <see cref="Client.MessageReceived"/> will not fire!
+        /// </remarks>
+        public new event EventHandler<AdvancedMessageReceivedEventArgs> MessageReceived;
+
+
+
+
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
         /// .                                               Private Fields
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         private ClientHandlers m_MessageHandlers;
-        private bool m_BroadcastToHandlers;
 
 
 
@@ -51,11 +66,7 @@ namespace Riptide.Toolkit
         /// </summary>
         /// <param name="transport">The transport to use for sending and receiving data.</param>
         /// <param name="logName">The name to use when logging messages via <see cref="RiptideLogger"/>.</param>
-        public AdvancedClient(IClient transport, string logName = "CLIENT") : base(transport, logName)
-        {
-            // We also cannot override built-in handling method without breaking the message, so we just route message manually via callback.
-            MessageReceived += ClientBroadcastMessage;
-        }
+        public AdvancedClient(IClient transport, string logName = "CLIENT") : base(transport, logName) { }
 
 
 
@@ -68,51 +79,33 @@ namespace Riptide.Toolkit
         protected override void CreateMessageHandlersDictionary(byte groupID) => m_MessageHandlers = NetworkIndex.ClientHandlers(groupID);
         protected override void OnMessageReceived(Message message)
         {
-            bool flag = useMessageHandlers;
-
-            // We use custom handling method, so we need silence built-in handling as a result.
-            useMessageHandlers = false;
-            m_BroadcastToHandlers = flag;
-
-            // This will fire MessageReceived callback, no matter the handler flag.
-            base.OnMessageReceived(message);
-
-            // Restores previous state.
-            m_BroadcastToHandlers = false;
-            useMessageHandlers = flag;
-        }
-
-
-
-
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
-        /// .
-        /// .                                               Private Methods
-        /// .
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private void ClientBroadcastMessage(object sender, MessageReceivedEventArgs args)
-        {
-            if (!m_BroadcastToHandlers) return;
-            NetMessage.ReadHeaders(args.Message, out SystemMessageID systemMessageID);
-            switch (systemMessageID)
+            // TODO: Do we need to allow increasing ID limit to ulong?... Hell no!..?
+            uint messageID = (uint)message.GetVarULong();
+            var args = new AdvancedMessageReceivedEventArgs(Connection, messageID, message);
+            MessageReceived?.Invoke(this, args);
+            if (useMessageHandlers)
             {
-                // Allows regular execution.
-                case SystemMessageID.Regular: break;
+                NetMessage.ReadHeaders(message, out SystemMessageID systemMessageID);
+                switch (systemMessageID)
+                {
+                    // Allows regular execution.
+                    case SystemMessageID.Regular: break;
 
-                // Sends message data to a requesting side. Timeouts if response is not satisfied in time.
-                case SystemMessageID.ToSingle:
-                case SystemMessageID.ToAll:
-                case SystemMessageID.Request:
-                case SystemMessageID.Response: throw new NotImplementedException();
+                    // Sends message data to a requesting side. Timeouts if response is not satisfied in time.
+                    case SystemMessageID.ToSingle:
+                    case SystemMessageID.ToAll:
+                    case SystemMessageID.Request:
+                    case SystemMessageID.Response: throw new NotImplementedException();
 
-                // Fires custom handlers.
-                default: NetworkIndex.HandleClient((byte)systemMessageID, this, args); return;
-            }
+                    // Fires custom handlers.
+                    default: NetworkIndex.HandleClient((byte)systemMessageID, this, args); return;
+                }
 
-            // Handles regular messages:
-            if (m_MessageHandlers.TryFire(this, args.MessageId, args.Message) != true)
-            {
-                RiptideLogger.Log(LogType.Warning, $"No Client-side advanced message handler found for MessageID ({args.MessageId})!");
+                // Handles regular messages:
+                if (!m_MessageHandlers.TryFire(this, messageID, message))
+                {
+                    RiptideLogger.Log(LogType.Warning, $"No Client-side advanced message handler found for MessageID ({messageID})!");
+                }
             }
         }
     }
