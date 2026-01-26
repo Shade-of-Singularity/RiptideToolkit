@@ -126,7 +126,7 @@ namespace Riptide.Toolkit.Messages
         }
 
         /// <summary>
-        /// Creates new message with ID of this <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/>.
+        /// Creates new message with ID of this <see cref="NetworkMessage{TMessage, TProfile}"/>.
         /// </summary>
         /// <param name="mode">Message sending mode. Needed for message factory method - <see cref="Message.Create(MessageSendMode, ushort)"/></param>
         /// <returns>Newly created message.</returns>
@@ -149,7 +149,7 @@ namespace Riptide.Toolkit.Messages
         public override void Release() => Release(this);
 
         /// <summary>
-        /// Unpacks given message by overwriting values of this <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> instance.
+        /// Unpacks given message by overwriting values of this <see cref="NetworkMessage{TMessage, TProfile}"/> instance.
         /// </summary>
         /// <param name="message">Message to unpack.</param>
         /// <returns>Itself, for convenience.</returns>
@@ -174,7 +174,7 @@ namespace Riptide.Toolkit.Messages
     }
 
     /// <summary>
-    /// Non-generic base type for <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/>. Exist to make reflections easier.
+    /// Non-generic base type for <see cref="NetworkMessage{TMessage, TProfile}"/>. Exist to make reflections easier.
     /// </summary>
     public abstract class NetworkMessage
     {
@@ -213,14 +213,14 @@ namespace Riptide.Toolkit.Messages
         public abstract void Release();
 
         /// <summary>
-        /// Packs <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> into a message, including its <see cref="MessageID"/> in the data.
+        /// Packs <see cref="NetworkMessage{TMessage, TProfile}"/> into a message, including its <see cref="MessageID"/> in the data.
         /// </summary>
         /// <param name="mode"><see cref="Riptide"/> Send mode of the <see cref="Message"/>.</param>
         /// <returns>Fully prepared <see cref="Message"/>, ready to be sent to another party.</returns>
         public Message Pack(MessageSendMode mode) => Write(NetMessage.Create(mode, ID));
 
         /// <summary>
-        /// Packs <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> into a message, including its <see cref="MessageID"/> in the data,
+        /// Packs <see cref="NetworkMessage{TMessage, TProfile}"/> into a message, including its <see cref="MessageID"/> in the data,
         /// and immediately <see cref="Release()"/>s it afterwards.
         /// </summary>
         /// <param name="mode"><see cref="Riptide"/> Send mode of the <see cref="Message"/>.</param>

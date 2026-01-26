@@ -21,10 +21,10 @@ namespace Riptide.Toolkit
     /// Replacement for <see cref="MessageHandlerAttribute"/>s with non-strict Message ID.
     /// All you need to do is attach it to a static method with a right <see cref="Riptide"/> message signature.
     /// After that, provide message type in attribute.
-    /// It is mandatory that specified message inherits <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/>.
+    /// It is mandatory that specified message inherits <see cref="NetworkMessage{TMessage, TProfile}"/>.
     /// <para>
-    /// Alternatively, you can simply replace <see cref="Riptide.Message"/> with your <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> implementation.
-    /// It will automatically read-out the message and send <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> as method parameter.
+    /// Alternatively, you can simply replace <see cref="Riptide.Message"/> with your <see cref="NetworkMessage{TMessage, TProfile}"/> implementation.
+    /// It will automatically read-out the message and send <see cref="NetworkMessage{TMessage, TProfile}"/> as method parameter.
     /// </para>
     /// </summary>
     /// <remarks>
@@ -57,14 +57,14 @@ namespace Riptide.Toolkit
         /// </summary>
         /// <remarks>
         /// <see cref="GroupIDAttribute"/> is already defined in <see cref="NetworkGroup{TGroup}"/>
-        /// and also <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> types.
+        /// and also <see cref="NetworkMessage{TMessage, TProfile}"/> types.
         /// </remarks>
         public readonly PropertyInfo Group;
         /// <summary>
         /// Reference to a <see cref="FieldInfo"/> or <see cref="PropertyInfo"/> with <see cref="MessageIDAttribute"/>.
         /// </summary>
         /// <remarks>
-        /// <see cref="ModIDAttribute"/> is already declared in all <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> types.
+        /// <see cref="MessageIDAttribute"/> is already declared in all <see cref="NetworkMessage{TMessage, TProfile}"/> types.
         /// </remarks>
         public readonly PropertyInfo Message;
         /// <summary>
@@ -105,7 +105,7 @@ namespace Riptide.Toolkit
         /// Constructs handler with both <see cref="GroupID"/> and <see cref="MessageID"/> manually defined.
         /// </summary>
         /// <remarks>
-        /// This constructor should NOT be used by mods - mods should inherit <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> instead.
+        /// This constructor should NOT be used by mods - mods should inherit <see cref="NetworkMessage{TMessage, TProfile}"/> instead.
         /// But as a game developer (not mod developer) you are free to use it. It's a lot easier to use it for prototyping.
         /// </remarks>
         /// <param name="groupID"></param>
@@ -204,8 +204,8 @@ namespace Riptide.Toolkit
         /// Changing this might improve performance a bit, but you need to be consistent with how you use message handlers.
         /// </para>
         /// </remarks>
-        /// <param name="multicast1"><see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> or <see cref="NetworkGroup{TGroup}"/>.</param>
-        /// <param name="multicast2"><see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> or <see cref="NetworkGroup{TGroup}"/>.</param>
+        /// <param name="multicast1"><see cref="NetworkMessage{TMessage, TProfile}"/> or <see cref="NetworkGroup{TGroup}"/>.</param>
+        /// <param name="multicast2"><see cref="NetworkMessage{TMessage, TProfile}"/> or <see cref="NetworkGroup{TGroup}"/>.</param>
         public AdvancedMessageAttribute(Type multicast1, Type multicast2, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1)
         {
             throw new NotImplementedException("WIP");

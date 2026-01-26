@@ -32,7 +32,7 @@ namespace Riptide.Toolkit.Handlers
         public readonly MethodInfo Method;
 
         /// <summary>
-        /// <see cref="NetworkMessage{TMessage, TGroup, TProfile}"/> type.
+        /// <see cref="NetworkMessage{TMessage, TProfile}"/> type.
         /// </summary>
         public readonly Type MessageType;
 
