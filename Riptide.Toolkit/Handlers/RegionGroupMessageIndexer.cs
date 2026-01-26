@@ -84,6 +84,7 @@ namespace Riptide.Toolkit.Handlers
         /// <inheritdoc/>
         public override bool Has(uint messageID)
         {
+            NetworkIndex.Initialize();
             // TODO: Benchmark to test if this solution really more performant than dictionaries.
             //  Maybe we can optimize it even further with a right region map sizes.
             uint areaIndex = messageID >> AreaOffset;

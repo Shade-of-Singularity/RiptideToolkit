@@ -63,6 +63,7 @@ namespace Riptide.Toolkit.Handlers
         /// <inheritdoc/>
         public override bool Has(uint messageID)
         {
+            NetworkIndex.Initialize();
             // TODO: Consider using concurrent dictionary instead.
             uint location = messageID >> FlagOffset;
             uint bit = 1u << (int)(messageID & FlagMask);
