@@ -466,16 +466,16 @@ namespace Riptide.Toolkit
                         }
                     }
                     else member = attribute.Message;
+
                     uint messageID = (uint)member.GetValue(null);
-                    if (messageID != InvalidMessageID)
+                    if (messageID == InvalidMessageID)
                     {
-                        attribute.MessageID = messageID; // Needed for working with GroupIDs.
-                        continue;
+                        // Creates new MessageID only to properties which does not define one already.
+                        messageID = (isServerSide ? m_RawServerHandlers : m_RawClientHandlers)
+                            .Put(new MessageHandlerInfo(method, dataType, attribute.Release));
+                        member.SetValue(null, messageID);
                     }
 
-                    messageID = (isServerSide ? m_RawServerHandlers : m_RawClientHandlers)
-                        .Put(new MessageHandlerInfo(method, dataType, attribute.Release));
-                    member.SetValue(null, messageID);
                     attribute.MessageID = messageID; // Needed for working with GroupIDs.
                     handlers[i] = (method, attribute, isServerSide);
                 }
@@ -548,6 +548,11 @@ namespace Riptide.Toolkit
                     }
 
                     group.Register(attribute.MessageID.Value);
+                }
+
+                foreach (var (method, attribute, isServerSide) in handlers)
+                {
+                    RiptideLogger.Log(LogType.Info, $"Handler ({method.Name}) under ID ({attribute.MessageID}). Server-side? ({isServerSide})");
                 }
 
                 // Simplifications:
