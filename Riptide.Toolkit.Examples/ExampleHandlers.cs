@@ -32,7 +32,9 @@ namespace Riptide.Toolkit.Examples
             RiptideLogger.Log(LogType.Warning, $"");
         }
 
+        // Defines handler in both groups.
         [AdvancedMessage((uint)ToClientMessages.UpdatePlayerPosition, typeof(DefaultGroup))]
+        [AdvancedMessage((uint)ToClientMessages.UpdatePlayerPosition, typeof(ExampleGroup))]
         public static void UpdatePlayerPosition(Message message)
         {
             RiptideLogger.Log(LogType.Warning, $"");
@@ -58,6 +60,7 @@ namespace Riptide.Toolkit.Examples
 
 
         [AdvancedMessage((uint)ToServerMessages.ReceivePlayerPosition, typeof(DefaultGroup))]
+        [AdvancedMessage((uint)ToServerMessages.ReceivePlayerPosition, typeof(ExampleGroup))]
         public static void ReceivePlayerPosition(ushort client, Message message)
         {
             RiptideLogger.Log(LogType.Warning, $"");

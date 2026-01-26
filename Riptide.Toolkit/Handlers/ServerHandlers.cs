@@ -10,7 +10,7 @@
 /// ]]>
 
 using Riptide.Toolkit.Messages;
-using System;
+using Riptide.Toolkit.Storage;
 
 namespace Riptide.Toolkit.Handlers
 {
@@ -41,12 +41,30 @@ namespace Riptide.Toolkit.Handlers
 
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
+        /// .                                               Static Methods
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        /// <summary>
+        /// Retrieves data, needed for clients to easily fire server-side message handlers.
+        /// </summary>
+        /// <param name="groupID">GroupID to use for a client.</param>
+        /// <returns>Struct, which has plenty of useful methods and shortcuts.</returns>
+        public static ServerHandlers Create(byte groupID) => new ServerHandlers(NetworkIndex.GetServerGroup(groupID));
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
         /// .                                               Public Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
         /// Attempts to fire message handler under given <paramref name="messageID"/>.
         /// </summary>
+        /// <remarks>
+        /// Doesn't release <paramref name="message"/> automatically.
+        /// </remarks>
         /// <param name="messageID">ID of a message handler.</param>
         /// <param name="message">Message to read.</param>
         /// <returns><c>false</c> if there is no handler under given <paramref name="messageID"/> registered. <c>true</c> otherwise.</returns>
@@ -66,28 +84,36 @@ namespace Riptide.Toolkit.Handlers
         /// </summary>
         /// <remarks>
         /// Throws if handler wasn't found.
+        /// Doesn't release <paramref name="message"/> automatically.
         /// </remarks>
         /// <param name="messageID">ID of a message handler.</param>
         /// <param name="clientID">Riptide ID of a client which sent the message.</param>
         /// <param name="message">Message to read.</param>
         public void Fire(AdvancedServer server, uint messageID, ushort clientID, Message message)
         {
-            MessageHandlerInfo info = NetworkIndex.Handlers.Get(messageID);
+            MessageHandlerInfo info = NetworkIndex.RawServerHandlers.Get(messageID);
             object[] args = new object[2];
             args[0] = clientID;
 
+            object result;
             if (info.MessageType == typeof(Message))
             {
                 args[1] = message;
+                result = info.Method.Invoke(null, args);
+
+                // Message is released by Riptide itself. No need for this code.
+                //if (info.Release) message.Release();
             }
             else
             {
-                NetworkMessage container = (NetworkMessage)Activator.CreateInstance(info.MessageType);
+                NetworkMessage container = (NetworkMessage)Pools.Retrieve(info.MessageType);
                 container.Read(message);
                 args[1] = container;
+                result = info.Method.Invoke(null, args);
+                if (info.Release) container.Release();
             }
 
-            switch (info.Method.Invoke(null, args))
+            switch (result)
             {
                 // If you return regular message - it will immediately send its contents as a response.
                 // TODO: Make sure that FlagMessages will also be supported.

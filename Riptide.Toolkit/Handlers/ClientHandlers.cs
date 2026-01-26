@@ -10,7 +10,7 @@
 /// ]]>
 
 using Riptide.Toolkit.Messages;
-using System;
+using Riptide.Toolkit.Storage;
 
 namespace Riptide.Toolkit.Handlers
 {
@@ -41,12 +41,30 @@ namespace Riptide.Toolkit.Handlers
 
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
+        /// .                                               Static Methods
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        /// <summary>
+        /// Retrieves data, needed for clients to easily fire client-side message handlers.
+        /// </summary>
+        /// <param name="groupID">GroupID to use for a client.</param>
+        /// <returns>Struct, which has plenty of useful methods and shortcuts.</returns>
+        public static ClientHandlers Create(byte groupID) => new ClientHandlers(NetworkIndex.GetClientGroup(groupID));
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
         /// .                                               Public Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
         /// Attempts to fire message handler under given <paramref name="messageID"/>.
         /// </summary>
+        /// <remarks>
+        /// Doesn't release <paramref name="message"/> automatically.
+        /// </remarks>
         /// <param name="messageID">ID of a message handler.</param>
         /// <param name="message">Message to read.</param>
         /// <returns><c>false</c> if there is no handler under given <paramref name="messageID"/> registered. <c>true</c> otherwise.</returns>
@@ -66,27 +84,35 @@ namespace Riptide.Toolkit.Handlers
         /// </summary>
         /// <remarks>
         /// Throws if handler wasn't found.
+        /// Doesn't release <paramref name="message"/> automatically.
         /// </remarks>
         /// <param name="messageID">ID of a message handler.</param>
         /// <param name="message">Message to read.</param>
         public void Fire(AdvancedClient client, uint messageID, Message message)
         {
-            MessageHandlerInfo info = NetworkIndex.Handlers.Get(messageID);
+            MessageHandlerInfo info = NetworkIndex.RawClientHandlers.Get(messageID);
             object[] args = new object[1];
 
+            object result;
             if (info.MessageType == typeof(Message))
             {
                 args[0] = message;
+                result = info.Method.Invoke(null, args);
+
+                // Message is released by Riptide itself. No need for this code.
+                //if (info.Release) message.Release();
             }
             else
             {
-                NetworkMessage container = (NetworkMessage)Activator.CreateInstance(info.MessageType);
+                NetworkMessage container = (NetworkMessage)Pools.Retrieve(info.MessageType);
                 container.Read(message);
                 args[0] = container;
+                result = info.Method.Invoke(null, args);
+                if (info.Release) container.Release();
             }
 
             // Note: untested.
-            switch (info.Method.Invoke(null, args))
+            switch (result)
             {
                 // If you return regular message - it will immediately send its contents as a response.
                 // TODO: Make sure that FlagMessages will also be supported.
@@ -95,7 +121,7 @@ namespace Riptide.Toolkit.Handlers
                 // Automatically packs and sends response message.
                 // TODO: Make sure that MessageID is read correctly.
                 //case NetworkMessage net: client.SendResponse(net.Write(message)); break;
-                default: break; // WIP: While responses is not supported - response handlers are commented-out.
+                default: return; // WIP: While responses is not supported - response handlers are commented-out.
             }
         }
     }

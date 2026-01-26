@@ -11,7 +11,6 @@
 
 using Riptide.Toolkit.Handlers;
 using Riptide.Toolkit.Relaying;
-using Riptide.Toolkit.Settings;
 using Riptide.Transports;
 using Riptide.Transports.Udp;
 using Riptide.Utils;
@@ -93,7 +92,7 @@ namespace Riptide.Toolkit
         /// .                                              Implementations
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        protected override void CreateMessageHandlersDictionary(byte groupID) => m_MessageHandlers = NetworkIndex.ServerHandlers(groupID);
+        protected override void CreateMessageHandlersDictionary(byte groupID) => m_MessageHandlers = ServerHandlers.Create(groupID);
         protected override void OnMessageReceived(Message message, Connection fromConnection)
         {
             uint messageID = (uint)message.GetVarULong();

@@ -61,14 +61,12 @@ namespace Riptide.Toolkit.Messages
 
 
 
-
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
-        /// .                                               Private Fields
+        /// .                                                Constructors
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private static readonly TMessage[] m_Pool = new TMessage[StorageProfile<TProfile>.Instance.Storage];
-        private static int m_PoolHead = -1; // Negative values indicate that there is no items in the pool. Values always change by 1.
+        static NetworkMessage() => Pools.EnsureCapacity<TMessage>(StorageProfile<TProfile>.Instance.Storage);
 
 
 
@@ -82,48 +80,7 @@ namespace Riptide.Toolkit.Messages
         /// Retrieves message from pool. If pool is empty - simply creates new instance.
         /// </summary>
         /// <returns>Empty <typeparamref name="TMessage"/> instance to be used.</returns>
-        public static TMessage Get()
-        {
-            // Note: can this part be multithreaded in some way?
-            // I doubt, but if there will be a way to do it, no matter the LoadProfile option - it **might** be work implementing.
-            lock (m_Pool)
-            {
-                if (m_PoolHead < 0)
-                {
-                    return new TMessage();
-                }
-                else
-                {
-                    TMessage result = m_Pool[m_PoolHead];
-                    m_Pool[m_PoolHead--] = default;
-                    return result;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Releases given <paramref name="message"/> by running <see cref="Dispose()"/> method on it and storing it in a pool, if available.
-        /// </summary>
-        /// <param name="message">Message data container to dispose and store.</param>
-        public static void Release(NetworkMessage<TMessage, TProfile> message)
-        {
-            // Always disposes.
-            message.Dispose();
-            lock (m_Pool)
-            {
-                // Checks if there is enough space in pool to store more messages.
-                int index = m_PoolHead + 1;
-                if (index >= m_Pool.Length)
-                {
-                    // If index item will occupy is outside of the array bounds - it returns.
-                    return;
-                }
-
-                // If index is within array bounds - it will store message there and move head there. 
-                m_Pool[index] = (TMessage)message;
-                m_PoolHead = index;
-            }
-        }
+        public static TMessage Get() => Pools.Retrieve<TMessage>();
 
         /// <summary>
         /// Creates new message with ID of this <see cref="NetworkMessage{TMessage, TProfile}"/>.
@@ -144,9 +101,18 @@ namespace Riptide.Toolkit.Messages
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Releases itself by running <see cref="Dispose()"/> method and storing itself in a pool, if available.
+        /// Releases itself by running <see cref="Dispose()"/> method and storing itself in a pool,
+        /// if allowed by storage <typeparamref name="TProfile"/>.
         /// </summary>
-        public override void Release() => Release(this);
+        public override void Release()
+        {
+            // Always disposes.
+            Dispose();
+            if (StorageProfile<TProfile>.Instance.Storage > 0)
+            {
+                Pools.Store(this);
+            }
+        }
 
         /// <summary>
         /// Unpacks given message by overwriting values of this <see cref="NetworkMessage{TMessage, TProfile}"/> instance.

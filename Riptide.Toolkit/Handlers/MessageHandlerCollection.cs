@@ -12,7 +12,6 @@
 using Riptide.Toolkit.Extensions;
 using Riptide.Toolkit.Settings;
 using System;
-using System.Text.RegularExpressions;
 
 namespace Riptide.Toolkit.Handlers
 {
@@ -65,9 +64,6 @@ namespace Riptide.Toolkit.Handlers
 
         /// <inheritdoc/>
         public abstract void Clear();
-
-        /// <inheritdoc/>
-        public abstract void Reset();
 
         /// <inheritdoc/>
         public abstract void Set(uint messageID, THandler handler);

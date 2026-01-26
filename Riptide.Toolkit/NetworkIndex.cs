@@ -40,26 +40,19 @@ namespace Riptide.Toolkit
         /// </summary>
         public const byte MaxGroupIDAmount = 255;
         /// <summary>
+        /// How many messages one group can hold.
+        /// </summary>
+        public const uint MaxMessageIDAmount = uint.MaxValue;
+        /// <summary>
         /// GroupID which indicates that ID was not assigned yet.
         /// <see cref="byte.MaxValue"/> is an invalid ID, since '0' is commonly used everywhere by <see cref="Toolkit"/>.
         /// </summary>
         public const byte InvalidGroupID = byte.MaxValue;
         /// <summary>
-        /// How many messages one group can hold.
-        /// </summary>
-        public const uint MaxMessageIDAmount = uint.MaxValue;
-        /// <summary>
         /// MessageID which indicates that ID was not assigned yet.
         /// <see cref="uint.MaxValue"/> is an invalid ID, since '0' is commonly used everywhere by developers.
         /// </summary>
         public const uint InvalidMessageID = uint.MaxValue;
-        /// <summary>
-        /// Recommended first ID for server message ID enum.
-        /// </summary>
-        /// <remarks>
-        /// It's needed because, again - Server-side and Client-side IDs are shared now!
-        /// </remarks>
-        public const uint ServerIDOrigin = 0xFFFFFFFF >> 1 + 1; // In the middle of uint, essentially. +1 for better byte alignment.
 
 
 
@@ -87,14 +80,21 @@ namespace Riptide.Toolkit
         /// You will not be able to change settings in <see cref="Performance"/> category if this property is true.
         /// </remarks>
         public static bool IsEverInitialized => m_IsInitialized;
+
         /// <summary>
         /// Whether message handlers was loaded-in successfully.
         /// </summary>
         public static bool IsValid => m_IsValid;
+
         /// <summary>
-        /// Contains references to raw <see cref="MessageHandlerInfo"/> structs.
+        /// Contains references to raw <see cref="MessageHandlerInfo"/> structs for clients.
         /// </summary>
-        public static IReadOnlyMessageHandlerCollection<MessageHandlerInfo> Handlers => m_MessageHandlers;
+        public static IReadOnlyMessageHandlerCollection<MessageHandlerInfo> RawClientHandlers => m_RawClientHandlers;
+
+        /// <summary>
+        /// Contains references to raw <see cref="MessageHandlerInfo"/> structs for clients.
+        /// </summary>
+        public static IReadOnlyMessageHandlerCollection<MessageHandlerInfo> RawServerHandlers => m_RawServerHandlers;
 
 
 
@@ -115,7 +115,9 @@ namespace Riptide.Toolkit
         private static ushort m_GroupIDHeadIndex; // We use ushort instead of byte, to gracefully handle ID exhaustion.
 
         // MessageIDs: (doesn't map to Groups, rather Groups map to it instead)
-        private static readonly MessageHandlerCollection<MessageHandlerInfo> m_MessageHandlers = MessageHandlerCollection<MessageHandlerInfo>.Create();
+        /// Change handler type if <see cref="Performance.MessageHandlerFocus"/> and recommended type changes.
+        private static readonly MessageHandlerCollection<MessageHandlerInfo> m_RawClientHandlers = MessageHandlerCollection<MessageHandlerInfo>.Create();
+        private static readonly MessageHandlerCollection<MessageHandlerInfo> m_RawServerHandlers = MessageHandlerCollection<MessageHandlerInfo>.Create();
 
         // Whether Networking systems were ever initialized.
         private static volatile bool m_IsInitialized = false;
@@ -163,7 +165,7 @@ namespace Riptide.Toolkit
         /// Using this method outside of initialization sequence is dangerous.
         /// In <see cref="Riptide"/>, it might be used only once after <see cref="Engine"/> loads-in mod assemblies.
         /// </remarks>
-        [Obsolete("Not obsolete, but will throw if used. Method will function properly in one of the upcoming updates.")]
+        [Obsolete("Not obsolete, but will throw if used. Method will function properly in one of the upcoming updates.", error: true)]
         public static void Invalidate()
         {
             throw new NotImplementedException("Invalidation is temporary not supported after renovation.");
@@ -198,13 +200,6 @@ namespace Riptide.Toolkit
         /// .                                               Client Handlers
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        /// <summary>
-        /// Retrieves data, needed for clients to easily fire client-side message handlers.
-        /// </summary>
-        /// <param name="groupID">GroupID to use for a client.</param>
-        /// <returns>Struct, which has plenty of useful methods and shortcuts.</returns>
-        public static ClientHandlers ClientHandlers(byte groupID) => new ClientHandlers(GetClientGroup(groupID));
-
         /// <summary>
         /// Checks if group under given <paramref name="groupID"/> (for client-side messages) is defined.
         /// </summary>
@@ -253,12 +248,6 @@ namespace Riptide.Toolkit
         /// .                                               Server Handlers
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        /// <summary>
-        /// Retrieves data, needed for clients to easily fire server-side message handlers.
-        /// </summary>
-        /// <param name="groupID">GroupID to use for a client.</param>
-        /// <returns>Struct, which has plenty of useful methods and shortcuts.</returns>
-        public static ServerHandlers ServerHandlers(byte groupID) => new ServerHandlers(GetServerGroup(groupID));
         /// <summary>
         /// Checks if group under given <paramref name="groupID"/> (for server-side messages) is defined.
         /// </summary>
@@ -389,7 +378,8 @@ namespace Riptide.Toolkit
                 // Resets all handlers first.
                 // Note: All managed handlers will be locked at this point, so mutation is safe, even in multi-threaded context (untested though)
                 // TODO: Avoid clearing of the entire database on first Initialization. All handlers will be empty at this point anyway.
-                m_MessageHandlers.Clear();
+                m_RawClientHandlers.Clear();
+                m_RawServerHandlers.Clear();
                 Array.ForEach(m_ClientGroups, g => g.Clear());
                 Array.ForEach(m_ServerGroups, g => g.Clear());
                 m_GroupIDHeadIndex = 0;
@@ -433,18 +423,19 @@ namespace Riptide.Toolkit
                     var (method, attribute, isServerSide) = handlers[i];
                     if (!attribute.MessageID.HasValue) continue;
                     ParameterInfo[] parameters = method.GetParameters();
-                    int target;
+                    Type dataType;
                     switch (parameters.Length)
                     {
                         case 0: throw new Exception($"Message handler ({method.Name}) has no method parameters.");
-                        case 1: target = 0; break; // Client-side method.
-                        case 2: target = 1; break; // Server-side method.
+                        case 1: dataType = parameters[0].ParameterType; isServerSide = false; break; // Client-side method.
+                        case 2: dataType = parameters[1].ParameterType; isServerSide = true; break; // Server-side method.
                         default: throw new Exception($"Message handler ({method.Name}) has too many parameters.");
                     }
 
                     // TODO: Add toggleable type check.
-                    m_MessageHandlers.Set(attribute.MessageID.Value, new MessageHandlerInfo(method, parameters[target].ParameterType));
-                    handlers[i] = (method, attribute, isServerSide: target == 1);
+                    (isServerSide ? m_RawServerHandlers : m_RawClientHandlers)
+                        .Set(attribute.MessageID.Value, new MessageHandlerInfo(method, dataType, attribute.Release));
+                    handlers[i] = (method, attribute, isServerSide);
                 }
 
                 for (int i = 0; i < length; i++)
@@ -452,15 +443,14 @@ namespace Riptide.Toolkit
                     var (method, attribute, isServerSide) = handlers[i];
                     if (attribute.MessageID.HasValue) continue;
                     ParameterInfo[] parameters = method.GetParameters();
-                    int target;
+                    Type dataType;
                     switch (parameters.Length)
                     {
                         case 0: throw new Exception($"Message handler ({method.Name}) has no method parameters.");
-                        case 1: target = 0; break; // Client-side method.
-                        case 2: target = 1; break; // Server-side method.
+                        case 1: dataType = parameters[0].ParameterType; isServerSide = false; break; // Client-side method.
+                        case 2: dataType = parameters[1].ParameterType; isServerSide = true; break; // Server-side method.
                         default: throw new Exception($"Message handler ({method.Name}) has too many parameters.");
                     }
-                    Type dataType = parameters[target].ParameterType;
 
                     PropertyInfo member;
                     if (attribute.Message is null)
@@ -479,10 +469,11 @@ namespace Riptide.Toolkit
                         continue;
                     }
 
-                    messageID = m_MessageHandlers.Put(new MessageHandlerInfo(method, dataType));
+                    messageID = (isServerSide ? m_RawServerHandlers : m_RawClientHandlers)
+                        .Put(new MessageHandlerInfo(method, dataType, attribute.Release));
                     member.SetValue(null, messageID);
                     attribute.MessageID = messageID; // Needed for working with GroupIDs.
-                    handlers[i] = (method, attribute, isServerSide: target == 1);
+                    handlers[i] = (method, attribute, isServerSide);
                 }
 
                 // Registers GroupIDs:

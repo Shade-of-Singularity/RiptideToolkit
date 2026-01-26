@@ -30,11 +30,6 @@ namespace Riptide.Toolkit.Handlers
         void Clear();
 
         /// <summary>
-        /// Resets internal arrays to default size, allowing GC to collect everything eventually.
-        /// </summary>
-        void Reset();
-
-        /// <summary>
         /// Registers <paramref name="messageID"/> under this <see cref="IReadOnlyGroupMessageIndexer.GroupID"/>.
         /// </summary>
         /// <param name="messageID">MessageID to register.</param>

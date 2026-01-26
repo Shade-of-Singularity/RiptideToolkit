@@ -26,7 +26,7 @@ namespace Riptide.Toolkit.Examples
 
     public enum ToServerMessages : uint
     { 
-        RegisterUsername = NetworkIndex.ServerIDOrigin,
+        RegisterUsername,
         ReceivePlayerPosition,
     }
 

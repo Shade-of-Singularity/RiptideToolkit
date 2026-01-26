@@ -39,20 +39,6 @@ namespace Riptide.Toolkit.Handlers
         void Clear();
 
         /// <summary>
-        /// Clears internal handler array and resizes buffers to default size.
-        /// GC will be able to collect released resources, if there is any.
-        /// </summary>
-        /// <remarks>
-        /// Clears even system messages.
-        /// <para>
-        /// Will NOT initialize <see cref="NetworkIndex"/> when called, 
-        /// unlike <see cref="IReadOnlyMessageHandlerCollection{THandler}"/>,
-        /// to avoid deadlocks.
-        /// </para>
-        /// </remarks>
-        void Reset();
-
-        /// <summary>
         /// Registers message handler on target <paramref name="messageID"/>.
         /// </summary>
         /// <remarks>

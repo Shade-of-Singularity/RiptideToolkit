@@ -127,12 +127,6 @@ namespace Riptide.Toolkit.Handlers
         }
 
         /// <inheritdoc/>
-        public override void Reset()
-        {
-            lock (_lock) m_Flags = new uint[0][][];
-        }
-
-        /// <inheritdoc/>
         public override void Register(uint messageID)
         {
             uint areaIndex = messageID >> AreaOffset;

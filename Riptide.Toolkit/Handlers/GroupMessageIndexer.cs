@@ -79,9 +79,6 @@ namespace Riptide.Toolkit.Handlers
         public abstract void Clear();
 
         /// <inheritdoc/>
-        public abstract void Reset();
-
-        /// <inheritdoc/>
         public abstract void Register(uint messageID);
 
         /// <inheritdoc/>

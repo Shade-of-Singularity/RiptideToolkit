@@ -42,7 +42,7 @@ namespace Riptide.Toolkit
         /// .                                                 Constants
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        internal const BindingFlags MethodBindingFlags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static;
+        internal const BindingFlags MethodBindingFlags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
 
 
 
@@ -75,6 +75,10 @@ namespace Riptide.Toolkit
         /// Static MessageID of this message handler. Automatic ID assignment will avoid static IDs.
         /// </summary>
         public uint? MessageID; // Not read-only, to allow NetworkIndex to set ID to it, to speed-up analysis.
+        /// <summary>
+        /// Whether to release <see cref="NetworkMessage"/> after calling a message handler.
+        /// </summary>
+        public bool Release { get; set; } = true;
 
 
 
@@ -306,7 +310,7 @@ namespace Riptide.Toolkit
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         static AdvancedMessageAttribute()
         {
-            LastGroupIDSource = typeof(DefaultGroup).GetProperty(nameof(DefaultGroup.GroupID), MemberBindingFlags | BindingFlags.FlattenHierarchy);
+            LastGroupIDSource = typeof(DefaultGroup).GetProperty(nameof(DefaultGroup.GroupID), MethodBindingFlags | BindingFlags.FlattenHierarchy);
         }
 
 
@@ -317,7 +321,6 @@ namespace Riptide.Toolkit
         /// .                                               Static Fields
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private const BindingFlags MemberBindingFlags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
         private static PropertyInfo LastGroupIDSource;
 
 
@@ -377,7 +380,7 @@ namespace Riptide.Toolkit
             Type temp = target.BaseType;
             while (temp != null)
             {
-                foreach (var field in temp.GetProperties(MemberBindingFlags))
+                foreach (var field in temp.GetProperties(MethodBindingFlags))
                 {
                     if (field.IsDefined(attribute))
                     {
@@ -389,7 +392,7 @@ namespace Riptide.Toolkit
                 temp = temp.BaseType;
             }
 
-            foreach (var field in target.GetProperties(MemberBindingFlags))
+            foreach (var field in target.GetProperties(MethodBindingFlags))
             {
                 if (field.IsDefined(attribute))
                 {
@@ -413,7 +416,7 @@ namespace Riptide.Toolkit
             Type temp = target;
             do
             {
-                foreach (var field in temp.GetProperties(MemberBindingFlags))
+                foreach (var field in temp.GetProperties(MethodBindingFlags))
                 {
                     if (field.IsDefined(attribute))
                     {

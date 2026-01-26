@@ -80,12 +80,6 @@ namespace Riptide.Toolkit.Handlers
         }
 
         /// <inheritdoc/>
-        public override void Reset()
-        {
-            lock (_lock) m_Flags = new Dictionary<uint, uint>(0);
-        }
-
-        /// <inheritdoc/>
         public override void Register(uint messageID)
         {
             uint location = messageID >> FlagOffset;

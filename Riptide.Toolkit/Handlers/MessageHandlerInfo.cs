@@ -30,21 +30,26 @@ namespace Riptide.Toolkit.Handlers
         /// Using it over <see cref="Delegate.DynamicInvoke(object[])"/> should be better for performance. -Gemini (TODO: actually benchmark it)
         /// </remarks>
         public readonly MethodInfo Method;
-
         /// <summary>
-        /// <see cref="NetworkMessage{TMessage, TProfile}"/> type.
+        /// <see cref="Messages.NetworkMessage{TMessage, TProfile}"/> type or <see cref="Message"/>.
         /// </summary>
         public readonly Type MessageType;
+        /// <summary>
+        /// Whether to release <see cref="MessageType"/> after calling this handler.
+        /// If set to <c>false</c> - you will have to call <see cref="Message.Release"/> or <see cref="Messages.NetworkMessage.Release"/> manually.
+        /// </summary>
+        public readonly bool Release;
 
         /// <summary>
         /// Default constructor.
         /// </summary>
         /// <param name="method">Method info to use for invocation.</param>
         /// <param name="messageType">Type in the message data holder, and first parameter of the <paramref name="method"/>.</param>
-        public MessageHandlerInfo(MethodInfo method, Type messageType)
+        public MessageHandlerInfo(MethodInfo method, Type messageType, bool release)
         {
             Method = method;
             MessageType = messageType;
+            Release = release;
         }
     }
 }

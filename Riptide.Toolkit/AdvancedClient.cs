@@ -76,7 +76,7 @@ namespace Riptide.Toolkit
         /// .                                              Implementations
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        protected override void CreateMessageHandlersDictionary(byte groupID) => m_MessageHandlers = NetworkIndex.ClientHandlers(groupID);
+        protected override void CreateMessageHandlersDictionary(byte groupID) => m_MessageHandlers = ClientHandlers.Create(groupID);
         protected override void OnMessageReceived(Message message)
         {
             // TODO: Do we need to allow increasing ID limit to ulong?... Hell no!..?

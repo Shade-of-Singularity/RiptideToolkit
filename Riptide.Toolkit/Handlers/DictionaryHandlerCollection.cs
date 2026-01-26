@@ -97,9 +97,6 @@ namespace Riptide.Toolkit.Handlers
         public override void Clear() => m_Handlers.Clear();
 
         /// <inheritdoc/>
-        public override void Reset() => m_Handlers = new Dictionary<uint, THandler>();
-
-        /// <inheritdoc/>
         public override void Set(uint messageID, THandler handler) => m_Handlers[messageID] = handler;
 
         /// <inheritdoc/>

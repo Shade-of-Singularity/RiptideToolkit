@@ -192,15 +192,6 @@ namespace Riptide.Toolkit.Handlers
         }
 
         /// <inheritdoc/>
-        public override void Reset()
-        {
-            int regionSize = (int)m_RegionSize;
-            m_Regions = new THandler[1][][];
-            m_Regions[0] = new THandler[regionSize][];
-            m_Regions[0][0] = new THandler[regionSize];
-        }
-
-        /// <inheritdoc/>
         public override void Set(uint messageID, THandler handler)
         {
             // Makes all bitmask and bit offset operations here to use CPU parallel instruction execution.
