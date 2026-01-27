@@ -15,9 +15,7 @@ using Riptide.Toolkit.Settings;
 using Riptide.Utils;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Reflection;
-using System.Text;
 
 namespace Riptide.Toolkit
 {
@@ -495,53 +493,6 @@ namespace Riptide.Toolkit
                         m_RawClientHandlers.Set(messageID, new MessageHandlerInfo(method, dataType, attribute.Release));
                         m_Groups[attribute.GroupID.Value].Add(messageID, definition);
                     }
-                }
-
-
-
-
-                StringBuilder builder = new StringBuilder(400);
-                foreach (var (method, attribute, hasMessageID) in handlers)
-                {
-                    builder.Clear();
-                    builder.Append("Handler (");
-                    builder.Append(method.Name);
-                    builder.Append(") under ID (");
-
-                    ParameterInfo[] parameters = method.GetParameters(); Type dataType;
-                    switch (parameters.Length)
-                    {
-                        case 0: throw new Exception($"Message handler ({method.Name}) has no method parameters.");
-                        case 1: dataType = parameters[0].ParameterType; break; // Client - side method.
-                        case 2: dataType = parameters[1].ParameterType; break; // Server-side method.
-                        default: throw new Exception($"Message handler ({method.Name}) has too many parameters.");
-                    }
-
-                    if (attribute.MessageID.HasValue)
-                    {
-                        builder.Append(attribute.MessageID.Value);
-                    }
-                    else
-                    {
-                        PropertyInfo member = attribute.Message;
-
-                        // TODO: Optimize method parameter checks.
-                        // At this point, maybe iterating over the entire code database and creating a few dictionaries will be faster?
-                        if (member is null && !AdvancedMessageAttribute.LookupMemberRootLast<MessageIDAttribute>(dataType, out member))
-                        {
-                            throw new Exception($"How.");
-                        }
-
-                        builder.Append(member.GetValue(null));
-                    }
-
-                    builder.Append(")");
-
-                    builder.Append(" (server-side? (");
-                    builder.Append(method.GetParameters().Length == 2);
-                    builder.Append("))");
-
-                    RiptideLogger.Log(LogType.Info, builder.ToString());
                 }
 
 
