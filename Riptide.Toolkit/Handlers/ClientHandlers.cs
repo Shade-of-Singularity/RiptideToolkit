@@ -49,7 +49,7 @@ namespace Riptide.Toolkit.Handlers
         /// </summary>
         /// <param name="groupID">GroupID to use for a client.</param>
         /// <returns>Struct, which has plenty of useful methods and shortcuts.</returns>
-        public static ClientHandlers Create(byte groupID) => new ClientHandlers(NetworkIndex.GetClientGroup(groupID));
+        public static ClientHandlers Create(byte groupID) => new ClientHandlers(NetworkIndex.GetGroup(groupID));
 
 
 
@@ -70,7 +70,7 @@ namespace Riptide.Toolkit.Handlers
         /// <returns><c>false</c> if there is no handler under given <paramref name="messageID"/> registered. <c>true</c> otherwise.</returns>
         public bool TryFire(AdvancedClient client, uint messageID, Message message)
         {
-            if (Group.Has(messageID))
+            if (Group.HasClient(messageID))
             {
                 Fire(client, messageID, message);
                 return true;

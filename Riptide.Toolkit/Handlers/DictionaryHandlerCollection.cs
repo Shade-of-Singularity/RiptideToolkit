@@ -22,7 +22,7 @@ namespace Riptide.Toolkit.Handlers
     /// Has higher memory usage, but 
     /// </remarks>
     /// Note: If in the future someone will create dictionary with ushort as a base - we will use it instead.
-    public sealed class DictionaryHandlerCollection<THandler> : MessageHandlerCollection<THandler>
+    public sealed class DictionaryMessageHandlerCollection<THandler> : MessageHandlerCollection<THandler>
         where THandler : IStructValidator
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
@@ -33,25 +33,12 @@ namespace Riptide.Toolkit.Handlers
         /// <summary>
         /// RegionMap with all the handlers.
         /// </summary>
-        private Dictionary<uint, THandler> m_Handlers;
+        private readonly Dictionary<uint, THandler> m_Handlers = new Dictionary<uint, THandler>();
 
         /// <summary>
         /// Index of the next (probably) free cell in region array.
         /// </summary>
         private uint m_HeadIndex;
-
-
-
-
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
-        /// .
-        /// .                                                Constructors
-        /// .
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        /// <summary>
-        /// Constructor for <see cref="DictionaryHandlerCollection{THandler}"/>
-        /// </summary>
-        public DictionaryHandlerCollection() => m_Handlers = new Dictionary<uint, THandler>();
 
 
 

@@ -23,9 +23,9 @@ namespace Riptide.Toolkit.Handlers
     /// Has higher memory usage, but 
     /// </remarks>
     /// Note: If in the future someone will create dictionary with ushort as a base - we will use it instead.
-    /// TODO: Benchmark! Compare this one with <see cref="DictionaryHandlerCollection{THandler}"/> CPU-wise and RAM-wise.
+    /// TODO: Benchmark! Compare this one with <see cref="DictionaryMessageHandlerCollection{THandler}"/> CPU-wise and RAM-wise.
     /// TODO: Bound-check once entire system is setup.
-    public sealed class RegionHandlerCollection<THandler> : MessageHandlerCollection<THandler>
+    public sealed class RegionMessageHandlerCollection<THandler> : MessageHandlerCollection<THandler>
         where THandler : IStructValidator
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
@@ -85,18 +85,18 @@ namespace Riptide.Toolkit.Handlers
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Simple constructor for <see cref="RegionHandlerCollection{THandler}"/>.
+        /// Simple constructor for <see cref="RegionMessageHandlerCollection{THandler}"/>.
         /// Uses <see cref="Performance.RegionSize"/> as default region size for this collection.
         /// </summary>
-        public RegionHandlerCollection() : this(Performance.RegionSize) { }
+        public RegionMessageHandlerCollection() : this(Performance.RegionSize) { }
 
         /// <summary>
-        /// Constructor for <see cref="RegionHandlerCollection{THandler}"/>
+        /// Constructor for <see cref="RegionMessageHandlerCollection{THandler}"/>
         /// </summary>
         /// <remarks>
         /// <paramref name="regionSize"/> MUST be "Power of Two"! (i.e. 2, 4, 8, 16, 32, ...)
         /// </remarks>
-        public RegionHandlerCollection(uint regionSize)
+        public RegionMessageHandlerCollection(uint regionSize)
         {
             regionSize = Math.Max(2, Math.Min(256, regionSize));
             m_RegionSize = regionSize;

@@ -52,9 +52,9 @@ namespace Riptide.Toolkit.Messages
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Message ID of this <see cref="NetworkMessage{TMessage, TGroup, TLoad}"/>.
+        /// Message ID of this <see cref="NetworkMessage{TMessage, TLoad}"/>.
         /// </summary>
-        [MessageID] public static uint MessageID { get; private set; } = NetworkIndex.InvalidMessageID;
+        [MessageID] public static uint MessageID { get; set; } = NetworkIndex.InvalidMessageID;
 
         /// <inheritdoc cref="MessageID"/>
         public override uint ID => MessageID;

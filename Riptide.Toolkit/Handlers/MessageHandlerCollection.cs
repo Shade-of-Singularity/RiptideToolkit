@@ -20,7 +20,7 @@ namespace Riptide.Toolkit.Handlers
     /// </summary>
     /// <remarks>
     /// No reason to implement this one - Toolkit won't use any custom implementation (as of right now).
-    /// Implemented in <see cref="RegionHandlerCollection{THandler}"/> and {TODO: insert DictionaryHandlerCollection}.
+    /// Implemented in <see cref="RegionMessageHandlerCollection{THandler}"/> and {TODO: insert DictionaryHandlerCollection}.
     /// </remarks>
     public abstract class MessageHandlerCollection<THandler> : IMessageHandlerCollection<THandler> where THandler : IStructValidator
     {
@@ -37,8 +37,8 @@ namespace Riptide.Toolkit.Handlers
             // TODO: Use RegionMap/Dictionary instead of switch, as to allow overwriting.
             switch (Performance.GroupIndexerFocus)
             {
-                case PerformanceType.OptimizeCPU: return new RegionHandlerCollection<THandler>(Performance.RegionSize);
-                case PerformanceType.OptimizeRAM: return new DictionaryHandlerCollection<THandler>();
+                case PerformanceType.OptimizeCPU: return new RegionMessageHandlerCollection<THandler>(Performance.RegionSize);
+                case PerformanceType.OptimizeRAM: return new DictionaryMessageHandlerCollection<THandler>();
                 default:
                     throw new NotSupportedException(
                         $"{nameof(GroupMessageIndexer)} performance focus of ({Performance.GroupIndexerFocus}) is not supported.");

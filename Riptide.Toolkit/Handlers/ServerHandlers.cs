@@ -49,7 +49,7 @@ namespace Riptide.Toolkit.Handlers
         /// </summary>
         /// <param name="groupID">GroupID to use for a client.</param>
         /// <returns>Struct, which has plenty of useful methods and shortcuts.</returns>
-        public static ServerHandlers Create(byte groupID) => new ServerHandlers(NetworkIndex.GetServerGroup(groupID));
+        public static ServerHandlers Create(byte groupID) => new ServerHandlers(NetworkIndex.GetGroup(groupID));
 
 
 
@@ -70,7 +70,7 @@ namespace Riptide.Toolkit.Handlers
         /// <returns><c>false</c> if there is no handler under given <paramref name="messageID"/> registered. <c>true</c> otherwise.</returns>
         public bool TryFire(AdvancedServer server, uint messageID, ushort clientID, Message message)
         {
-            if (Group.Has(messageID))
+            if (Group.HasServer(messageID))
             {
                 Fire(server, messageID, clientID, message);
                 return true;
@@ -111,6 +111,8 @@ namespace Riptide.Toolkit.Handlers
                 container.Read(message);
                 args[1] = container;
                 result = info.Method.Invoke(null, args);
+
+                // Automatically releases if requested.
                 if (info.Release) container.Release();
             }
 

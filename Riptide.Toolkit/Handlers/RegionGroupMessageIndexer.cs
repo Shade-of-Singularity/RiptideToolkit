@@ -24,33 +24,33 @@ namespace Riptide.Toolkit.Handlers
         /// <summary>
         /// How many flags one region stores.
         /// <para>
-        /// RegionMap layout: <c>[Area][Region][Index]</c>
+        /// RegionMap layout: <c>[Area][Region][Flag]</c>
         /// </para>
         /// </summary>
-        private const int RegionSize = 32;
+        private const int FlagCapacity = 16;
         /// <summary>
         /// Mask which describes bits that one flag covers.
         /// </summary>
-        private const uint RegionMask = RegionSize - 1;
+        private const uint FlagMask = FlagCapacity - 1;
         /// <summary>
         /// By how much bits we need to move an input value to the right to rebase its value around bit #0.
         /// </summary>
-        private const int RegionOffset = 5;
+        private const int FlagOffset = 4;
         /// <summary>
-        /// How many regions one area list stores.
+        /// How many regions one area array stores.
         /// <para>
-        /// RegionMap layout: <c>[Area][Region][Index]</c>
+        /// RegionMap layout: <c>[Area][Region][Flag]</c>
         /// </para>
         /// </summary>
-        private const uint AreaSize = 64;
+        private const uint RegionCapacity = 64;
         /// <summary>
         /// Mask which describes bits that one area covers.
         /// </summary>
-        private const uint AreaMask = AreaSize - 1;
+        private const uint RegionMask = RegionCapacity - 1;
         /// <summary>
         /// By how much bits we need to move an input value to the right to rebase its value around bit #0.
         /// </summary>
-        private const int AreaOffset = RegionOffset + 6;
+        private const int RegionOffset = FlagOffset + 6;
 
 
 
@@ -82,114 +82,128 @@ namespace Riptide.Toolkit.Handlers
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <inheritdoc/>
-        public override bool Has(uint messageID)
-        {
-            NetworkIndex.Initialize();
-            // TODO: Benchmark to test if this solution really more performant than dictionaries.
-            //  Maybe we can optimize it even further with a right region map sizes.
-            uint areaIndex = messageID >> AreaOffset;
-            uint regionIndex = (messageID & AreaMask) >> RegionOffset;
-            uint index = messageID & RegionMask;
-            uint bit = 1u << (int)(messageID & RegionMask);
-            lock (_lock)
-            {
-                var area = m_Flags;
-                if (area is null || areaIndex >= area.Length) return false;
-
-                var region = area[areaIndex];
-                if (region is null) return false;
-
-                var flags = region[regionIndex];
-                if (flags is null) return false;
-
-                return (flags[index] & bit) != 0;
-            }
-        }
-
-        /// <inheritdoc/>
         public override void Clear()
         {
             lock (_lock)
             {
-                var root = m_Flags;
-                for (uint i = 0; i < root.Length; i++)
+                var area = m_Flags;
+                for (uint i = 0; i < area.Length; i++)
                 {
-                    var area = root[i];
-                    if (area is null) continue;
-                    for (uint j = 0; j < area.Length; j++)
+                    var regions = area[i];
+                    if (regions is null) continue;
+                    for (uint j = 0; j < regions.Length; j++)
                     {
-                        var region = area[j];
-                        if (region is null) continue;
-                        Array.Clear(region, 0, RegionSize);
+                        var flags = regions[j];
+                        if (flags is null) continue;
+                        Array.Clear(flags, 0, FlagCapacity);
                     }
                 }
             }
         }
 
         /// <inheritdoc/>
-        public override void Register(uint messageID)
+        public override IndexDefinition Get(uint messageID)
         {
-            uint areaIndex = messageID >> AreaOffset;
-            uint regionIndex = (messageID & AreaMask) >> RegionOffset;
-            uint index = messageID & RegionMask;
-            uint bit = 1u << (int)(messageID & RegionMask);
+            NetworkIndex.Initialize();
+            // TODO: Benchmark to test if this solution really more performant than dictionaries.
+            //  Maybe we can optimize it even further with a right region map sizes.
+            uint regionsIndex = messageID >> RegionOffset;
+            uint flagsIndex = (messageID & RegionMask) >> FlagOffset;
+            uint index = messageID & FlagMask;
+            int offset = (int)(messageID & FlagMask);
             lock (_lock)
             {
-                var root = m_Flags;
-                if (areaIndex >= root.Length)
-                {
-                    Array.Resize(ref root, (int)(areaIndex + 1));
-                    m_Flags = root;
-                }
+                var area = m_Flags;
+                if (area is null || regionsIndex >= area.Length) return IndexDefinition.None;
 
-                var area = root[areaIndex];
-                if (area is null)
-                {
-                    root[areaIndex] = area = new uint[AreaSize][];
-                }
+                var region = area[regionsIndex];
+                if (region is null) return IndexDefinition.None;
 
-                var region = area[regionIndex];
-                if (region is null)
-                {
-                    area[regionIndex] = region = new uint[RegionSize];
-                    region[index] = bit;
-                }
-                else
-                {
-                    region[index] |= bit;
-                }
+                var flags = region[flagsIndex];
+                if (flags is null) return IndexDefinition.None;
+
+                return (IndexDefinition)(flags[index] >> offset) & IndexDefinition.Both;
             }
         }
 
         /// <inheritdoc/>
-        public override void Remove(uint messageID)
+        public override void Set(uint messageID, IndexDefinition definition) => SetInternal(messageID, definition, clear: IndexDefinition.Both);
+
+        /// <inheritdoc/>
+        public override void Add(uint messageID, IndexDefinition definition)
         {
-            uint areaIndex = messageID >> AreaOffset;
-            uint regionIndex = (messageID & AreaMask) >> RegionOffset;
-            uint index = messageID & RegionMask;
-            uint bit = 1u << (int)(messageID & RegionMask);
-            lock (_lock)
+            switch (definition)
             {
-                var root = m_Flags;
-                if (areaIndex >= root.Length)
-                {
-                    return;
-                }
+                case IndexDefinition.Both:
+                case IndexDefinition.Client:
+                case IndexDefinition.Server: SetInternal(messageID, definition, clear: definition); return;
 
-                var area = root[areaIndex];
-                if (area is null)
-                {
-                    return;
-                }
+                default:
+                case IndexDefinition.None: return;
+            }
+        }
 
-                var region = area[regionIndex];
-                if (region is null)
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                               Private Methods
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        /// <param name="clear">Describes bits in flag, that have to be cleared before updating value.</param>
+        private void SetInternal(uint messageID, IndexDefinition definition, IndexDefinition clear)
+        {
+            uint regionsIndex = messageID >> RegionOffset;
+            uint flagsIndex = (messageID & RegionMask) >> FlagOffset;
+            uint index = messageID & FlagMask;
+            int offset = (int)(messageID & FlagMask);
+
+            if (definition == IndexDefinition.None)
+            {
+                lock (_lock)
                 {
-                    return;
+                    var area = m_Flags;
+                    if (area is null || regionsIndex >= area.Length) return;
+
+                    var region = area[regionsIndex];
+                    if (region is null) return;
+
+                    var flags = region[flagsIndex];
+                    if (flags is null) return;
+
+                    flags[index] &= ~((uint)clear << offset);
                 }
-                else
+            }
+            else
+            {
+                lock (_lock)
                 {
-                    region[index] = region[index] & ~bit;
+                    var area = m_Flags;
+                    if (regionsIndex >= area.Length)
+                    {
+                        Array.Resize(ref area, (int)(regionsIndex + 1));
+                        m_Flags = area;
+                    }
+
+                    var regions = area[regionsIndex];
+                    if (regions is null)
+                    {
+                        area[regionsIndex] = regions = new uint[RegionCapacity][];
+                    }
+
+                    var flags = regions[flagsIndex];
+                    if (flags is null)
+                    {
+                        regions[flagsIndex] = flags = new uint[FlagCapacity];
+                        flags[index] = (uint)definition << offset;
+                    }
+                    else
+                    {
+                        uint frame = flags[index] & ~((uint)clear << offset);
+                        uint value = (uint)(definition & clear) << offset;
+                        flags[index] = frame | value;
+                    }
                 }
             }
         }

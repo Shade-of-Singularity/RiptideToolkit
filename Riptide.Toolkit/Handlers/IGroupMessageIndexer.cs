@@ -29,16 +29,26 @@ namespace Riptide.Toolkit.Handlers
         /// </summary>
         void Clear();
 
-        /// <summary>
-        /// Registers <paramref name="messageID"/> under this <see cref="IReadOnlyGroupMessageIndexer.GroupID"/>.
-        /// </summary>
-        /// <param name="messageID">MessageID to register.</param>
-        void Register(uint messageID);
+        // void Trim();
 
         /// <summary>
-        /// Removes <paramref name="messageID"/> from this <see cref="IReadOnlyGroupMessageIndexer.GroupID"/>.
+        /// Defines whether specific <paramref name="messageID"/> is defined client-side and/or server-side.
         /// </summary>
-        /// <param name="messageID">MessageID to remove.</param>
-        void Remove(uint messageID);
+        /// <remarks>
+        /// Overwrites existing definition.
+        /// </remarks>
+        /// <param name="messageID">MessageID to register.</param>
+        /// <param name="definition">Definition under <paramref name="messageID"/>.</param>
+        void Set(uint messageID, IndexDefinition definition);
+
+        /// <summary>
+        /// Defines whether specific <paramref name="messageID"/> is defined client-side and/or server-side.
+        /// </summary>
+        /// <remarks>
+        /// Adds to an existing definition. <see cref="IndexDefinition.None"/> is ignored.
+        /// </remarks>
+        /// <param name="messageID">MessageID to register.</param>
+        /// <param name="definition">Definition under <paramref name="messageID"/>.</param>
+        void Add(uint messageID, IndexDefinition definition);
     }
 }

@@ -8,7 +8,6 @@
 ///                        "RiptideToolkit/LICENSE.md"
 /// 
 /// ]]>
-
 namespace Riptide.Toolkit.Extensions
 {
     public static class Messaging

@@ -21,7 +21,7 @@ namespace Riptide.Toolkit.Messages
         /// <summary>
         /// ID to which this group was mapped.
         /// </summary>
-        [GroupID] public static byte GroupID { get; private set; }
+        [GroupID] public static byte GroupID { get; set; } = NetworkIndex.InvalidGroupID;
     }
 
     /// <summary>

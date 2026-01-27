@@ -24,12 +24,11 @@ namespace Riptide.Toolkit.Handlers
         /// <summary>
         /// By how much bits we need to move an input value to the right to rebase its value around bit #0.
         /// </summary>
-        private const int FlagOffset = 5;
-
+        private const int FlagOffset = 4;
         /// <summary>
         /// Mask which describes bits that one flag covers.
         /// </summary>
-        private const uint FlagMask = 31;
+        private const uint FlagMask = 0b1111;
 
 
 
@@ -39,7 +38,7 @@ namespace Riptide.Toolkit.Handlers
         /// .                                               Private Fields
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private Dictionary<uint, uint> m_Flags = new Dictionary<uint, uint>(0);
+        private readonly Dictionary<uint, uint> m_Flags = new Dictionary<uint, uint>(0);
         private readonly object _lock = new object();
 
 
@@ -61,52 +60,86 @@ namespace Riptide.Toolkit.Handlers
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <inheritdoc/>
-        public override bool Has(uint messageID)
-        {
-            NetworkIndex.Initialize();
-            // TODO: Consider using concurrent dictionary instead.
-            uint location = messageID >> FlagOffset;
-            uint bit = 1u << (int)(messageID & FlagMask);
-            lock (_lock)
-            {
-                return m_Flags.TryGetValue(location, out uint flag) && (flag & bit) != 0;
-            }
-        }
-
-        /// <inheritdoc/>
         public override void Clear()
         {
             lock (_lock) m_Flags.Clear();
         }
 
         /// <inheritdoc/>
-        public override void Register(uint messageID)
+        public override IndexDefinition Get(uint messageID)
         {
+            NetworkIndex.Initialize();
             uint location = messageID >> FlagOffset;
+            int offset = (int)(messageID & FlagMask);
             lock (_lock)
             {
                 if (m_Flags.TryGetValue(location, out uint flag))
                 {
-                    m_Flags[location] = flag | (1u << (int)(messageID & FlagMask));
-                }
-                else
-                {
-                    m_Flags[location] = 1u << (int)(messageID & FlagMask);
+                    return (IndexDefinition)(flag >> offset) & IndexDefinition.Both;
                 }
             }
+
+            return IndexDefinition.None;
         }
 
         /// <inheritdoc/>
-        public override void Remove(uint messageID)
+        public override void Set(uint messageID, IndexDefinition definition) => SetInternal(messageID, definition, clear: IndexDefinition.Both);
+
+        /// <inheritdoc/>
+        public override void Add(uint messageID, IndexDefinition definition)
+        {
+            switch (definition)
+            {
+                case IndexDefinition.Both:
+                case IndexDefinition.Client:
+                case IndexDefinition.Server: SetInternal(messageID, definition, clear: definition); return;
+
+                default:
+                case IndexDefinition.None: return;
+            }
+        }
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                               Private Methods
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        /// <param name="clear">Describes bits in flag, that have to be cleared before updating value.</param>
+        private void SetInternal(uint messageID, IndexDefinition definition, IndexDefinition clear)
         {
             uint location = messageID >> FlagOffset;
-            lock (_lock)
+            int offset = (int)(messageID & FlagMask);
+            if (definition == IndexDefinition.None)
             {
-                if (m_Flags.TryGetValue(location, out uint flag))
+                // Removes flag.
+                lock (_lock)
                 {
-                    flag &= ~(1u << (int)(messageID & FlagMask));
-                    if (flag == 0) m_Flags.Remove(location);
-                    else m_Flags[location] = flag;
+                    if (m_Flags.TryGetValue(location, out uint flag))
+                    {
+                        flag &= ~((uint)clear << offset);
+                        if (flag == 0u) m_Flags.Remove(location);
+                        else m_Flags[location] = flag;
+                    }
+                }
+            }
+            else
+            {
+                // Adds flag
+                lock (_lock)
+                {
+                    if (m_Flags.TryGetValue(location, out uint flag))
+                    {
+                        uint frame = flag & ~((uint)clear << offset);
+                        uint value = (uint)(definition & clear) << offset;
+                        m_Flags[location] = frame | value;
+                    }
+                    else
+                    {
+                        m_Flags[location] = (uint)definition << offset;
+                    }
                 }
             }
         }

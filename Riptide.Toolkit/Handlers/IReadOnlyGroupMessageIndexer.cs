@@ -9,8 +9,6 @@
 /// 
 /// ]]>
 
-using Riptide.Toolkit.Extensions;
-
 namespace Riptide.Toolkit.Handlers
 {
     /// <summary>
@@ -35,11 +33,8 @@ namespace Riptide.Toolkit.Handlers
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Checks if <paramref name="messageID"/> belongs to this <see cref="GroupID"/>.
+        /// Retrieves <see cref="IndexDefinition"/> under given <paramref name="messageID"/>.
         /// </summary>
-        /// <param name="messageID">MessageID to check.</param>
-        bool Has(uint messageID);
-
-        bool
+        IndexDefinition Get(uint messageID);
     }
 }

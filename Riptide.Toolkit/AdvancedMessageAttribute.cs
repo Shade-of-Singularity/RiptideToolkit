@@ -42,7 +42,9 @@ namespace Riptide.Toolkit
         /// .                                                 Constants
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        internal const BindingFlags MethodBindingFlags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+        internal const BindingFlags MethodBindingFlags
+            = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic
+            | BindingFlags.GetProperty | BindingFlags.SetProperty;
 
 
 
@@ -68,13 +70,13 @@ namespace Riptide.Toolkit
         /// </remarks>
         public readonly PropertyInfo Message;
         /// <summary>
-        /// Static GroupID of this message handler. Automatic ID assignment will avoid static IDs.
-        /// </summary>
-        public readonly byte? GroupID; // Not read-only, to allow NetworkIndex to set ID to it, to speed-up analysis.
-        /// <summary>
         /// Static MessageID of this message handler. Automatic ID assignment will avoid static IDs.
         /// </summary>
         public uint? MessageID; // Not read-only, to allow NetworkIndex to set ID to it, to speed-up analysis.
+        /// <summary>
+        /// Static GroupID of this message handler. Automatic ID assignment will avoid static IDs.
+        /// </summary>
+        public byte? GroupID; // Not read-only, to allow NetworkIndex to set ID to it, to speed-up analysis.
         /// <summary>
         /// Whether to release <see cref="NetworkMessage"/> after calling a message handler.
         /// </summary>
