@@ -91,6 +91,7 @@ namespace Riptide.Toolkit.Handlers
         public void Fire(AdvancedClient client, uint messageID, Message message)
         {
             MessageHandlerInfo info = NetworkIndex.RawClientHandlers.Get(messageID);
+            if (info.MessageType is null) throw new System.Exception("This");
             object[] args = new object[1];
 
             object result;

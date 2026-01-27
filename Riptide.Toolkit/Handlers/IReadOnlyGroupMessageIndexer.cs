@@ -39,5 +39,7 @@ namespace Riptide.Toolkit.Handlers
         /// </summary>
         /// <param name="messageID">MessageID to check.</param>
         bool Has(uint messageID);
+
+        bool
     }
 }

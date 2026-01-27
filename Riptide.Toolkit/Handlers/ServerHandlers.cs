@@ -92,6 +92,7 @@ namespace Riptide.Toolkit.Handlers
         public void Fire(AdvancedServer server, uint messageID, ushort clientID, Message message)
         {
             MessageHandlerInfo info = NetworkIndex.RawServerHandlers.Get(messageID);
+            if (info.MessageType is null) throw new System.Exception("This");
             object[] args = new object[2];
             args[0] = clientID;
 
