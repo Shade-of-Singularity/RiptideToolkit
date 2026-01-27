@@ -17,7 +17,8 @@ namespace Riptide.Toolkit.Handlers
     /// Interface for <see cref="ClientHandlers"/> and <see cref="ServerHandlers"/> to implement.
     /// Specifies API for <see cref="MessageHandlerCollection{THandler}"/>.
     /// </summary>
-    public interface IReadOnlyMessageHandlerCollection<THandler> where THandler : IStructValidator
+    public interface IReadOnlyMessageHandlerCollection<THandler>
+        where THandler : IStructValidator
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .

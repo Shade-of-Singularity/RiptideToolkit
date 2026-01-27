@@ -50,5 +50,15 @@ namespace Riptide.Toolkit.Handlers
         /// <param name="messageID">MessageID to register.</param>
         /// <param name="definition">Definition under <paramref name="messageID"/>.</param>
         void Add(uint messageID, IndexDefinition definition);
+
+        /// <summary>
+        /// Puts <paramref name="definition"/> under the next free index.
+        /// </summary>
+        /// <remarks>
+        /// Using <see cref="IndexDefinition.None"/> will not store anything in the collection, and will return free MessageID spot.
+        /// </remarks>
+        /// <param name="definition">Index definition to put in the next free spot.</param>
+        /// <returns>MessageID under which index was defined.</returns>
+        uint Put(IndexDefinition definition);
     }
 }

@@ -61,6 +61,7 @@ namespace Riptide.Toolkit.Handlers
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         private readonly object _lock = new object();
+        private uint m_MessageIDHeadIndex;
         private uint[][][] m_Flags;
 
 
@@ -105,7 +106,60 @@ namespace Riptide.Toolkit.Handlers
         public override IndexDefinition Get(uint messageID)
         {
             NetworkIndex.Initialize();
+            return GetInternal(messageID);
+        }
+
+        /// <inheritdoc/>
+        public override void Set(uint messageID, IndexDefinition definition) => SetInternal(messageID, definition, clear: IndexDefinition.Both);
+
+        /// <inheritdoc/>
+        public override void Add(uint messageID, IndexDefinition definition)
+        {
+            switch (definition)
+            {
+                case IndexDefinition.Both:
+                case IndexDefinition.Client:
+                case IndexDefinition.Server: SetInternal(messageID, definition, clear: definition); return;
+
+                default:
+                case IndexDefinition.None: return;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override uint Put(IndexDefinition definition)
+        {
+            uint head = m_MessageIDHeadIndex;
+            while (true)
+            {
+                // TODO: Optimize.
+                if (GetInternal(head) == IndexDefinition.None)
+                {
+                    if (definition == IndexDefinition.None) return m_MessageIDHeadIndex = head;
+                    else
+                    {
+                        SetInternal(head, definition, clear: IndexDefinition.Both);
+                        m_MessageIDHeadIndex = head + 1;
+                        return head;
+                    }
+                }
+
+                checked { head++; }
+            }
+        }
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                               Private Methods
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        private IndexDefinition GetInternal(uint messageID)
+        {
             // TODO: Benchmark to test if this solution really more performant than dictionaries.
+            //  I suspect branches might hit performance to some degree.
             //  Maybe we can optimize it even further with a right region map sizes.
             uint regionsIndex = messageID >> RegionOffset;
             uint flagsIndex = (messageID & RegionMask) >> FlagOffset;
@@ -126,31 +180,6 @@ namespace Riptide.Toolkit.Handlers
             }
         }
 
-        /// <inheritdoc/>
-        public override void Set(uint messageID, IndexDefinition definition) => SetInternal(messageID, definition, clear: IndexDefinition.Both);
-
-        /// <inheritdoc/>
-        public override void Add(uint messageID, IndexDefinition definition)
-        {
-            switch (definition)
-            {
-                case IndexDefinition.Both:
-                case IndexDefinition.Client:
-                case IndexDefinition.Server: SetInternal(messageID, definition, clear: definition); return;
-
-                default:
-                case IndexDefinition.None: return;
-            }
-        }
-
-
-
-
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
-        /// .
-        /// .                                               Private Methods
-        /// .
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <param name="clear">Describes bits in flag, that have to be cleared before updating value.</param>
         private void SetInternal(uint messageID, IndexDefinition definition, IndexDefinition clear)
         {

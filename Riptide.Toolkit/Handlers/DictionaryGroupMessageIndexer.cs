@@ -10,6 +10,7 @@
 /// ]]>
 /// 
 
+using Riptide.Toolkit.Settings;
 using System.Collections.Generic;
 
 namespace Riptide.Toolkit.Handlers
@@ -40,6 +41,7 @@ namespace Riptide.Toolkit.Handlers
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         private readonly Dictionary<uint, uint> m_Flags = new Dictionary<uint, uint>(0);
         private readonly object _lock = new object();
+        private uint m_MessageIDHeadIndex;
 
 
 
@@ -69,17 +71,7 @@ namespace Riptide.Toolkit.Handlers
         public override IndexDefinition Get(uint messageID)
         {
             NetworkIndex.Initialize();
-            uint location = messageID >> FlagOffset;
-            int offset = (int)(messageID & FlagMask);
-            lock (_lock)
-            {
-                if (m_Flags.TryGetValue(location, out uint flag))
-                {
-                    return (IndexDefinition)(flag >> offset) & IndexDefinition.Both;
-                }
-            }
-
-            return IndexDefinition.None;
+            return GetInternal(messageID);
         }
 
         /// <inheritdoc/>
@@ -99,6 +91,28 @@ namespace Riptide.Toolkit.Handlers
             }
         }
 
+        /// <inheritdoc/>
+        public override uint Put(IndexDefinition definition)
+        {
+            uint head = m_MessageIDHeadIndex;
+            while (true)
+            {
+                // TODO: Optimize.
+                if (GetInternal(head) == IndexDefinition.None)
+                {
+                    if (definition == IndexDefinition.None) return m_MessageIDHeadIndex = head;
+                    else
+                    {
+                        SetInternal(head, definition, clear: IndexDefinition.Both);
+                        m_MessageIDHeadIndex = head + 1;
+                        return head;
+                    }
+                }
+
+                checked { head++; }
+            }
+        }
+
 
 
 
@@ -107,6 +121,21 @@ namespace Riptide.Toolkit.Handlers
         /// .                                               Private Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        private IndexDefinition GetInternal(uint messageID)
+        {
+            uint location = messageID >> FlagOffset;
+            int offset = (int)(messageID & FlagMask);
+            lock (_lock)
+            {
+                if (m_Flags.TryGetValue(location, out uint flag))
+                {
+                    return (IndexDefinition)(flag >> offset) & IndexDefinition.Both;
+                }
+            }
+
+            return IndexDefinition.None;
+        }
+
         /// <param name="clear">Describes bits in flag, that have to be cleared before updating value.</param>
         private void SetInternal(uint messageID, IndexDefinition definition, IndexDefinition clear)
         {
@@ -124,6 +153,12 @@ namespace Riptide.Toolkit.Handlers
                         else m_Flags[location] = flag;
                     }
                 }
+
+                // TODO: Benchmark if Math.Min() will be more optimized.
+                if (m_MessageIDHeadIndex > messageID)
+                {
+                    m_MessageIDHeadIndex = messageID;
+                }
             }
             else
             {
@@ -140,6 +175,11 @@ namespace Riptide.Toolkit.Handlers
                     {
                         m_Flags[location] = (uint)definition << offset;
                     }
+                }
+
+                if (m_MessageIDHeadIndex == messageID)
+                {
+                    m_MessageIDHeadIndex = messageID + 1;
                 }
             }
         }

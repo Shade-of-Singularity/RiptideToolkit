@@ -279,12 +279,4 @@ namespace Riptide.Toolkit.Extensions
             return v + 1;
         }
     }
-
-    public interface IStructValidator
-    {
-        /// <summary>
-        /// Utilized by structs to tell if they are in a <see cref="default"/> state, e.g. and can be overwritten.
-        /// </summary>
-        bool IsDefault { get; }
-    }
 }
