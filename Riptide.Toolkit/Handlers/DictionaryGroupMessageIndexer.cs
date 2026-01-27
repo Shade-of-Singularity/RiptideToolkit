@@ -8,9 +8,7 @@
 ///                        "RiptideToolkit/LICENSE.md"
 /// 
 /// ]]>
-/// 
 
-using Riptide.Toolkit.Settings;
 using System.Collections.Generic;
 
 namespace Riptide.Toolkit.Handlers
