@@ -10,41 +10,18 @@
 /// ]]>
 
 using Riptide.Toolkit.Storage;
+using System;
+using System.Reflection;
 
 namespace Riptide.Toolkit.Messages
 {
-    /// <inheritdoc cref="NetworkMessage{TMessage, TProfile}"/>
-    /// <remarks>
-    /// <para>Implements <see cref="S0"/> as <see cref="StorageProfile{TProfile}"/> by default.</para>
-    /// </remarks>
-    /// TODO: Add message pooling based on load.
-    public abstract class NetworkMessage<TMessage> : NetworkMessage<TMessage, S0>
-        where TMessage : NetworkMessage<TMessage, S0>, new()
-    {
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
-        /// .
-        /// .                                              Protected Methods
-        /// .
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        /// <summary>
-        /// <inheritdoc/>
-        /// </summary>
-        /// <remarks>
-        /// Since this instance has <see cref="StorageProfile"/> set to <see cref="S0"/> - it guarantees that instance will always be collected by GC.
-        /// Because of that, this method is empty. You can still override it, but outside of internal callback you will gain nothing from it.
-        /// So better to inherit <see cref="NetworkMessage{TMessage, TProfile}"/> and change <see cref="S0"/> to at least <see cref="S1"/> storage.
-        /// </remarks>
-        protected override void Dispose() { }
-    }
-
     /// <summary>
     /// Base class for custom messages.
     /// </summary>
     /// <typeparam name="TMessage">Class that inherited this <see cref="NetworkMessage{TMessage, TProfile}"/></typeparam>
-    /// <typeparam name="TProfile"><see cref="StorageProfile{TProfile}"/> of this network message. Will pool some of the message instances based on it.</typeparam>
-    public abstract class NetworkMessage<TMessage, TProfile> : NetworkMessage
-        where TMessage : NetworkMessage<TMessage, TProfile>, new()
-        where TProfile : StorageProfile<TProfile>, new()
+    [S0] // Doesn't request any pool capacity (TODO: Optimize it), because regular network messages need disposal but they implement none.
+    public abstract class NetworkMessage<TMessage> : NetworkMessage
+        where TMessage : NetworkMessage<TMessage>, new()
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
@@ -52,12 +29,14 @@ namespace Riptide.Toolkit.Messages
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Message ID of this <see cref="NetworkMessage{TMessage, TLoad}"/>.
+        /// Message ID of this <see cref="NetworkMessage"/>.
         /// </summary>
         [MessageID] public static uint MessageID { get; set; } = NetworkIndex.InvalidMessageID;
-
-        /// <inheritdoc cref="MessageID"/>
+        /// <summary>
+        /// Message ID of this <see cref="NetworkMessage"/>.
+        /// </summary>
         public override uint ID => MessageID;
+
 
 
 
@@ -66,7 +45,28 @@ namespace Riptide.Toolkit.Messages
         /// .                                                Constructors
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        static NetworkMessage() => Pools.EnsureCapacity<TMessage>(StorageProfile<TProfile>.Instance.Storage);
+        static NetworkMessage()
+        {
+            NetworkIndex.Initialize(); // Initializes MessageID.
+            Type type = typeof(TMessage);
+            do
+            {
+                // Searches for storage definition.
+                // Note: if code will cause stuttering during first minutes of networking (unlikely)
+                // - run static .ctor on all network messages in all assemblies relying on RiptideToolkit.
+                // It will remove stuttering and allocate all pools prematurely, but will increase game loading time.
+                // (Note: on modern systems, it won't take even 0.001s to execute this code).
+                if (type.IsDefined(typeof(StorageAttribute), inherit: false))
+                {
+                    StorageAttribute attribute = type.GetCustomAttribute<StorageAttribute>(inherit: false);
+                    MessagePool<TMessage>.Instance.EnsureCapacity(attribute.Storage);
+                    return;
+                }
+
+                type = type.BaseType;
+            }
+            while (!(type is null));
+        }
 
 
 
@@ -80,17 +80,14 @@ namespace Riptide.Toolkit.Messages
         /// Retrieves message from pool. If pool is empty - simply creates new instance.
         /// </summary>
         /// <returns>Empty <typeparamref name="TMessage"/> instance to be used.</returns>
-        public static TMessage Get() => Pools.Retrieve<TMessage>();
+        public static TMessage Get() => MessagePool<TMessage>.Instance.Retrieve();
 
         /// <summary>
         /// Creates new message with ID of this <see cref="NetworkMessage{TMessage, TProfile}"/>.
         /// </summary>
         /// <param name="mode">Message sending mode. Needed for message factory method - <see cref="Message.Create(MessageSendMode, ushort)"/></param>
         /// <returns>Newly created message.</returns>
-        public static Message Message(MessageSendMode mode)
-        {
-            return NetMessage.Create(mode, MessageID);
-        }
+        public static Message Message(MessageSendMode mode) => NetMessage.Create(mode, MessageID);
 
 
 
@@ -106,12 +103,8 @@ namespace Riptide.Toolkit.Messages
         /// </summary>
         public override void Release()
         {
-            // Always disposes.
-            Dispose();
-            if (StorageProfile<TProfile>.Instance.Storage > 0)
-            {
-                Pools.Store(this);
-            }
+            Dispose(); // Always disposes.
+            MessagePool<TMessage>.Instance.Store((TMessage)this);
         }
 
         /// <summary>
@@ -119,7 +112,7 @@ namespace Riptide.Toolkit.Messages
         /// </summary>
         /// <param name="message">Message to unpack.</param>
         /// <returns>Itself, for convenience.</returns>
-        public NetworkMessage<TMessage, TProfile> Unpack(Message message)
+        public NetworkMessage<TMessage> Unpack(Message message)
         {
             Read(message);
             return this;
@@ -134,9 +127,9 @@ namespace Riptide.Toolkit.Messages
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Disposes all arrays and strings under instance control, making it possible for <see cref="System.GC"/> to collect those arrays and strings.
+        /// Disposes all arrays and strings under instance control, making it possible for <see cref="GC"/> to collect those arrays and strings.
         /// </summary>
-        protected abstract void Dispose();
+        protected virtual void Dispose() { }
     }
 
     /// <summary>

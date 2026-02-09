@@ -201,7 +201,7 @@ namespace Riptide.Toolkit.Examples
             Client.Send(message);
             await WaitForMessageToDeliver();
 
-            message = VFXSignal.Message(MessageSendMode.Reliable);
+            message = ExampleHandlers.VFXSignal.Message(MessageSendMode.Reliable);
             Client.Send(message);
             await WaitForMessageToDeliver();
 
@@ -240,7 +240,7 @@ namespace Riptide.Toolkit.Examples
             Server.SendToAll(message);
             await WaitForMessageToDeliver();
 
-            message = VFXSignal.Message(MessageSendMode.Reliable);
+            message = ExampleHandlers.VFXSignal.Message(MessageSendMode.Reliable);
             Server.SendToAll(message);
             await WaitForMessageToDeliver();
 

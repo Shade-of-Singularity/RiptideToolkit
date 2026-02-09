@@ -99,18 +99,34 @@ namespace Riptide.Toolkit.Handlers
                         Array.Clear(flags, 0, FlagCapacity);
                     }
                 }
+
+                m_MessageIDHeadIndex = 0;
             }
         }
 
         /// <inheritdoc/>
         public override IndexDefinition Get(uint messageID)
         {
+            if (messageID >= NetworkIndex.InvalidMessageID)
+            {
+                return IndexDefinition.None;
+            }
+
             NetworkIndex.Initialize();
             return GetInternal(messageID);
         }
 
         /// <inheritdoc/>
-        public override void Set(uint messageID, IndexDefinition definition) => SetInternal(messageID, definition, clear: IndexDefinition.Both);
+        public override void Set(uint messageID, IndexDefinition definition)
+        {
+            if (messageID >= NetworkIndex.InvalidMessageID)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot set index definition for under invalid MessageID (see also: {nameof(NetworkIndex)}.{NetworkIndex.InvalidMessageID})");
+            }
+
+            SetInternal(messageID, definition, clear: IndexDefinition.Both);
+        }
 
         /// <inheritdoc/>
         public override void Add(uint messageID, IndexDefinition definition)
@@ -130,7 +146,7 @@ namespace Riptide.Toolkit.Handlers
         public override uint Put(IndexDefinition definition)
         {
             uint head = m_MessageIDHeadIndex;
-            while (true)
+            while (head < NetworkIndex.InvalidMessageID)
             {
                 // TODO: Optimize.
                 if (GetInternal(head) == IndexDefinition.None)
@@ -144,8 +160,10 @@ namespace Riptide.Toolkit.Handlers
                     }
                 }
 
-                checked { head++; }
+                head++;
             }
+
+            throw new InvalidOperationException($"Exhausted all free MessageIDs (see also: {nameof(NetworkIndex)}.{NetworkIndex.InvalidMessageID})");
         }
 
 
@@ -202,6 +220,10 @@ namespace Riptide.Toolkit.Handlers
                     if (flags is null) return;
 
                     flags[index] &= ~((uint)clear << offset);
+                    if (m_MessageIDHeadIndex > messageID)
+                    {
+                        m_MessageIDHeadIndex = messageID;
+                    }
                 }
             }
             else
@@ -232,6 +254,11 @@ namespace Riptide.Toolkit.Handlers
                         uint frame = flags[index] & ~((uint)clear << offset);
                         uint value = (uint)(definition & clear) << offset;
                         flags[index] = frame | value;
+                    }
+
+                    if (m_MessageIDHeadIndex == messageID)
+                    {
+                        m_MessageIDHeadIndex = messageID + 1;
                     }
                 }
             }

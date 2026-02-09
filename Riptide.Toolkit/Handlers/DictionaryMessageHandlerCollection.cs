@@ -10,6 +10,7 @@
 /// ]]>
 
 using Riptide.Toolkit.Extensions;
+using System;
 using System.Collections.Generic;
 
 namespace Riptide.Toolkit.Handlers
@@ -34,7 +35,6 @@ namespace Riptide.Toolkit.Handlers
         /// RegionMap with all the handlers.
         /// </summary>
         private readonly Dictionary<uint, THandler> m_Handlers = new Dictionary<uint, THandler>();
-
         /// <summary>
         /// Index of the next (probably) free cell in region array.
         /// </summary>
@@ -81,32 +81,51 @@ namespace Riptide.Toolkit.Handlers
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <inheritdoc/>
-        public override void Clear() => m_Handlers.Clear();
+        public override void Clear()
+        {
+            m_Handlers.Clear();
+            m_HeadIndex = 0;
+        }
 
         /// <inheritdoc/>
-        public override void Set(uint messageID, THandler handler) => m_Handlers[messageID] = handler;
+        public override void Set(uint messageID, THandler handler)
+        {
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
+
+            m_Handlers[messageID] = handler;
+        }
 
         /// <inheritdoc/>
         public override uint Put(THandler handler)
         {
-            var regions = m_Handlers;
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
 
-            // Allocates local array variable to reduce instruction amount.
+            var regions = m_Handlers; // Allocates local array variable to reduce instruction amount.
             uint head = m_HeadIndex;
-            for (; head < uint.MaxValue; head++)
+            while (head < NetworkIndex.InvalidMessageID)
             {
                 if (!regions.ContainsKey(head))
                 {
                     regions[head] = handler;
+
+                    // Moves head to (potentially free) next ID. 
+                    m_HeadIndex = head + 1;
+                    return head;
                 }
+
+                head++;
             }
 
-            // Moves head to (potentially free) next ID. 
-            m_HeadIndex = head + 1;
-            return head;
+            throw new InvalidOperationException($"Exhausted all free MessageIDs (see also: {nameof(NetworkIndex)}.{NetworkIndex.InvalidMessageID})");
         }
 
         /// <inheritdoc/>
-        public override void Remove(uint messageID) => m_Handlers.Remove(messageID);
+        public override void Remove(uint messageID)
+        {
+            if (m_Handlers.Remove(messageID) && m_HeadIndex > messageID)
+            {
+                m_HeadIndex = messageID;
+            }
+        }
     }
 }

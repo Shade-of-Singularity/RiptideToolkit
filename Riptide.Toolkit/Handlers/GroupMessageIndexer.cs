@@ -10,7 +10,6 @@
 /// ]]>
 /// 
 
-using Riptide.Toolkit.Relaying;
 using Riptide.Toolkit.Settings;
 using System;
 

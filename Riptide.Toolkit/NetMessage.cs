@@ -9,7 +9,7 @@
 /// 
 /// ]]>
 
-using Riptide.Transports;
+using Riptide.Toolkit.Messages;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -59,11 +59,28 @@ namespace Riptide.Toolkit
                 .AddVarULong(messageID);// TODO: Create the same method, but for uint.;
         }
 
+        /// <summary>
+        /// Creates regular message with custom send <paramref name="mode"/>.
+        /// Encodes <paramref name="messageID"/>.
+        /// </summary>
+        public static Message Create<TMessage>(MessageSendMode mode) where TMessage : NetworkMessage<TMessage>, new()
+        {
+            return Message.Create(mode)
+                .AddBits((byte)SystemMessageID.Regular, SystemMessaging.TotalBits)
+                .AddVarULong(NetworkMessage<TMessage>.MessageID);// TODO: Create the same method, but for uint.;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Message Reliable(Enum messageID) => Create(MessageSendMode.Reliable, (uint)(object)messageID);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Message Reliable(uint messageID) => Create(MessageSendMode.Reliable, messageID);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Reliable<TMessage>() where TMessage : NetworkMessage<TMessage>, new()
+        {
+            return Create<TMessage>(MessageSendMode.Reliable);
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Message Unreliable(Enum messageID) => Create(MessageSendMode.Unreliable, (uint)(object)messageID);
@@ -72,10 +89,22 @@ namespace Riptide.Toolkit
         public static Message Unreliable(uint messageID) => Create(MessageSendMode.Unreliable, messageID);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Unreliable<TMessage>() where TMessage : NetworkMessage<TMessage>, new()
+        {
+            return Create<TMessage>(MessageSendMode.Unreliable);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Message Notify(Enum messageID) => Create(MessageSendMode.Unreliable, (uint)(object)messageID);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Message Notify(uint messageID) => Create(MessageSendMode.Unreliable, messageID);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Notify<TMessage, TProfile>() where TMessage : NetworkMessage<TMessage>, new()
+        {
+            return Create<TMessage>(MessageSendMode.Notify);
+        }
 
 
 

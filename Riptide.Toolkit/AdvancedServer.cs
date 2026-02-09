@@ -100,6 +100,7 @@ namespace Riptide.Toolkit
             if (RelayFilter != null && RelayFilter.ShouldRelay(messageID))
             {
                 // The message should be automatically relayed to clients instead of being handled on the server
+                // TODO: Test this part.
                 SendToAll(message, fromConnection.Id);
                 return;
             }

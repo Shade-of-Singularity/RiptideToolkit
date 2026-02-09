@@ -65,6 +65,7 @@ namespace Riptide.Toolkit.Handlers
         /// <remarks>
         /// Doesn't release <paramref name="message"/> automatically.
         /// </remarks>
+        /// <param name="client">(WIP) Will be used to send responses for messages which support it.</param>
         /// <param name="messageID">ID of a message handler.</param>
         /// <param name="message">Message to read.</param>
         /// <returns><c>false</c> if there is no handler under given <paramref name="messageID"/> registered. <c>true</c> otherwise.</returns>
@@ -86,6 +87,7 @@ namespace Riptide.Toolkit.Handlers
         /// Throws if handler wasn't found.
         /// Doesn't release <paramref name="message"/> automatically.
         /// </remarks>
+        /// <param name="client">(WIP) Will be used to send responses for messages which support it.</param>
         /// <param name="messageID">ID of a message handler.</param>
         /// <param name="message">Message to read.</param>
         public void Fire(AdvancedClient client, uint messageID, Message message)
@@ -105,7 +107,7 @@ namespace Riptide.Toolkit.Handlers
             }
             else
             {
-                NetworkMessage container = (NetworkMessage)Pools.Retrieve(info.MessageType);
+                NetworkMessage container = (NetworkMessage)MessagePools.Retrieve(info.MessageType);
                 container.Read(message);
                 args[0] = container;
                 result = info.Method.Invoke(null, args);

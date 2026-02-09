@@ -9,6 +9,7 @@
 /// 
 /// ]]>
 
+using System;
 using System.Collections.Generic;
 
 namespace Riptide.Toolkit.Handlers
@@ -62,7 +63,11 @@ namespace Riptide.Toolkit.Handlers
         /// <inheritdoc/>
         public override void Clear()
         {
-            lock (_lock) m_Flags.Clear();
+            lock (_lock)
+            {
+                m_Flags.Clear();
+                m_MessageIDHeadIndex = 0;
+            }
         }
 
         /// <inheritdoc/>
@@ -93,7 +98,7 @@ namespace Riptide.Toolkit.Handlers
         public override uint Put(IndexDefinition definition)
         {
             uint head = m_MessageIDHeadIndex;
-            while (true)
+            while (head < NetworkIndex.InvalidMessageID)
             {
                 // TODO: Optimize.
                 if (GetInternal(head) == IndexDefinition.None)
@@ -107,8 +112,10 @@ namespace Riptide.Toolkit.Handlers
                     }
                 }
 
-                checked { head++; }
+                head++;
             }
+
+            throw new InvalidOperationException($"Exhausted all free MessageIDs (see also: {nameof(NetworkIndex)}.{NetworkIndex.InvalidMessageID})");
         }
 
 
@@ -150,12 +157,12 @@ namespace Riptide.Toolkit.Handlers
                         if (flag == 0u) m_Flags.Remove(location);
                         else m_Flags[location] = flag;
                     }
-                }
 
-                // TODO: Benchmark if Math.Min() will be more optimized.
-                if (m_MessageIDHeadIndex > messageID)
-                {
-                    m_MessageIDHeadIndex = messageID;
+                    // TODO: Benchmark if Math.Min() will be more optimized.
+                    if (m_MessageIDHeadIndex > messageID)
+                    {
+                        m_MessageIDHeadIndex = messageID;
+                    }
                 }
             }
             else
@@ -173,11 +180,11 @@ namespace Riptide.Toolkit.Handlers
                     {
                         m_Flags[location] = (uint)definition << offset;
                     }
-                }
 
-                if (m_MessageIDHeadIndex == messageID)
-                {
-                    m_MessageIDHeadIndex = messageID + 1;
+                    if (m_MessageIDHeadIndex == messageID)
+                    {
+                        m_MessageIDHeadIndex = messageID + 1;
+                    }
                 }
             }
         }

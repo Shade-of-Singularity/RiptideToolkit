@@ -9,6 +9,8 @@
 /// 
 /// ]]>
 
+using Riptide.Toolkit.Messages;
+using Riptide.Transports;
 using Riptide.Utils;
 
 namespace Riptide.Toolkit.Examples
@@ -28,20 +30,27 @@ namespace Riptide.Toolkit.Examples
         public static void UpdateUsername(Message message)
         {
             RiptideLogger.Log(LogType.Warning, $"");
-            RiptideLogger.Log(LogType.Warning, $"[Client] Updating username for client ({message.GetUShort()}) to ({message.GetString()})");
+            RiptideLogger.Log(LogType.Warning, $"[Client] Received client's ({message.GetUShort()}) new username ({message.GetString()})");
             RiptideLogger.Log(LogType.Warning, $"");
         }
 
-        // Defines handler in both groups.
+        // Defines message handler in both groups.
+        public sealed class ExampleGroup : NetworkGroup<ExampleGroup> { }
+
+        // DefaultGroup is defined by default and has GroupID of '0'.
         [AdvancedMessage((uint)ToClientMessages.UpdatePlayerPosition, typeof(DefaultGroup))]
         [AdvancedMessage((uint)ToClientMessages.UpdatePlayerPosition, typeof(ExampleGroup))]
         public static void UpdatePlayerPosition(Message message)
         {
             RiptideLogger.Log(LogType.Warning, $"");
-            RiptideLogger.Log(LogType.Warning, $"[Client] Updated player position for ({message.GetUShort()}) to ({message.GetFloat()}, {message.GetFloat()})");
+            RiptideLogger.Log(LogType.Warning, $"[Client] Received player position for at ({message.GetFloat()}, {message.GetFloat()})");
             RiptideLogger.Log(LogType.Warning, $"");
         }
 
+        // Defines new message.
+        public sealed class VFXSignal : FlagMessage<VFXSignal> { }
+
+        // Will evaluate MessageID from VFXSignal class.
         [AdvancedMessage(typeof(DefaultGroup))]
         [AdvancedMessage(typeof(ExampleGroup))]
         public static void HandleVFXSignal(VFXSignal _)

@@ -10,6 +10,7 @@
 /// ]]>
 
 using Riptide.Toolkit.Messages;
+using Riptide.Toolkit.Storage;
 
 namespace Riptide.Toolkit.Examples
 {
@@ -25,13 +26,11 @@ namespace Riptide.Toolkit.Examples
     }
 
     public enum ToServerMessages : uint
-    { 
+    {
         RegisterUsername,
         ReceivePlayerPosition,
     }
 
-    // Automatic network messages will take any unoccupied ID.
-    public sealed class VFXSignal : FlagMessage<VFXSignal> { }
     public sealed class CustomNetworkMessage : NetworkMessage<CustomNetworkMessage>
     {
         public const int ChunkSize = 8;

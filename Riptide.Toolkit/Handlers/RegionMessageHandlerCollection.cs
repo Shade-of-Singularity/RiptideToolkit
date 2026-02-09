@@ -39,38 +39,31 @@ namespace Riptide.Toolkit.Handlers
         /// you will have arrays covering: [N][32][32] cells, totaling to [N][1024] per section.
         /// </summary>
         private THandler[][][] m_Regions;
-
         /// <summary>
         /// Mask which covers all the bits, not managed by main regions.
         /// </summary>
         private readonly uint m_RootMask;
-
         /// <summary>
         /// By how much bits inputs has to be offset to move bits in input value to a bit #0.
         /// </summary>
         private readonly int m_RootOffset;
-
         /// <summary>
         /// Mask which covers all bits, representing values within a larger region.
         /// </summary>
         private readonly uint m_LargeRegionMask;
-
         /// <summary>
         /// By how much bits inputs has to be offset to move bits in input value to a bit #0.
         /// </summary>
         private readonly int m_LargeRegionOffset;
-
         /// <summary>
         /// Mask which covers all bits, representing values within a region.
         /// For example, with RegionSize set to 16, mask will be: 0b1111.
         /// </summary>
         private readonly uint m_SmallRegionMask;
-
         /// <summary>
         /// Size of one small handler region.
         /// </summary>
         private readonly uint m_RegionSize;
-
         /// <summary>
         /// Index of the next (probably) free cell in region array.
         /// </summary>
@@ -127,6 +120,12 @@ namespace Riptide.Toolkit.Handlers
         /// </exception>
         public override THandler Get(uint messageID)
         {
+            if (messageID >= NetworkIndex.InvalidMessageID)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot retrieve message handler for an invalid MessageID (see also: {nameof(NetworkIndex)}.{NetworkIndex.InvalidMessageID})");
+            }
+
             NetworkIndex.Initialize();
             // Makes all bitmask and bit offset operations here to use CPU parallel instruction execution.
             uint region = (messageID & m_LargeRegionMask) >> m_LargeRegionOffset;
@@ -138,6 +137,11 @@ namespace Riptide.Toolkit.Handlers
         /// <inheritdoc/>
         public override bool Has(uint messageID)
         {
+            if (messageID >= NetworkIndex.InvalidMessageID)
+            {
+                return false;
+            }
+
             NetworkIndex.Initialize();
             // Makes all bitmask and bit offset operations here to use CPU parallel instruction execution.
             uint region = (messageID & m_LargeRegionMask) >> m_LargeRegionOffset;
@@ -149,6 +153,12 @@ namespace Riptide.Toolkit.Handlers
         /// <inheritdoc/>
         public override bool TryGet(uint messageID, out THandler hander)
         {
+            if (messageID >= NetworkIndex.InvalidMessageID)
+            {
+                hander = default;
+                return false;
+            }
+
             NetworkIndex.Initialize();
             // Makes all bitmask and bit offset operations here to use CPU parallel instruction execution.
             uint region = (messageID & m_LargeRegionMask) >> m_LargeRegionOffset;
@@ -189,11 +199,21 @@ namespace Riptide.Toolkit.Handlers
                     Array.Clear(region, 0, size);
                 }
             }
+
+            m_HeadIndex = 0;
         }
 
         /// <inheritdoc/>
         public override void Set(uint messageID, THandler handler)
         {
+            if (messageID >= NetworkIndex.InvalidMessageID)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot set message handler for an invalid MessageID (see also: {nameof(NetworkIndex)}.{NetworkIndex.InvalidMessageID})");
+            }
+
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
+
             // Makes all bitmask and bit offset operations here to use CPU parallel instruction execution.
             uint areaIndex = (messageID & m_LargeRegionMask) >> m_LargeRegionOffset;
             uint restIndex = messageID >> m_RootOffset;
@@ -223,6 +243,8 @@ namespace Riptide.Toolkit.Handlers
         /// <inheritdoc/>
         public override uint Put(THandler handler)
         {
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
+
             // TODO: Optimize by only updating references to larger regions after leaving range of a given region.
             //  And do it without much branching.
             // Allocates local array variable to reduce instruction amount.
@@ -235,7 +257,7 @@ namespace Riptide.Toolkit.Handlers
             int restOffset = m_RootOffset;
 
             uint head = m_HeadIndex;
-            for (; head < uint.MaxValue; head++)
+            while (head < NetworkIndex.InvalidMessageID)
             {
                 uint areaIndex = (head & largeMask) >> largeOffset;
                 uint restIndex = head >> restOffset;
@@ -261,13 +283,16 @@ namespace Riptide.Toolkit.Handlers
                 if (region[index].IsDefault)
                 {
                     region[index] = handler;
-                    break;
+
+                    // Moves head to (potentially free) next ID. 
+                    m_HeadIndex = head + 1;
+                    return head;
                 }
+
+                head++;
             }
 
-            // Moves head to (potentially free) next ID. 
-            m_HeadIndex = head + 1;
-            return head;
+            throw new InvalidOperationException($"Exhausted all free MessageIDs (see also: {nameof(NetworkIndex)}.{NetworkIndex.InvalidMessageID})");
         }
 
         /// <inheritdoc/>
@@ -296,6 +321,10 @@ namespace Riptide.Toolkit.Handlers
             }
 
             region[index] = default;
+            if (m_HeadIndex > messageID)
+            {
+                m_HeadIndex = messageID;
+            }
         }
 
 

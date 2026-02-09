@@ -80,7 +80,8 @@ namespace Riptide.Toolkit
         protected override void OnMessageReceived(Message message)
         {
             NetMessage.ReadHeaders(message, out SystemMessageID systemMessageID);
-            // TODO: Do we need to allow increasing ID limit to ulong?... Hell no!..?
+
+            // Note: Do we need to allow increasing ID limit to ulong?... Hell no!..?
             uint messageID = (uint)message.GetVarULong();
             var args = new AdvancedMessageReceivedEventArgs(Connection, messageID, message);
             MessageReceived?.Invoke(this, args);

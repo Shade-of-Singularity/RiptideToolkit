@@ -37,21 +37,20 @@ namespace Riptide.Toolkit
         public const string LogPrefix = "[" + nameof(NetworkIndex) + "]";
         /// <summary>
         /// How many groups is there.
+        /// IDs beyond this one are all invalid.
         /// </summary>
-        public const byte MaxGroupIDAmount = 255;
-        /// <summary>
-        /// How many messages one group can hold.
-        /// </summary>
-        public const uint MaxMessageIDAmount = uint.MaxValue;
-        /// <summary>
-        /// GroupID which indicates that ID was not assigned yet.
-        /// <see cref="byte.MaxValue"/> is an invalid ID, since '0' is commonly used everywhere by <see cref="Toolkit"/>.
-        /// </summary>
+        /// <remarks>
+        /// Last ID is also used for global MessageID indexing.
+        /// </remarks>
         public const byte InvalidGroupID = byte.MaxValue;
         /// <summary>
-        /// MessageID which indicates that ID was not assigned yet.
-        /// <see cref="uint.MaxValue"/> is an invalid ID, since '0' is commonly used everywhere by developers.
+        /// How many messages one group can hold.
+        /// IDs beyond this one are all invalid.
         /// </summary>
+        /// <remarks>
+        /// Last ID should be set by default to <see cref="NetworkMessage{TMessage}.MessageID"/>.
+        /// And said property is also reset back to <see cref="InvalidMessageID"/> on reloading (WIP).
+        /// </remarks>
         public const uint InvalidMessageID = uint.MaxValue;
 
 
@@ -84,7 +83,7 @@ namespace Riptide.Toolkit
         /// <summary>
         /// Whether message handlers was loaded-in successfully.
         /// </summary>
-        public static bool IsValid => m_IsValid;
+        public static bool IsUpdated => m_IsUpdated;
 
         /// <summary>
         /// Contains references to raw <see cref="MessageHandlerInfo"/> structs for clients.
@@ -114,11 +113,11 @@ namespace Riptide.Toolkit
         /// <summary>
         /// Stores <see cref="IndexDefinition"/>s for MessageIDs under a specific <see cref="GroupMessageIndexer.GroupID"/>.
         /// </summary>
-        private static readonly GroupMessageIndexer[] m_Groups = new GroupMessageIndexer[MaxGroupIDAmount];
+        private static readonly GroupMessageIndexer[] m_Groups = new GroupMessageIndexer[InvalidGroupID];
         /// <summary>
         /// Stores <see cref="IndexDefinition"/>s for all MessageIDs in all groups. Needed to find next unoccupied message IDs.
         /// </summary>
-        private static readonly GroupMessageIndexer m_GlobalIndexer = GroupMessageIndexer.Create(InvalidGroupID);
+        private static readonly GroupMessageIndexer m_GlobalIndexer = GroupMessageIndexer.Create(groupID: InvalidGroupID);
         /// <summary>
         /// Index inside <see cref="m_Groups"/> of a next free GroupID spot in array.
         /// </summary>
@@ -133,7 +132,7 @@ namespace Riptide.Toolkit
         private static volatile bool m_IsInitialized = false;
 
         // Whether all handlers are valid. If false - will rescan all assemblies to find all handlers.
-        private static volatile bool m_IsValid = false;
+        private static volatile bool m_IsUpdated = false;
 
         // Lock will be locked on rescan.
         private static readonly object _lock = new object();
@@ -168,23 +167,30 @@ namespace Riptide.Toolkit
 
         public static void Initialize()
         {
-            if (!m_IsValid) lock (_lock) UpdateHandlers();
+            if (!m_IsUpdated) lock (_lock) UpdateHandlers();
         }
 
-        // TODO: Add Assembly loading and unloading (rescan for all classes containing MessageID and reset them to InvalidMessageI)
+        // TODO: Add Assembly loading and unloading (rescan for all classes containing MessageID and reset them to InvalidMessageID
 
         /// <summary>
         /// Activates all static fields in given class/type.
-        /// Can be used to Forcefully register GroupIDs from <see cref="NetworkGroup{TGroup}"/>s.
+        /// Can be used to Forcefully register Pools and such from <see cref="NetworkGroup{TGroup}"/>s.
         /// </summary>
         /// <typeparam name="T">Type to initialize.</typeparam>
-        public static void Register<T>() => System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(T).TypeHandle);
+        public static void Register<T>() => Register(typeof(T));
 
         /// <summary>
         /// Activates all static fields in given class/type.
-        /// Can be used to Forcefully register GroupIDs from <see cref="NetworkGroup{TGroup}"/>s.
+        /// Can be used to Forcefully register Pools and such from <see cref="NetworkGroup{TGroup}"/>s.
         /// </summary>
-        public static void Register(Type type) => System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(type.TypeHandle);
+        public static void Register(Type type)
+        {
+            while (!(type is null))
+            {
+                System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(type.TypeHandle);
+                type = type.BaseType;
+            }
+        }
 
 
 
@@ -290,9 +296,9 @@ namespace Riptide.Toolkit
         private static byte NextGroupID()
         {
             byte head = m_GroupIDHeadIndex;
-            if (head >= MaxGroupIDAmount)
+            if (head >= InvalidGroupID)
             {
-                throw new Exception("Exhausted all network Group IDs for Riptide networking.");
+                throw new Exception($"Exhausted all network Group IDs for Riptide networking (see also: {nameof(NetworkIndex)}.{InvalidGroupID})");
             }
 
             if (m_Groups[head] is null)
@@ -320,7 +326,8 @@ namespace Riptide.Toolkit
             // TODO: Implement monitor here - I suspect there might be a race condition here in some cases.
             // We need this to allow multithreading when no changing is happening, and restrict it when we update handlers.
             // Single-threaded implementation should work though, so Unity should be covered.
-            if (m_IsValid) return;
+            if (m_IsUpdated) return;
+            m_IsUpdated = true;
 
             try
             {
@@ -545,8 +552,6 @@ namespace Riptide.Toolkit
                 RiptideLogger.Log(LogType.Error, $"{LogPrefix} Could not update message handlers gracefully! Networking is likely broken at this point.");
                 RiptideLogger.Log(LogType.Error, $"{ex}\n{ex.StackTrace}");
             }
-
-            m_IsValid = true;
         }
     }
 }
