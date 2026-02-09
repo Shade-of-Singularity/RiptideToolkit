@@ -7,3 +7,4 @@ Target version is specified in Unity's guide.
 https://github.com/GlitchEnzo/NuGetForUnity
 
 *TODO: Rework this section once we make analyzers analyze to new variable types and once they implement NetworkMessage.Dispose().*
+*Note: We can also still consider using structs instead of classes as data containers.*
