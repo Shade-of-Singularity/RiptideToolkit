@@ -2,214 +2,292 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Riptide.Toolkit.Messages;
 using System;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
-using System.Threading;
 
-// (Dark): Many thank to Latios for examples!
-// https://github.com/Dreaming381/Latios-Framework-Documentation/blob/main/Tech%20Adventures/Part%201%20-%20Source%20Generators%201.md
-// As well as Shawn Wildermuth! https://youtu.be/Yf8t7GqA6zA?si=ph-77ao1NDBGgqKL
 namespace Riptide.Toolkit.CodeGen
 {
-    /// <summary>
-    /// Generates <see cref="NetworkMessage.Read(Message)"/> and <see cref="NetworkMessage.Write(Message)"/> methods for messages.
-    /// </summary>
-    /// TODO: Create the same analyzer for writing/reading ALL data in classes as well.
-    ///  Though to be fair, you might want to use structs instead anyway.
+    // Note: We use regular generator to support it inside Unity environment.
     [Generator]
-    public sealed class NetworkMessageGenerator : IIncrementalGenerator
+    public sealed class NetworkMessageGenerator : ISourceGenerator
     {
-        public void Initialize(IncrementalGeneratorInitializationContext context)
-        {
-            var provider = context.SyntaxProvider.CreateSyntaxProvider(NetworkMessagePredicate, NetworkMessageTransform);
-            //var compilation = context.CompilationProvider.Combine(provider.Collect());
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                                 Delegates
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        public delegate string WriteHandler(string container, string member, string type);
+        public delegate string ReadHandler(string container, string member, string type);
 
-            context.RegisterSourceOutput(provider, Execute);
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                               Static Fields
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        static readonly Dictionary<string, WriteHandler> Writers = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "byte", (c, v, _) => $"{c}.{nameof(Message.AddByte)}({v});" },
+            { "sbyte", (c, v, _) => $"{c}.{nameof(Message.AddSByte)}({v});" },
+            { "short", (c, v, _) => $"{c}.{nameof(Message.AddShort)}({v});" },
+            { "ushort", (c, v, _) => $"{c}.{nameof(Message.AddUShort)}({v});" },
+
+            { "int", (c, v, _) => $"{c}.{nameof(Message.AddInt)}({v});" },
+            { "uint", (c, v, _) => $"{c}.{nameof(Message.AddUInt)}({v});" },
+            { "long", (c, v, _) => $"{c}.{nameof(Message.AddLong)}({v});" },
+            { "ulong", (c, v, _) => $"{c}.{nameof(Message.AddULong)}({v});" },
+
+            { "string", (c, v, _) => $"{c}.{nameof(Message.AddString)}({v});" },
+            { "float", (c, v, _) => $"{c}.{nameof(Message.AddFloat)}({v});" },
+            { "double", (c, v, _) => $"{c}.{nameof(Message.AddDouble)}({v});" },
+
+            // Arrays:
+            // TODO: Add reading using ref instead.
+            { "byte[]", (c, v, _) => $"{c}.{nameof(Message.AddBytes)}({v});" },
+            { "sbyte[]", (c, v, _) => $"{c}.{nameof(Message.AddSBytes)}({v});" },
+            { "short[]", (c, v, _) => $"{c}.{nameof(Message.AddShorts)}({v});" },
+            { "ushort[]", (c, v, _) => $"{c}.{nameof(Message.AddUShorts)}({v});" },
+
+            { "int[]", (c, v, _) => $"{c}.{nameof(Message.AddInts)}({v});" },
+            { "uint[]", (c, v, _) => $"{c}.{nameof(Message.AddUInts)}({v});" },
+            { "long[]", (c, v, _) => $"{c}.{nameof(Message.AddLongs)}({v});" },
+            { "ulong[]", (c, v, _) => $"{c}.{nameof(Message.AddULongs)}({v});" },
+
+            { "string[]", (c, v, _) => $"{c}.{nameof(Message.AddStrings)}({v});" },
+            { "float[]", (c, v, _) => $"{c}.{nameof(Message.AddFloats)}({v});" },
+            { "double[]", (c, v, _) => $"{c}.{nameof(Message.AddDoubles)}({v});" },
+        };
+
+        static readonly Dictionary<string, ReadHandler> Readers = new()
+        {
+            { "byte", (c, v, _) => $"{v} = {c}.{nameof(Message.GetByte)}();" },
+            { "sbyte", (c, v, _) => $"{v} = {c}.{nameof(Message.GetSByte)}();" },
+            { "short", (c, v, _) => $"{v} = {c}.{nameof(Message.GetShort)}();" },
+            { "ushort", (c, v, _) => $"{v} = {c}.{nameof(Message.GetUShort)}();" },
+
+            { "int", (c, v, _) => $"{v} = {c}.{nameof(Message.GetInt)}();" },
+            { "uint", (c, v, _) => $"{v} = {c}.{nameof(Message.GetUInt)}();" },
+            { "long", (c, v, _) => $"{v} = {c}.{nameof(Message.GetLong)}();" },
+            { "ulong", (c, v, _) => $"{v} = {c}.{nameof(Message.GetULong)}();" },
+
+            { "string", (c, v, _) => $"{v} = {c}.{nameof(Message.GetString)}();" },
+            { "float", (c, v, _) => $"{v} = {c}.{nameof(Message.GetFloat)}();" },
+            { "double", (c, v, _) => $"{v} = {c}.{nameof(Message.GetDouble)}();" },
+
+            // Arrays:
+            // TODO: Add reading using ref instead.
+            { "byte[]", (c, v, _) => $"{v} = {c}.{nameof(Message.GetBytes)}();" },
+            { "sbyte[]", (c, v, _) => $"{v} = {c}.{nameof(Message.GetSBytes)}();" },
+            { "short[]", (c, v, _) => $"{v} = {c}.{nameof(Message.GetShorts)}();" },
+            { "ushort[]", (c, v, _) => $"{v} = {c}.{nameof(Message.GetUShorts)}();" },
+
+            { "int[]", (c, v, _) => $"{v} = {c}.{nameof(Message.GetInts)}();" },
+            { "uint[]", (c, v, _) => $"{v} = {c}.{nameof(Message.GetUInts)}();" },
+            { "long[]", (c, v, _) => $"{v} = {c}.{nameof(Message.GetLongs)}();" },
+            { "ulong[]", (c, v, _) => $"{v} = {c}.{nameof(Message.GetULongs)}();" },
+
+            { "string[]", (c, v, _) => $"{v} = {c}.{nameof(Message.GetStrings)}();" },
+            { "float[]", (c, v, _) => $"{v} = {c}.{nameof(Message.GetFloats)}();" },
+            { "double[]", (c, v, _) => $"{v} = {c}.{nameof(Message.GetDoubles)}();" },
+        };
+
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                              Implementations
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        public void Initialize(GeneratorInitializationContext context) { }
+        public void Execute(GeneratorExecutionContext context)
+        {
+            foreach (var tree in context.Compilation.SyntaxTrees)
+            {
+                Execute(context, tree.GetRoot());
+            }
         }
 
-        static bool NetworkMessagePredicate(SyntaxNode node, CancellationToken token)
+
+
+
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
+        /// .
+        /// .                                               Static Methods
+        /// .
+        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
+        static void Execute(GeneratorExecutionContext context, SyntaxNode root)
         {
-            return node is ClassDeclarationSyntax;
-        }
-
-        static ClassDeclarationSyntax NetworkMessageTransform(GeneratorSyntaxContext context, CancellationToken token)
-        {
-            return (ClassDeclarationSyntax)context.Node;
-        }
-
-        // TODO: Refactor.
-        static void Execute(SourceProductionContext context, ClassDeclarationSyntax declaration)
-        {
-            // Looks for namespace.
-            NamespaceDeclarationSyntax region = null;
-            foreach (var child in declaration.SyntaxTree.GetRoot().ChildNodes())
-            {
-                if (child is NamespaceDeclarationSyntax t)
-                {
-                    region = t;
-                    break;
-                }
-            }
-
-            if (region is null)
-            {
-                return;
-            }
-
-
-            // Looks for the classes.
-            // TODO: Heavily optimize.
-            BaseListSyntax baseList = declaration.BaseList;
-            if (baseList is null)
-            {
-                return;
-            }
-
-            if (!baseList.Types.SelectMany(t => t.DescendantNodes())
-                .Any(node => node is GenericNameSyntax t && string.Equals(t.Identifier.Text, nameof(NetworkMessage), System.StringComparison.Ordinal)))
-            {
-                return;
-            }
-
-            //bool hasDispose = false; // TODO: Implement.
-            bool hasRead = declaration.Members.Any(m => m is MethodDeclarationSyntax method
-                && method.Identifier.Text.Equals(nameof(NetworkMessage.Read), System.StringComparison.Ordinal));
-            bool hasWrite = declaration.Members.Any(m => m is MethodDeclarationSyntax method
-                && method.Identifier.Text.Equals(nameof(NetworkMessage.Write), System.StringComparison.Ordinal));
-            //Log($"Read? ({hasRead})   Write? ({hasWrite})");
-
-            if (hasRead && hasWrite) // && (hasDispose && hasReferenceFields)
-            {
-                //Log("No need for AutoGen");
-                return;
-            }
+            StringBuilder builder = null;
+            if (root.ChildNodes().FirstOrDefault(n => n is NamespaceDeclarationSyntax) is not NamespaceDeclarationSyntax @namespace) return;
 
             const string TAB = "    ";
             const string DoubleTAB = TAB + TAB;
-            const string TrippleTAB = TAB + TAB + TAB;
-            StringBuilder builder = new();
-            bool anyUsings = false;
-            foreach (var item in declaration.SyntaxTree.GetRoot().ChildNodes())
+            const string TripleTAB = TAB + TAB + TAB;
+
+            // TODO: Define container adaptively?
+            const string Container = "message";
+            foreach (var node in @namespace.ChildNodes())
             {
-                if (item is UsingDirectiveSyntax directive)
+                // TODO: Add analysis for inside of the classes.
+                if (node is not ClassDeclarationSyntax declaration) continue;
+                if (!node.ChildTokens().Any(t => t.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.PartialKeyword))) continue;
+
+                BaseListSyntax baseList = declaration.BaseList;
+                if (baseList is null) continue;
+
+                if (!baseList.Types.SelectMany(t => t.DescendantNodes())
+                    .Any(node => node is GenericNameSyntax t &&
+                    string.Equals(t.Identifier.Text, nameof(Messages.NetworkMessage), System.StringComparison.Ordinal)))
                 {
-                    // hopefully it works.
-                    builder.AppendLine(item.ToString());
-                    anyUsings = true;
+                    continue;
                 }
-            }
 
-            if (anyUsings) builder.AppendLine();
+                // We found our declaration!
 
-            builder.Append("namespace ");
-            builder.AppendLine(region.Name.ToString());
-            builder.AppendLine("{");
+                //bool hasDispose = false; // TODO: Implement.
+                bool hasRead = declaration.Members.Any(m => m is MethodDeclarationSyntax method
+                    && method.Identifier.Text.Equals(nameof(NetworkMessage.Read), System.StringComparison.Ordinal));
+                bool hasWrite = declaration.Members.Any(m => m is MethodDeclarationSyntax method
+                    && method.Identifier.Text.Equals(nameof(NetworkMessage.Write), System.StringComparison.Ordinal));
 
-            // Code analysis here.
-            builder.Append(TAB);
-            builder.Append(declaration.Modifiers.ToString());
-            builder.Append(" class ");
-            builder.AppendLine(declaration.Identifier.Text);
-            builder.AppendLine(TAB + "{");
-
-            List<(string type, string variable)> members = new();
-            foreach (var member in declaration.Members)
-            {
-                switch (member)
+                if (hasRead && hasWrite) // && (hasDispose && hasReferenceFields)
                 {
-                    default: break;
-                    case FieldDeclarationSyntax field:
-                        members.Add((field.Declaration.Type.ToString(), field.Declaration.Variables.ToString()));
-                        break;
-
-                    case PropertyDeclarationSyntax property:
-                        members.Add((property.Type.ToString(), property.Identifier.Text));
-                        break;
+                    return;
                 }
-            }
 
-            const string container = "message";
-            if (!hasRead)
-            {
-                // TODO: Add ways to define custom read-write methods for Auto-gen.
-                builder.AppendLine(DoubleTAB + "public override Message Read(Message " + container + ")");
-                builder.AppendLine(DoubleTAB + "{");
-                foreach (var (type, variable) in members)
+                // Defines header if needed.
+                if (builder is null)
                 {
-                    builder.Append(TrippleTAB);
-                    builder.Append(container);
-                    builder.AppendLine(type switch
+                    // TODO: Replace with SyntaxTree construction instead.
+                    builder = new(4096);
+                    foreach (var @using in root.ChildNodes())
                     {
-                        "ushort" => $".{nameof(Message.AddUShort)}({variable});",
-                        "uint" => $".{nameof(Message.AddUInt)}({variable});",
-                        "float" => $".{nameof(Message.AddFloat)}({variable});",
-                        _ => throw new NotImplementedException("Custom variable types are not supported yet."),
-                    });
+                        if (@using is UsingDirectiveSyntax) builder.AppendLine(@using.ToString());
+                    }
+
+                    if (builder.Length > 0) builder.AppendLine();
+                    builder.Append("namespace ");
+                    builder.AppendLine(@namespace.Name.ToString());
+                    builder.AppendLine("{");
                 }
-                builder.AppendLine(TrippleTAB + "return " + container + ";");
-                builder.AppendLine(DoubleTAB + "}");
-            }
-
-            if (!hasWrite)
-            {
-                if (!hasRead) builder.AppendLine();
-
-                // TODO: Add ways to define custom read-write methods for Auto-gen.
-                builder.AppendLine(DoubleTAB + "public override Message Write(Message " + container + ")");
-                builder.AppendLine(DoubleTAB + "{");
-                foreach (var (type, variable) in members)
+                else
                 {
-                    builder.Append(TrippleTAB);
-                    builder.Append(variable);
-                    builder.Append(" = ");
-                    builder.AppendLine(type switch
-                    {
-                        "ushort" => container + "." + nameof(Message.GetUShort) + "();",
-                        "uint" => container + "." + nameof(Message.GetUInt) + "();",
-                        "float" => container + "." + nameof(Message.GetFloat) + "();",
-                        _ => throw new NotImplementedException("Custom variable types are not supported yet."),
-                    });
+                    // Another fancy-pants new line for better stylization.
+                    builder.AppendLine();
                 }
-                builder.AppendLine(TrippleTAB + "return " + container + ";");
-                builder.AppendLine(DoubleTAB + "}");
+
+                // Adds auto-gen attribute as well, just in case.
+                string attribute = typeof(GeneratedCodeAttribute).FullName;
+                builder.Append(TAB);
+                builder.Append('[');
+                builder.Append(attribute.Substring(0, attribute.Length - "Attribute".Length));
+                builder.Append("(\"");
+                builder.Append("Riptide.Toolkit.CodeGen");
+                builder.Append("\", \"");
+                builder.Append(Assembly.GetExecutingAssembly().GetName().Version);
+                builder.AppendLine("\")]");
+
+                // Defines class.
+                builder.Append(TAB);
+                builder.Append(declaration.Modifiers.ToString());
+                builder.Append(" class ");
+                builder.AppendLine(declaration.Identifier.Text);
+                builder.AppendLine(TAB + "{");
+
+                // Looks for fields and properties.
+                List<(string type, string variable, SyntaxNode node)> members = new();
+                foreach (var member in declaration.Members)
+                {
+                    switch (member)
+                    {
+                        default: break;
+                        case FieldDeclarationSyntax field:
+                            members.Add((field.Declaration.Type.ToString(), field.Declaration.Variables.ToString(), field));
+                            break;
+
+                        case PropertyDeclarationSyntax property:
+                            members.Add((property.Type.ToString(), property.Identifier.Text, property));
+                            break;
+                    }
+                }
+
+                if (!hasRead)
+                {
+                    // TODO: Add ways to define custom read-write methods for Auto-gen.
+                    builder.AppendLine(DoubleTAB + "public override Message Read(Message " + Container + ")");
+                    builder.AppendLine(DoubleTAB + "{");
+                    foreach (var (type, member, variable) in members)
+                    {
+                        if (!Readers.TryGetValue(type, out ReadHandler handler))
+                        {
+                            // TODO: Maybe ask custom types to implement IMessageCommon interface, or something like that?
+                            //  And scan for static extension methods as well?
+                            LogWarning(context, variable, $"Reading of a '{type}' is not supported by Auto-gen.");
+                            continue;
+                        }
+
+                        builder.Append(TripleTAB);
+                        builder.AppendLine(handler(Container, member, type));
+                    }
+
+                    // If no readers were written - at least generates a return method.
+                    builder.AppendLine(TripleTAB + "return " + Container + ";");
+                    builder.AppendLine(DoubleTAB + "}");
+                }
+
+                if (!hasWrite)
+                {
+                    // Fancy-pants new line for better stylization.
+                    if (!hasRead) builder.AppendLine();
+
+                    // TODO: Add ways to define custom read-write methods for Auto-gen.
+                    builder.AppendLine(DoubleTAB + "public override Message Write(Message " + Container + ")");
+                    builder.AppendLine(DoubleTAB + "{");
+                    foreach (var (type, member, variable) in members)
+                    {
+                        if (!Writers.TryGetValue(type, out WriteHandler handler))
+                        {
+                            // TODO: Maybe ask custom types to implement IMessageCommon interface, or something like that?
+                            //  And scan for static extension methods as well?
+                            LogWarning(context, variable, $"Writing of a '{type}' is not supported by Auto-gen.");
+                            continue;
+                        }
+
+                        builder.Append(TripleTAB);
+                        builder.AppendLine(handler(Container, member, type));
+                    }
+
+                    // If no readers were written - at least generates a return method.
+                    builder.AppendLine(TripleTAB + "return " + Container + ";");
+                    builder.AppendLine(DoubleTAB + "}");
+                }
+
+                builder.AppendLine(TAB + "}");
             }
 
-            // Finishing here.
-            builder?.AppendLine(TAB + "}\n}");
-            //Log(builder);
-            string hintName = Path.GetFileNameWithoutExtension(declaration.SyntaxTree.FilePath) + "." + declaration.Identifier.Text + ".g.cs";
-            //Log(hintName);
-            context.AddSource(hintName, builder.ToString());
-
-            // Simplifications:
-            //void LogError() => Log("Unexpected syntax.");
-            //void LogType(object obj) => Log($"{obj.GetType().Name}: {obj}");
-            //void Log(object obj) => NetworkMessageGenerator.Log(context, declaration, obj);
+            if (builder is not null)
+            {
+                builder.AppendLine("}");
+                //Log(context, root, builder.ToString());
+                context.AddSource(string.Concat(Path.GetFileNameWithoutExtension(root.SyntaxTree.FilePath), ".g.cs"), builder.ToString());
+            }
         }
 
-        //static void Log(SourceProductionContext context, ClassDeclarationSyntax cls, object obj)
-        //{
-        //    var location = Location.Create( // Point to the class name
-        //        cls.SyntaxTree,
-        //        cls.Identifier.Span);
+        static void LogWarning(GeneratorExecutionContext context, SyntaxNode node, object obj)
+        {
+            var location = node.GetLocation();
+            var diagnostic = Diagnostic.Create(
+                new DiagnosticDescriptor("RT0001", "RTA Title", obj.ToString(), "RTA Category", DiagnosticSeverity.Warning, true), location
+            );
 
-        //    var diagnostic = Diagnostic.Create(
-        //        new DiagnosticDescriptor("RT0001", "RTA Title", obj.ToString(), "RTA Category", DiagnosticSeverity.Warning, true), location
-        //    );
-
-        //    context.ReportDiagnostic(diagnostic);
-        //}
-
-        //static void Walk(SourceProductionContext context, ClassDeclarationSyntax cls, SyntaxNode node, ref uint counter, string extra = "")
-        //{
-        //    Log(context, cls, $"[{counter:000}] {node}{extra}");
-        //    counter++;
-        //    foreach (var child in node.ChildNodes())
-        //    {
-        //        Walk(context, cls, child, ref counter, string.Concat(" <- ", child, extra));
-        //    }
-        //}
+            context.ReportDiagnostic(diagnostic);
+        }
     }
 }

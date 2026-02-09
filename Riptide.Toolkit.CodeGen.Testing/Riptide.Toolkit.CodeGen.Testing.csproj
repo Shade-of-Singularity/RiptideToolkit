@@ -8,8 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Riptide.Toolkit.CodeGen\Riptide.Toolkit.CodeGen.csproj"
-                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\Riptide.Toolkit.CodeGen\Riptide.Toolkit.CodeGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\Riptide.Toolkit\Riptide.Toolkit.csproj" />
   </ItemGroup>
 
