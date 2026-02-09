@@ -7,6 +7,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Riptide.Toolkit", "Riptide.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Riptide.Toolkit.Examples", "Riptide.Toolkit.Examples\Riptide.Toolkit.Examples.csproj", "{30785744-EB02-4BA9-97A3-701AE3CDD484}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Riptide.Toolkit.CodeGen", "Riptide.Toolkit.CodeGen\Riptide.Toolkit.CodeGen.csproj", "{82419735-A22D-4C64-9ADD-07313EB4FAFA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Riptide.Toolkit.CodeGen.Testing", "Riptide.Toolkit.CodeGen.Testing\Riptide.Toolkit.CodeGen.Testing.csproj", "{81F29051-B98D-4F34-BE65-1CAC0B18EB09}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +25,14 @@ Global
 		{30785744-EB02-4BA9-97A3-701AE3CDD484}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{30785744-EB02-4BA9-97A3-701AE3CDD484}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{30785744-EB02-4BA9-97A3-701AE3CDD484}.Release|Any CPU.Build.0 = Release|Any CPU
+		{82419735-A22D-4C64-9ADD-07313EB4FAFA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{82419735-A22D-4C64-9ADD-07313EB4FAFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{82419735-A22D-4C64-9ADD-07313EB4FAFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{82419735-A22D-4C64-9ADD-07313EB4FAFA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81F29051-B98D-4F34-BE65-1CAC0B18EB09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81F29051-B98D-4F34-BE65-1CAC0B18EB09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81F29051-B98D-4F34-BE65-1CAC0B18EB09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81F29051-B98D-4F34-BE65-1CAC0B18EB09}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
