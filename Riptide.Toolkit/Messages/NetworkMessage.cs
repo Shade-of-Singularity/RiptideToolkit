@@ -58,8 +58,14 @@ namespace Riptide.Toolkit.Messages
                 // (Note: on modern systems, it won't take even 0.001s to execute this code).
                 if (type.IsDefined(typeof(StorageAttribute), inherit: false))
                 {
-                    StorageAttribute attribute = type.GetCustomAttribute<StorageAttribute>(inherit: false);
-                    MessagePool<TMessage>.Instance.EnsureCapacity(attribute.Storage);
+                    int max = 0; // Retrieves max storage size to allow CodeGen to define S1 by default,
+                                 // and for user to be able to specify S2+ storages.
+                    foreach (var storage in type.GetCustomAttributes<StorageAttribute>(inherit: false))
+                    {
+                        max = Math.Max(max, storage.Storage);
+                    }    
+
+                    MessagePool<TMessage>.Instance.EnsureCapacity(max);
                     return;
                 }
 

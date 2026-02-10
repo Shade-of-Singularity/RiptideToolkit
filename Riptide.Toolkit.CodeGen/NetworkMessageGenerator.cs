@@ -1,4 +1,6 @@
-﻿using Microsoft.CodeAnalysis;
+﻿//#define ADD_STORAGE
+
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Riptide.Toolkit.Messages;
 using System;
@@ -8,6 +10,10 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+
+#if ADD_STORAGE
+using Riptide.Toolkit.Storage;
+#endif
 
 namespace Riptide.Toolkit.CodeGen
 {
@@ -183,8 +189,17 @@ namespace Riptide.Toolkit.CodeGen
                     builder.AppendLine();
                 }
 
+                string attribute;
+#if ADD_STORAGE
+                attribute = typeof(S1Attribute).FullName;
+                builder.Append(TAB);
+                builder.Append('[');
+                builder.Append(attribute.Substring(0, attribute.Length - "Attribute".Length));
+                builder.AppendLine("]");
+#endif
+
                 // Adds auto-gen attribute as well, just in case.
-                string attribute = typeof(GeneratedCodeAttribute).FullName;
+                attribute = typeof(GeneratedCodeAttribute).FullName;
                 builder.Append(TAB);
                 builder.Append('[');
                 builder.Append(attribute.Substring(0, attribute.Length - "Attribute".Length));
@@ -221,6 +236,7 @@ namespace Riptide.Toolkit.CodeGen
                 if (!hasRead)
                 {
                     // TODO: Add ways to define custom read-write methods for Auto-gen.
+                    builder.AppendLine(DoubleTAB + "/// <inheritdoc/>");
                     builder.AppendLine(DoubleTAB + "public override Message Read(Message " + Container + ")");
                     builder.AppendLine(DoubleTAB + "{");
                     foreach (var (type, member, variable) in members)
@@ -248,6 +264,7 @@ namespace Riptide.Toolkit.CodeGen
                     if (!hasRead) builder.AppendLine();
 
                     // TODO: Add ways to define custom read-write methods for Auto-gen.
+                    builder.AppendLine(DoubleTAB + "/// <inheritdoc/>");
                     builder.AppendLine(DoubleTAB + "public override Message Write(Message " + Container + ")");
                     builder.AppendLine(DoubleTAB + "{");
                     foreach (var (type, member, variable) in members)

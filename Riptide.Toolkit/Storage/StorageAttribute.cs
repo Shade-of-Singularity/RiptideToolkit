@@ -28,7 +28,7 @@ namespace Riptide.Toolkit.Storage
         /// <summary>
         /// Never allows multiple, as it will throw on <see cref="System.Reflection.MemberInfo.GetCustomAttributes(Type, bool)"/>.
         /// </summary>
-        public const bool AllowMultiple = false;
+        public const bool AllowMultiple = true;
         /// <summary>
         /// <c>true</c>/<c>false</c> doesn't actually matter at the moment - we keep it <c>true</c> just in case.
         /// </summary>

@@ -2,14 +2,25 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <AssemblyVersion>1.1.5.0</AssemblyVersion>
+    <FileVersion>$(AssemblyVersion)</FileVersion>
+    <Version>$(AssemblyVersion)</Version>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Riptide.Toolkit.CodeGen\Riptide.Toolkit.CodeGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.8.0" />
+    <PackageReference Include="RiptideNetworking.Riptide" Version="2.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Riptide.Toolkit\Riptide.Toolkit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Analyzer Include="..\Riptide.Toolkit.CodeGen\bin\$(Configuration)\netstandard2.0\Riptide.Toolkit.CodeGen.dll" />
   </ItemGroup>
 
 </Project>
