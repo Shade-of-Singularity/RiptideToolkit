@@ -1,4 +1,4 @@
-﻿//#define ADD_STORAGE
+﻿#define ADD_STORAGE
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
