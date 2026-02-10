@@ -5,20 +5,23 @@
     <AssemblyVersion>1.1.5.0</AssemblyVersion>
     <FileVersion>$(AssemblyVersion)</FileVersion>
     <Version>$(AssemblyVersion)</Version>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <IsRoslynComponent>true</IsRoslynComponent>
     <AnalyzerLanguage>cs</AnalyzerLanguage>
-    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <LangVersion>11</LangVersion>
-    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.8.0" />
-    <PackageReference Include="RiptideNetworking.Riptide" Version="2.2.1" />
+    <PackageReference Include="RiptideNetworking.Riptide" Version="2.2.1" GeneratePathProperty="true" />
   </ItemGroup>
   
   <ItemGroup>
     <ProjectReference Include="..\Riptide.Toolkit\Riptide.Toolkit.csproj" />
+    <ProjectReference Include="..\Riptide.Toolkit\Riptide.Toolkit.csproj"
+                      ReferenceOutputAssembly="false"
+                      OutputItemType="Analyzer" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -27,9 +30,7 @@
 
   <Target Name="GetDependencyTargetPaths">
     <ItemGroup>
-      <TargetPathWithTargetPlatformMoniker
-          Include="$(MSBuildThisFileDirectory)..\Riptide.Toolkit\bin\$(Configuration)\netstandard2.0\Riptide.Toolkit.dll"
-          IncludeRuntimeDependency="false" />
+      <TargetPathWithTargetPlatformMoniker Include="$(PKGRiptideNetworking_Riptide)\lib\netstandard2.0\RiptideNetworking.dll" IncludeRuntimeDependency="false" />
     </ItemGroup>
   </Target>
 

@@ -1,4 +1,4 @@
-﻿#define ADD_STORAGE
+﻿#define USE_DEPENDENCIES
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -11,7 +11,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-#if ADD_STORAGE
+#if USE_DEPENDENCIES
 using Riptide.Toolkit.Storage;
 #endif
 
@@ -39,6 +39,7 @@ namespace Riptide.Toolkit.CodeGen
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         static readonly Dictionary<string, WriteHandler> Writers = new(StringComparer.OrdinalIgnoreCase)
         {
+            { "bool", (c, v, _) => $"{c}.{nameof(Message.AddBool)}({v});" },
             { "byte", (c, v, _) => $"{c}.{nameof(Message.AddByte)}({v});" },
             { "sbyte", (c, v, _) => $"{c}.{nameof(Message.AddSByte)}({v});" },
             { "short", (c, v, _) => $"{c}.{nameof(Message.AddShort)}({v});" },
@@ -55,6 +56,7 @@ namespace Riptide.Toolkit.CodeGen
 
             // Arrays:
             // TODO: Add reading using ref instead.
+            { "bool[]", (c, v, _) => $"{c}.{nameof(Message.AddBools)}({v});" },
             { "byte[]", (c, v, _) => $"{c}.{nameof(Message.AddBytes)}({v});" },
             { "sbyte[]", (c, v, _) => $"{c}.{nameof(Message.AddSBytes)}({v});" },
             { "short[]", (c, v, _) => $"{c}.{nameof(Message.AddShorts)}({v});" },
@@ -72,6 +74,7 @@ namespace Riptide.Toolkit.CodeGen
 
         static readonly Dictionary<string, ReadHandler> Readers = new()
         {
+            { "bool", (c, v, _) => $"{v} = {c}.{nameof(Message.GetBool)}();" },
             { "byte", (c, v, _) => $"{v} = {c}.{nameof(Message.GetByte)}();" },
             { "sbyte", (c, v, _) => $"{v} = {c}.{nameof(Message.GetSByte)}();" },
             { "short", (c, v, _) => $"{v} = {c}.{nameof(Message.GetShort)}();" },
@@ -88,6 +91,7 @@ namespace Riptide.Toolkit.CodeGen
 
             // Arrays:
             // TODO: Add reading using ref instead.
+            { "bool[]", (c, v, _) => $"{v} = {c}.{nameof(Message.GetBools)}();" },
             { "byte[]", (c, v, _) => $"{v} = {c}.{nameof(Message.GetBytes)}();" },
             { "sbyte[]", (c, v, _) => $"{v} = {c}.{nameof(Message.GetSBytes)}();" },
             { "short[]", (c, v, _) => $"{v} = {c}.{nameof(Message.GetShorts)}();" },
@@ -136,6 +140,12 @@ namespace Riptide.Toolkit.CodeGen
             const string TAB = "    ";
             const string DoubleTAB = TAB + TAB;
             const string TripleTAB = TAB + TAB + TAB;
+
+#if USE_DEPENDENCIES
+            string MessageFullName = "global::" + typeof(Message).FullName;
+#else
+            string MessageFullName = "global::Riptide.Message";
+#endif
 
             // TODO: Define container adaptively?
             const string Container = "message";
@@ -190,10 +200,10 @@ namespace Riptide.Toolkit.CodeGen
                 }
 
                 string attribute;
-#if ADD_STORAGE
+#if USE_DEPENDENCIES
                 attribute = typeof(S1Attribute).FullName;
                 builder.Append(TAB);
-                builder.Append('[');
+                builder.Append("[global::");
                 builder.Append(attribute.Substring(0, attribute.Length - "Attribute".Length));
                 builder.AppendLine("]");
 #endif
@@ -201,7 +211,7 @@ namespace Riptide.Toolkit.CodeGen
                 // Adds auto-gen attribute as well, just in case.
                 attribute = typeof(GeneratedCodeAttribute).FullName;
                 builder.Append(TAB);
-                builder.Append('[');
+                builder.Append("[global::");
                 builder.Append(attribute.Substring(0, attribute.Length - "Attribute".Length));
                 builder.Append("(\"");
                 builder.Append("Riptide.Toolkit.CodeGen");
@@ -237,7 +247,7 @@ namespace Riptide.Toolkit.CodeGen
                 {
                     // TODO: Add ways to define custom read-write methods for Auto-gen.
                     builder.AppendLine(DoubleTAB + "/// <inheritdoc/>");
-                    builder.AppendLine(DoubleTAB + "public override Message Read(Message " + Container + ")");
+                    builder.AppendLine(DoubleTAB + "public override " + MessageFullName + " Read(" + MessageFullName + " " + Container + ")");
                     builder.AppendLine(DoubleTAB + "{");
                     foreach (var (type, member, variable) in members)
                     {
@@ -265,7 +275,7 @@ namespace Riptide.Toolkit.CodeGen
 
                     // TODO: Add ways to define custom read-write methods for Auto-gen.
                     builder.AppendLine(DoubleTAB + "/// <inheritdoc/>");
-                    builder.AppendLine(DoubleTAB + "public override Message Write(Message " + Container + ")");
+                    builder.AppendLine(DoubleTAB + "public override " + MessageFullName + " Write(" + MessageFullName + " " + Container + ")");
                     builder.AppendLine(DoubleTAB + "{");
                     foreach (var (type, member, variable) in members)
                     {
