@@ -96,7 +96,7 @@ namespace Riptide.Toolkit
         private static readonly int[] CustomHeadersLength = new int[SystemMessaging.SystemMessageIDBits * SystemMessaging.SystemMessageIDBits];
 
         // Methods:
-        public static int GetCustomHeaderLength(SystemMessageID id) => CustomHeadersLength[(int)id];
+        public static int GetCustomHeaderLength(SystemMessageID ID) => CustomHeadersLength[(int)ID];
 
         /// <summary>
         /// Registers custom header.
