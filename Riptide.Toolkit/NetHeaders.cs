@@ -11,7 +11,6 @@
 
 using Riptide.Transports;
 using System;
-using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace Riptide.Toolkit
@@ -94,26 +93,32 @@ namespace Riptide.Toolkit
         /// .                              (W.I.P.) - hard to implement conditional headers.
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        [Obsolete("WIP", error: true)]
-        internal static byte GetHeaderID() => 0;
+        private static readonly int[] CustomHeadersLength = new int[SystemMessaging.SystemMessageIDBits * SystemMessaging.SystemMessageIDBits];
 
-        [Obsolete("WIP", error: true)]
-        internal abstract class Header<T>
+        // Methods:
+        public static int GetCustomHeaderLength(SystemMessageID id) => CustomHeadersLength[(int)id];
+
+        /// <summary>
+        /// Registers custom header.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        public static void Register<T>() where T : CustomHeader<T>, new()
         {
-            public static readonly byte ID = GetHeaderID();
-            public static readonly ulong Pin = 1uL << ID;
-            public static bool IsDefined(Message message, ulong pin) { message.PeekBits(64, 0, out ulong value); return (pin & value) == pin; }
-            public abstract ushort Length { get; }
-            public abstract Message Write(Message message);
-            public abstract Message Read(Message message);
+            if (HeaderDefinition<T>.IsDefined) return;
+            for (int i = 0; i < CustomHeadersLength.Length; i++)
+            {
+                int offset = CustomHeadersLength[i];
+                int length = CustomHeader<T>.Instance.GetBitsLength((SystemMessageID)i);
+                CustomHeader<T>.Position = new CustomHeaderPosition(offset, length);
+                CustomHeadersLength[i] = offset + length;
+            }
+
+            HeaderDefinition<T>.IsDefined = true;
         }
 
-        [Obsolete("WIP", error: true)]
-        internal sealed class SystemIDHeader : Header<SystemIDHeader>
+        private static class HeaderDefinition<T> where T : CustomHeader<T>, new()
         {
-            public override ushort Length => SystemMessaging.HeaderBits;
-            public override Message Read(Message message) => throw new NotImplementedException();
-            public override Message Write(Message message) => throw new NotImplementedException();
+            public static bool IsDefined;
         }
     }
 }

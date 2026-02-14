@@ -73,8 +73,9 @@ namespace Riptide.Toolkit
         public static Message Create(MessageSendMode mode, uint messageID, SystemMessageID id = SystemMessageID.Regular)
         {
             return Message.Create(mode)
-                .AddBits((byte)id, SystemMessaging.SystemMessageIDBits)
-                .AddVarULong(messageID); // TODO: Create the same method, but for uint.;
+                .AddSystemMessageID(id)
+                .ReserveHeaders(id)
+                .AddVarULong(messageID); // TODO: Create the same method, but for uint.
         }
 
         /// <summary>
@@ -85,8 +86,9 @@ namespace Riptide.Toolkit
             where TMessage : NetworkMessage<TMessage>, new()
         {
             return Message.Create(mode)
-                .AddBits((byte)id, SystemMessaging.SystemMessageIDBits)
-                .AddVarULong(NetworkMessage<TMessage>.MessageID); // TODO: Create the same method, but for uint.;
+                .AddSystemMessageID(id)
+                .ReserveHeaders(id)
+                .AddVarULong(NetworkMessage<TMessage>.MessageID); // TODO: Create the same method, but for uint.
         }
 
 
@@ -164,39 +166,72 @@ namespace Riptide.Toolkit
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Moves reader head over all custom message headers. Doesn't skip MessageID.
+        /// Destructively (using <see cref="Message.GetBits(int, out byte)"/>) reads <see cref="SystemMessageID"/>.
         /// </summary>
-        /// <remarks>
-        /// Using twice will make you skip valid data!
-        /// </remarks>
-        public static Message SkipCustomHeaders(this Message message) => message.SkipBits(SystemMessaging.SystemMessageIDBits);
-
-        /// <summary>
-        /// Adds <see cref="NetMessage"/> default headers.
-        /// Should be used on empty <see cref="Message"/>s only, as it doesn't overwrite the header. (TODO: Add SetHeaders methods with insert)
-        /// </summary>
-        /// <param name="systemMessageID"><see cref="SystemMessageID"/> to add.</param>
-        public static Message AddCustomHeaders(this Message message, SystemMessageID systemMessageID)
+        /// <param name="message"><see cref="Message"/> to read.</param>
+        /// <param name="id"><see cref="SystemMessageID"/> retrieved from <paramref name="message"/>.</param>
+        public static Message GetSystemMessageID(this Message message, out SystemMessageID id)
         {
-            return message.AddBits((byte)systemMessageID, SystemMessaging.SystemMessageIDBits);
+            message.GetBits(SystemMessaging.SystemMessageIDBits, out byte bits);
+            id = (SystemMessageID)bits;
+            return message;
         }
 
         /// <summary>
-        /// Reads (and consumes) data about <paramref name="isModded"/> flag, <paramref name="systemMessageID"/> and <paramref name="modID"/>.
-        /// Should only be ran once. Used internally by <see cref="AdvancedClient"/> and <see cref="AdvancedServer"/>.
-        /// You **should not** run it yourself, unless you make custom <see cref="Client"/> and <see cref="Server"/> implementation.
+        /// Non-destructively (using <see cref="Message.PeekBits(int, int, out byte)"/>) peeks <see cref="SystemMessageID"/>.
         /// </summary>
-        /// <remarks>
-        /// Headers ALWAYS go before regular MessageID, because they are used for 3rdParty server relaying.
-        /// </remarks>
-        /// <param name="message">Message to read.</param>
-        /// <param name="systemMessageID">Internal message type of the message.</param>
-        /// <returns></returns>
-        public static Message ReadHeaders(this Message message, out SystemMessageID systemMessageID)
+        /// <param name="message"><see cref="Message"/> to read.</param>
+        /// <param name="id"><see cref="SystemMessageID"/> peaked in <paramref name="message"/>.</param>
+        public static Message PeekSystemMessageID(this Message message, out SystemMessageID id)
         {
-            message.GetBits(SystemMessaging.SystemMessageIDBits, out byte result);
-            systemMessageID = (SystemMessageID)result;
+            message.PeekBits(SystemMessaging.SystemMessageIDBits, 0, out byte bits);
+            id = (SystemMessageID)bits;
             return message;
+        }
+
+        /// <summary>
+        /// Adds given <see cref="SystemMessageID"/> (using <see cref="Message.AddBits(byte, int)"/>) to a <paramref name="message"/>
+        /// </summary>
+        /// <param name="message"><see cref="Message"/> to be modified.</param>
+        /// <param name="id"><see cref="SystemMessageID"/> to set in a <paramref name="message"/>.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message AddSystemMessageID(this Message message, SystemMessageID id = SystemMessageID.Regular)
+        {
+            return message.AddBits((byte)id, SystemMessaging.SystemMessageIDBits);
+        }
+
+        /// <summary>
+        /// Sets <see cref="SystemMessageID"/> (using <see cref="Message.SetBits(ulong, int, int)"/>) in a <paramref name="message"/>.
+        /// </summary>
+        /// <param name="message"><see cref="Message"/> to be modified.</param>
+        /// <param name="id"><see cref="SystemMessageID"/> to set in a <paramref name="message"/>.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message SetSystemMessageID(this Message message, SystemMessageID id = SystemMessageID.Regular)
+        {
+            return message.SetBits((byte)id, SystemMessaging.SystemMessageIDBits, 0);
+        }
+
+        /// <summary>
+        /// Moves head of a message reader to a position/index, after BOTH internal and custom headers.
+        /// (<see cref="SystemMessageID"/> and all <see cref="CustomHeader{T}"/> definitions will be skipped)
+        /// </summary>
+        /// <seealso cref="CustomHeader{T}"/>
+        public static Message SkipHeaders(this Message message, SystemMessageID id = SystemMessageID.Regular)
+        {
+            int skip = NetHeaders.GetCustomHeaderLength(id) + SystemMessaging.SystemMessageIDBits;
+            int read = message.ReadBits;
+            return message.SkipBits(skip - read);
+        }
+
+        /// <summary>
+        /// Moves head of a message writer to a position/index, after BOTH internal and custom headers.
+        /// (reserves space for <see cref="SystemMessageID"/> and all <see cref="CustomHeader{T}"/> definitions)
+        /// </summary>
+        public static Message ReserveHeaders(this Message message, SystemMessageID id = SystemMessageID.Regular)
+        {
+            int skip = NetHeaders.GetCustomHeaderLength(id) + SystemMessaging.SystemMessageIDBits;
+            int write = message.WrittenBits;
+            return message.ReserveBits(skip - write);
         }
     }
 }

@@ -79,7 +79,8 @@ namespace Riptide.Toolkit
         protected override void CreateMessageHandlersDictionary(byte groupID) => m_MessageHandlers = ClientHandlers.Create(groupID);
         protected override void OnMessageReceived(Message message)
         {
-            NetMessage.ReadHeaders(message, out SystemMessageID systemMessageID);
+            message.GetSystemMessageID(out SystemMessageID systemMessageID);
+            message.SkipHeaders(systemMessageID);
 
             // Note: Do we need to allow increasing ID limit to ulong?... Hell no!..?
             uint messageID = (uint)message.GetVarULong();

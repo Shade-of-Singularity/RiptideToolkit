@@ -95,7 +95,9 @@ namespace Riptide.Toolkit
         protected override void CreateMessageHandlersDictionary(byte groupID) => m_MessageHandlers = ServerHandlers.Create(groupID);
         protected override void OnMessageReceived(Message message, Connection fromConnection)
         {
-            NetMessage.ReadHeaders(message, out SystemMessageID systemMessageID);
+            message.GetSystemMessageID(out SystemMessageID systemMessageID);
+            message.SkipHeaders(systemMessageID);
+
             uint messageID = (uint)message.GetVarULong();
             if (RelayFilter != null && RelayFilter.ShouldRelay(messageID))
             {

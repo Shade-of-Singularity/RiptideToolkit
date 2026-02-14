@@ -51,7 +51,7 @@ namespace Riptide.Toolkit
         Request = 0b00,
 
         /// <summary>
-        /// Message ID used in on-demand responses to requests.
+        /// Message ID used in responses to on-demand requests.
         /// </summary>
         /// <remarks>Request-Response system is WIP.</remarks>
         /// <seealso cref="Request"/>
