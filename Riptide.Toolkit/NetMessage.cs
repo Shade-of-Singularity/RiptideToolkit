@@ -41,11 +41,11 @@ namespace Riptide.Toolkit
         /// Creates message with default headers.
         /// </summary>
         /// <param name="header">Riptide's header to apply.</param>
-        /// <param name="id">Toolkit's message ID to apply.</param>
+        /// <param name="ID">Toolkit's message ID to apply.</param>
         /// <returns>Message with fully encoded header.</returns>
-        public static Message Create(Transports.MessageHeader header, SystemMessageID id = SystemMessageID.Regular)
+        public static Message Create(Transports.MessageHeader header, SystemMessageID ID = SystemMessageID.Regular)
         {
-            return Message.Create((MessageSendMode)header).AddSystemMessageID(id).SkipHeaders();
+            return Message.Create((MessageSendMode)header).AddSystemMessageID(ID).SkipHeaders();
         }
 
         /// <summary>
@@ -53,28 +53,28 @@ namespace Riptide.Toolkit
         /// Doesn't encode MessageID (which makes it an invalid message until you add it manually).
         /// </summary>
         /// <seealso cref="Message.Create(MessageSendMode)"/>
-        public static Message Create(MessageSendMode mode, SystemMessageID id = SystemMessageID.Regular)
+        public static Message Create(MessageSendMode mode, SystemMessageID ID = SystemMessageID.Regular)
         {
-            return Message.Create(mode).AddSystemMessageID(id).SkipHeaders();
+            return Message.Create(mode).AddSystemMessageID(ID).SkipHeaders();
         }
 
         /// <inheritdoc cref="Create(MessageSendMode, uint, SystemMessageID)"/>
         /// <seealso cref="Message.Create(MessageSendMode, Enum)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Create(MessageSendMode mode, Enum messageID, SystemMessageID id = SystemMessageID.Regular)
+        public static Message Create(MessageSendMode mode, Enum messageID, SystemMessageID ID = SystemMessageID.Regular)
         {
-            return Create(mode, (uint)(object)messageID, id);
+            return Create(mode, (uint)(object)messageID, ID);
         }
 
         /// <summary>
         /// Creates regular message with custom send <paramref name="mode"/>.
         /// Encodes <paramref name="messageID"/>.
         /// </summary>
-        public static Message Create(MessageSendMode mode, uint messageID, SystemMessageID id = SystemMessageID.Regular)
+        public static Message Create(MessageSendMode mode, uint messageID, SystemMessageID ID = SystemMessageID.Regular)
         {
             return Message.Create(mode)
-                .AddSystemMessageID(id)
-                .ReserveHeaders(id)
+                .AddSystemMessageID(ID)
+                .ReserveHeaders(ID)
                 .AddID(messageID); // TODO: Create the same method, but for uint.
         }
 
@@ -82,12 +82,12 @@ namespace Riptide.Toolkit
         /// Creates regular message with custom send <paramref name="mode"/>.
         /// Encodes <paramref name="messageID"/>.
         /// </summary>
-        public static Message Create<TMessage>(MessageSendMode mode, SystemMessageID id = SystemMessageID.Regular)
+        public static Message Create<TMessage>(MessageSendMode mode, SystemMessageID ID = SystemMessageID.Regular)
             where TMessage : NetworkMessage<TMessage>, new()
         {
             return Message.Create(mode)
-                .AddSystemMessageID(id)
-                .ReserveHeaders(id)
+                .AddSystemMessageID(ID)
+                .ReserveHeaders(ID)
                 .AddID(NetworkMessage<TMessage>.MessageID); // TODO: Create the same method, but for uint.
         }
 
@@ -96,43 +96,21 @@ namespace Riptide.Toolkit
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Reliable(Enum messageID, SystemMessageID id = SystemMessageID.Regular)
+        public static Message Reliable(Enum messageID, SystemMessageID ID = SystemMessageID.Regular)
         {
-            return Create(MessageSendMode.Reliable, (uint)(object)messageID, id);
+            return Create(MessageSendMode.Reliable, (uint)(object)messageID, ID);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Reliable(uint messageID, SystemMessageID id = SystemMessageID.Regular)
+        public static Message Reliable(uint messageID, SystemMessageID ID = SystemMessageID.Regular)
         {
-            return Create(MessageSendMode.Reliable, messageID, id);
+            return Create(MessageSendMode.Reliable, messageID, ID);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Reliable<TMessage>(SystemMessageID id = SystemMessageID.Regular) where TMessage : NetworkMessage<TMessage>, new()
+        public static Message Reliable<TMessage>(SystemMessageID ID = SystemMessageID.Regular) where TMessage : NetworkMessage<TMessage>, new()
         {
-            return Create<TMessage>(MessageSendMode.Reliable, id);
-        }
-
-
-
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Unreliable(Enum messageID, SystemMessageID id = SystemMessageID.Regular)
-        {
-            return Create(MessageSendMode.Unreliable, (uint)(object)messageID, id);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Unreliable(uint messageID, SystemMessageID id = SystemMessageID.Regular)
-        {
-            return Create(MessageSendMode.Unreliable, messageID, id);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Unreliable<TMessage>(SystemMessageID id = SystemMessageID.Regular) where TMessage : NetworkMessage<TMessage>, new()
-        {
-            return Create<TMessage>(MessageSendMode.Unreliable, id);
+            return Create<TMessage>(MessageSendMode.Reliable, ID);
         }
 
 
@@ -140,21 +118,43 @@ namespace Riptide.Toolkit
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Notify(Enum messageID, SystemMessageID id = SystemMessageID.Regular)
+        public static Message Unreliable(Enum messageID, SystemMessageID ID = SystemMessageID.Regular)
         {
-            return Create(MessageSendMode.Notify, (uint)(object)messageID, id);
+            return Create(MessageSendMode.Unreliable, (uint)(object)messageID, ID);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Notify(uint messageID, SystemMessageID id = SystemMessageID.Regular)
+        public static Message Unreliable(uint messageID, SystemMessageID ID = SystemMessageID.Regular)
         {
-            return Create(MessageSendMode.Notify, messageID, id);
+            return Create(MessageSendMode.Unreliable, messageID, ID);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Notify<TMessage, TProfile>(SystemMessageID id = SystemMessageID.Regular) where TMessage : NetworkMessage<TMessage>, new()
+        public static Message Unreliable<TMessage>(SystemMessageID ID = SystemMessageID.Regular) where TMessage : NetworkMessage<TMessage>, new()
         {
-            return Create<TMessage>(MessageSendMode.Notify, id);
+            return Create<TMessage>(MessageSendMode.Unreliable, ID);
+        }
+
+
+
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Notify(Enum messageID, SystemMessageID ID = SystemMessageID.Regular)
+        {
+            return Create(MessageSendMode.Notify, (uint)(object)messageID, ID);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Notify(uint messageID, SystemMessageID ID = SystemMessageID.Regular)
+        {
+            return Create(MessageSendMode.Notify, messageID, ID);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Notify<TMessage, TProfile>(SystemMessageID ID = SystemMessageID.Regular) where TMessage : NetworkMessage<TMessage>, new()
+        {
+            return Create<TMessage>(MessageSendMode.Notify, ID);
         }
 
 
