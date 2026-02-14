@@ -32,7 +32,7 @@ namespace Riptide.Toolkit
         /// Amount of bits used by the header.
         /// Those bits will be reserved for this specific header and can be filled-in a message.
         /// </summary>
-        public abstract int GetBitsLength(SystemMessageID id);
+        public abstract int GetBitsLength(SystemMessageID ID);
 
         /// <inheritdoc cref="NetHeaders.Register{T}()"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
