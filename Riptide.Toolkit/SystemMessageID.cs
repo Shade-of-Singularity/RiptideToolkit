@@ -1,4 +1,7 @@
-﻿/// - - Shade of Singularity Community - - - Tom Weiland & Riptide Community, 2026 - - <![CDATA[
+﻿
+using System;
+
+/// - - Shade of Singularity Community - - - Tom Weiland & Riptide Community, 2026 - - <![CDATA[
 /// 
 /// Licensed under the MIT License. Permission is hereby granted, free of charge,
 /// to any person obtaining a copy of this software and associated documentation
@@ -8,86 +11,51 @@
 ///                        "RiptideToolkit/LICENSE.md"
 /// 
 /// ]]>
-
 namespace Riptide.Toolkit
 {
     /// <summary>
-    /// Stores some constant values for internal messaging logic.
+    /// Similar to <see cref="Transports.MessageHeader"/>. Indicates how message should be treated.
+    /// In a bit-mask, added after <see cref="Transports.MessageHeader"/>: [SystemMessageID][MessageHeader].
+    /// Use <see cref="SystemMessaging.SystemMessageIDOffset"/> to realign, <see cref="SystemMessageID"/> again.
     /// </summary>
-    public static class SystemMessaging
-    {
-        /// <summary>
-        /// (PoT) Amount of IDs allocated for system messaging.
-        /// Might be increased in future updates.
-        /// </summary>
-        /// <remarks>Max ever value - 256 (<see cref="byte.MaxValue"/> + 1).</remarks>
-        public const ushort TotalIDs = 8;
-        /// <summary>
-        /// Mask which covers all values described by <see cref="TotalIDs"/>
-        /// </summary>
-        /// <remarks>Max ever value - 0b1111_1111.</remarks>
-        public const ushort IDMask = TotalIDs - 1;
-        /// <summary>
-        /// How many bits is used to encode all <see cref="TotalIDs"/>.
-        /// </summary>
-        /// <remarks>Max ever value - 8.</remarks>
-        public const ushort TotalBits = 3;
-    }
-
-    /// <summary>
-    /// All message IDs used with <see cref="Riptide"/> networking to determine if modified game versions are compatible or not.
-    /// </summary>
-    /// TODO: Tinker messages a bit.
+    /// <seealso cref="NetHeaders.Combine(Transports.MessageHeader, SystemMessageID)"/>.
     public enum SystemMessageID : byte
     {
         /// <summary>
-        /// Special message for Network Relays to indicate that message should only be send to one specific client in a virtual lobby.
-        /// Implemented to support 3rdParty services.
+        /// Indicates that this is a normal Riptide message with default behaviour.
         /// </summary>
         /// <remarks>
-        /// Should ALWAYS you first message bit for indication.
+        /// Network Relays should treat this message as "Route to All" when sent by server.
+        /// And as "Route to Server" when sent by client.
         /// </remarks>
-        ToSingle = 0b0,
+        Regular = 0b0,
 
         /// <summary>
-        /// Special message for Network Relays to indicate that message should be sent to all clients in a virtual lobby.
-        /// It allows sending only one UDP package to the remote server instead of multiple ones per client.
-        /// Implemented to support 3rdParty services.
+        /// Indicates that this is a message, meant to be sent to a specific client.
+        /// Does nothing in P2P.
         /// </summary>
         /// <remarks>
-        /// Should ALWAYS use first message bit for indication.
+        /// Network Relays should treat this message as "Route to Client (...)" and attempt to retrieve ClientID.
+        /// Note: way in which ClientID is encoded and retrieves is specific to each relay system.
+        /// If such message is sent from client - send it to the server. Unless private messaging is allowed,
+        /// in which case attempt to retrieve ClientID.
         /// </remarks>
-        ToAll = 0b1,
-
-        /// <summary>
-        /// Regular message. Messages with this data will be passed down as regular messages.
-        /// </summary>
-        /// <remarks>
-        /// Anything other than regular message will be read as system message.
-        /// <see cref="Client.MessageReceived"/> or <see cref="Server.MessageReceived"/> won't fire for those messages.
-        /// </remarks>
-        Regular = 2,
+        Private = 0b1,
 
         /// <summary>
         /// Message ID used in on-demand requests.
         /// </summary>
+        /// <remarks>Request-Response system is WIP.</remarks>
         /// <seealso cref="Response"/>
-        Request = 3,
+        [Obsolete("Request-Response system is WIP.", error: true)]
+        Request = 0b00,
 
         /// <summary>
         /// Message ID used in on-demand responses to requests.
         /// </summary>
+        /// <remarks>Request-Response system is WIP.</remarks>
         /// <seealso cref="Request"/>
-        Response = 4,
-
-        /// <summary>
-        /// Message handler used to compare whether all message handlers have the same IDs or not.
-        /// Used by <see cref="NetworkIndex"/>.
-        /// </summary>
-        /// <remarks>
-        /// Amount of handlers usually different only if two clients, or client and server has different networking mods installed.
-        /// Client-side mods never modify handler collection (only by a developer's mistake), so they can be used safely.
-        /// </remarks>
-        NetworkingValidationCheck,
+        [Obsolete("Request-Response system is WIP.", error: true)]
+        Response = 0b10,
     }
 }

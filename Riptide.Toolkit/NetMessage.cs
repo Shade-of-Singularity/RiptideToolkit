@@ -22,6 +22,7 @@ namespace Riptide.Toolkit
     /// If <see cref="Riptide"/> will ever allow extending headers - this class and <see cref="NetHeaders"/> will be removed.
     /// </remarks>
     /// Partial, to allow expanding it if needed.
+    /// TODO: In Docs, be VERY explicit that using <see cref="Message.Create(MessageSendMode)"/> is PROHIBITED.
     public static partial class NetMessage
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
@@ -37,73 +38,121 @@ namespace Riptide.Toolkit
         public static Message Create() => Message.Create();
 
         /// <summary>
+        /// Creates message with default headers.
+        /// </summary>
+        /// <param name="header">Riptide's header to apply.</param>
+        /// <param name="id">Toolkit's message ID to apply.</param>
+        /// <returns>Message with fully encoded header.</returns>
+        public static Message Create(Transports.MessageHeader header, SystemMessageID id = SystemMessageID.Regular)
+        {
+            return Message.Create((MessageSendMode)header).AddBits((byte)id, SystemMessaging.SystemMessageIDBits);
+        }
+
+        /// <summary>
         /// Creates regular message with custom send <paramref name="mode"/>.
         /// Doesn't encode MessageID (which makes it an invalid message until <see cref="Message.Add(ushort)"/> or similar is used)
         /// </summary>
         /// <seealso cref="Message.Create(MessageSendMode)"/>
-        public static Message Create(MessageSendMode mode) => Message.Create(mode);
+        public static Message Create(MessageSendMode mode, SystemMessageID id = SystemMessageID.Regular)
+        {
+            return Message.Create(mode, id);
+        }
 
-        /// <inheritdoc cref="Create(MessageSendMode, uint)"/>
+        /// <inheritdoc cref="Create(MessageSendMode, uint, SystemMessageID)"/>
         /// <seealso cref="Message.Create(MessageSendMode, Enum)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Create(MessageSendMode mode, Enum messageID) => Create(mode, (uint)(object)messageID);
-
-        /// <summary>
-        /// Creates regular message with custom send <paramref name="mode"/>.
-        /// Encodes <paramref name="messageID"/>.
-        /// </summary>
-        public static Message Create(MessageSendMode mode, uint messageID)
+        public static Message Create(MessageSendMode mode, Enum messageID, SystemMessageID id = SystemMessageID.Regular)
         {
-            return Message.Create(mode)
-                .AddBits((byte)SystemMessageID.Regular, SystemMessaging.TotalBits)
-                .AddVarULong(messageID);// TODO: Create the same method, but for uint.;
+            return Create(mode, (uint)(object)messageID, id);
         }
 
         /// <summary>
         /// Creates regular message with custom send <paramref name="mode"/>.
         /// Encodes <paramref name="messageID"/>.
         /// </summary>
-        public static Message Create<TMessage>(MessageSendMode mode) where TMessage : NetworkMessage<TMessage>, new()
+        public static Message Create(MessageSendMode mode, uint messageID, SystemMessageID id = SystemMessageID.Regular)
         {
             return Message.Create(mode)
-                .AddBits((byte)SystemMessageID.Regular, SystemMessaging.TotalBits)
-                .AddVarULong(NetworkMessage<TMessage>.MessageID);// TODO: Create the same method, but for uint.;
+                .AddBits((byte)id, SystemMessaging.SystemMessageIDBits)
+                .AddVarULong(messageID); // TODO: Create the same method, but for uint.;
+        }
+
+        /// <summary>
+        /// Creates regular message with custom send <paramref name="mode"/>.
+        /// Encodes <paramref name="messageID"/>.
+        /// </summary>
+        public static Message Create<TMessage>(MessageSendMode mode, SystemMessageID id = SystemMessageID.Regular)
+            where TMessage : NetworkMessage<TMessage>, new()
+        {
+            return Message.Create(mode)
+                .AddBits((byte)id, SystemMessaging.SystemMessageIDBits)
+                .AddVarULong(NetworkMessage<TMessage>.MessageID); // TODO: Create the same method, but for uint.;
+        }
+
+
+
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Reliable(Enum messageID, SystemMessageID id = SystemMessageID.Regular)
+        {
+            return Create(MessageSendMode.Reliable, (uint)(object)messageID, id);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Reliable(Enum messageID) => Create(MessageSendMode.Reliable, (uint)(object)messageID);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Reliable(uint messageID) => Create(MessageSendMode.Reliable, messageID);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Reliable<TMessage>() where TMessage : NetworkMessage<TMessage>, new()
+        public static Message Reliable(uint messageID, SystemMessageID id = SystemMessageID.Regular)
         {
-            return Create<TMessage>(MessageSendMode.Reliable);
+            return Create(MessageSendMode.Reliable, messageID, id);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Unreliable(Enum messageID) => Create(MessageSendMode.Unreliable, (uint)(object)messageID);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Unreliable(uint messageID) => Create(MessageSendMode.Unreliable, messageID);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Unreliable<TMessage>() where TMessage : NetworkMessage<TMessage>, new()
+        public static Message Reliable<TMessage>(SystemMessageID id = SystemMessageID.Regular) where TMessage : NetworkMessage<TMessage>, new()
         {
-            return Create<TMessage>(MessageSendMode.Unreliable);
+            return Create<TMessage>(MessageSendMode.Reliable, id);
+        }
+
+
+
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Unreliable(Enum messageID, SystemMessageID id = SystemMessageID.Regular)
+        {
+            return Create(MessageSendMode.Unreliable, (uint)(object)messageID, id);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Notify(Enum messageID) => Create(MessageSendMode.Unreliable, (uint)(object)messageID);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Notify(uint messageID) => Create(MessageSendMode.Unreliable, messageID);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Notify<TMessage, TProfile>() where TMessage : NetworkMessage<TMessage>, new()
+        public static Message Unreliable(uint messageID, SystemMessageID id = SystemMessageID.Regular)
         {
-            return Create<TMessage>(MessageSendMode.Notify);
+            return Create(MessageSendMode.Unreliable, messageID, id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Unreliable<TMessage>(SystemMessageID id = SystemMessageID.Regular) where TMessage : NetworkMessage<TMessage>, new()
+        {
+            return Create<TMessage>(MessageSendMode.Unreliable, id);
+        }
+
+
+
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Notify(Enum messageID, SystemMessageID id = SystemMessageID.Regular)
+        {
+            return Create(MessageSendMode.Unreliable, (uint)(object)messageID, id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Notify(uint messageID, SystemMessageID id = SystemMessageID.Regular)
+        {
+            return Create(MessageSendMode.Unreliable, messageID, id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message Notify<TMessage, TProfile>(SystemMessageID id = SystemMessageID.Regular) where TMessage : NetworkMessage<TMessage>, new()
+        {
+            return Create<TMessage>(MessageSendMode.Notify, id);
         }
 
 
@@ -120,16 +169,16 @@ namespace Riptide.Toolkit
         /// <remarks>
         /// Using twice will make you skip valid data!
         /// </remarks>
-        public static Message SkipHeaders(this Message message) => message.SkipBits(SystemMessaging.TotalBits);
+        public static Message SkipCustomHeaders(this Message message) => message.SkipBits(SystemMessaging.SystemMessageIDBits);
 
         /// <summary>
         /// Adds <see cref="NetMessage"/> default headers.
         /// Should be used on empty <see cref="Message"/>s only, as it doesn't overwrite the header. (TODO: Add SetHeaders methods with insert)
         /// </summary>
         /// <param name="systemMessageID"><see cref="SystemMessageID"/> to add.</param>
-        public static Message AddHeaders(this Message message, SystemMessageID systemMessageID)
+        public static Message AddCustomHeaders(this Message message, SystemMessageID systemMessageID)
         {
-            return message.AddBits((byte)systemMessageID, SystemMessaging.TotalBits);
+            return message.AddBits((byte)systemMessageID, SystemMessaging.SystemMessageIDBits);
         }
 
         /// <summary>
@@ -145,7 +194,7 @@ namespace Riptide.Toolkit
         /// <returns></returns>
         public static Message ReadHeaders(this Message message, out SystemMessageID systemMessageID)
         {
-            message.GetBits(SystemMessaging.TotalBits, out byte result);
+            message.GetBits(SystemMessaging.SystemMessageIDBits, out byte result);
             systemMessageID = (SystemMessageID)result;
             return message;
         }

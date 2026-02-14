@@ -104,8 +104,8 @@ namespace Riptide.Toolkit
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         // System message handlers. Does not rely on GroupID - maps directly to MessageID.
-        private static readonly ClientSystemHandler[] m_ClientSystemHandlers = new ClientSystemHandler[SystemMessaging.TotalIDs];
-        private static readonly ServerSystemHandler[] m_ServerSystemHandlers = new ServerSystemHandler[SystemMessaging.TotalIDs];
+        private static readonly ClientSystemHandler[] m_ClientSystemHandlers = new ClientSystemHandler[SystemMessaging.SystemMessageIDBits];
+        private static readonly ServerSystemHandler[] m_ServerSystemHandlers = new ServerSystemHandler[SystemMessaging.SystemMessageIDBits];
 
         // GroupIDs:
         /// TODO: Change handler type when <see cref="Performance.GroupIndexerFocus"/> and recommended type changes.

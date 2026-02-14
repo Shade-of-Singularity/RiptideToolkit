@@ -90,13 +90,8 @@ namespace Riptide.Toolkit
                 switch (systemMessageID)
                 {
                     // Allows regular execution.
+                    case SystemMessageID.Private:
                     case SystemMessageID.Regular: break;
-
-                    // Sends message data to a requesting side. Timeouts if response is not satisfied in time.
-                    case SystemMessageID.ToSingle:
-                    case SystemMessageID.ToAll:
-                    case SystemMessageID.Request:
-                    case SystemMessageID.Response: throw new NotImplementedException();
 
                     // Fires custom handlers.
                     default: NetworkIndex.HandleClient((byte)systemMessageID, this, args); return;

@@ -9,6 +9,7 @@
 /// 
 /// ]]>
 
+using Riptide.Transports;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -23,24 +24,21 @@ namespace Riptide.Toolkit
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
-        /// .                                                 Constants
-        /// .
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public const int NotifyHeaderBits = 44;
-        public const int ReliableHeaderBits = 20;
-        public const int UnreliableHeaderBits = 4;
-
-
-
-
-        /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
-        /// .
         /// .                                               Public Methods
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        /// <inheritdoc cref="GetMessageBase(MessageSendMode)"/>
+        /// <summary>
+        /// Properly combines Riptide's <see cref="MessageHeader"/> and Toolkit's <see cref="SystemMessageID"/>.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetMessageBase(Message message) => GetMessageBase(message.SendMode);
+        public static byte Combine(MessageHeader header, SystemMessageID id)
+        {
+            return (byte)((uint)header | ((uint)id << SystemMessaging.SystemMessageIDOffset));
+        }
+
+        /// <inheritdoc cref="GetNetMessageBase(MessageSendMode)"/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetNetMessageBase(Message message) => GetNetMessageBase(message.SendMode);
 
         /// <summary>
         /// Retrieves position in a message data where message content starts.
@@ -48,31 +46,17 @@ namespace Riptide.Toolkit
         /// <remarks>
         /// Needed because <see cref="Toolkit"/> uses some of the first bits to encode system message IDs and such.
         /// </remarks>
-        public static int GetMessageBase(MessageSendMode mode)
-        {
-            switch (mode)
-            {
-                case MessageSendMode.Notify: return NotifyHeaderBits + SystemMessaging.TotalBits;
-                case MessageSendMode.Unreliable: return UnreliableHeaderBits + SystemMessaging.TotalBits;
-                case MessageSendMode.Reliable: return ReliableHeaderBits + SystemMessaging.TotalBits;
-                default: throw new NotSupportedException($"Cannot retrieve header base for {nameof(MessageSendMode)} of ({mode})!");
-            }
-        }
-
-        /// <inheritdoc cref="GetHeaderBase(MessageSendMode)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetHeaderBase(Message message) => GetHeaderBase(message.SendMode);
-        public static int GetHeaderBase(MessageSendMode mode)
+        public static int GetNetMessageBase(MessageSendMode mode)
         {
             switch (mode)
             {
-                case MessageSendMode.Notify: return NotifyHeaderBits;
-                case MessageSendMode.Unreliable: return UnreliableHeaderBits;
-                case MessageSendMode.Reliable: return ReliableHeaderBits;
+                case MessageSendMode.Notify: return SystemMessaging.NotifyHeaderBits;
+                case MessageSendMode.Unreliable: return SystemMessaging.UnreliableHeaderBits;
+                case MessageSendMode.Reliable: return SystemMessaging.ReliableHeaderBits;
                 default: throw new NotSupportedException($"Cannot retrieve header base for {nameof(MessageSendMode)} of ({mode})!");
             }
         }
-
 
 
 
@@ -100,7 +84,7 @@ namespace Riptide.Toolkit
         [Obsolete("WIP", error: true)]
         internal sealed class SystemIDHeader : Header<SystemIDHeader>
         {
-            public override ushort Length => SystemMessaging.TotalBits;
+            public override ushort Length => SystemMessaging.HeaderBits;
             public override Message Read(Message message) => throw new NotImplementedException();
             public override Message Write(Message message) => throw new NotImplementedException();
         }
