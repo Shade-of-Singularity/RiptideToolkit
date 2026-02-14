@@ -31,9 +31,9 @@ namespace Riptide.Toolkit
         /// Properly combines Riptide's <see cref="MessageHeader"/> and Toolkit's <see cref="SystemMessageID"/>.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static byte Combine(MessageHeader header, SystemMessageID id)
+        public static byte Combine(MessageHeader header, SystemMessageID ID)
         {
-            return (byte)((uint)header | ((uint)id << SystemMessaging.SystemMessageIDOffset));
+            return (byte)((uint)header | ((uint)ID << SystemMessaging.SystemMessageIDOffset));
         }
 
         /// <inheritdoc cref="GetHeaderSize(MessageSendMode)"/>
