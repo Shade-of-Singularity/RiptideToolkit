@@ -45,17 +45,17 @@ namespace Riptide.Toolkit
         /// <returns>Message with fully encoded header.</returns>
         public static Message Create(Transports.MessageHeader header, SystemMessageID id = SystemMessageID.Regular)
         {
-            return Message.Create((MessageSendMode)header).AddBits((byte)id, SystemMessaging.SystemMessageIDBits);
+            return Message.Create((MessageSendMode)header).AddSystemMessageID(id).SkipHeaders();
         }
 
         /// <summary>
         /// Creates regular message with custom send <paramref name="mode"/>.
-        /// Doesn't encode MessageID (which makes it an invalid message until <see cref="Message.Add(ushort)"/> or similar is used)
+        /// Doesn't encode MessageID (which makes it an invalid message until you add it manually).
         /// </summary>
         /// <seealso cref="Message.Create(MessageSendMode)"/>
         public static Message Create(MessageSendMode mode, SystemMessageID id = SystemMessageID.Regular)
         {
-            return Message.Create(mode, id);
+            return Message.Create(mode).AddSystemMessageID(id).SkipHeaders();
         }
 
         /// <inheritdoc cref="Create(MessageSendMode, uint, SystemMessageID)"/>
@@ -75,7 +75,7 @@ namespace Riptide.Toolkit
             return Message.Create(mode)
                 .AddSystemMessageID(id)
                 .ReserveHeaders(id)
-                .AddVarULong(messageID); // TODO: Create the same method, but for uint.
+                .AddID(messageID); // TODO: Create the same method, but for uint.
         }
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace Riptide.Toolkit
             return Message.Create(mode)
                 .AddSystemMessageID(id)
                 .ReserveHeaders(id)
-                .AddVarULong(NetworkMessage<TMessage>.MessageID); // TODO: Create the same method, but for uint.
+                .AddID(NetworkMessage<TMessage>.MessageID); // TODO: Create the same method, but for uint.
         }
 
 
@@ -142,13 +142,13 @@ namespace Riptide.Toolkit
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Message Notify(Enum messageID, SystemMessageID id = SystemMessageID.Regular)
         {
-            return Create(MessageSendMode.Unreliable, (uint)(object)messageID, id);
+            return Create(MessageSendMode.Notify, (uint)(object)messageID, id);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Message Notify(uint messageID, SystemMessageID id = SystemMessageID.Regular)
         {
-            return Create(MessageSendMode.Unreliable, messageID, id);
+            return Create(MessageSendMode.Notify, messageID, id);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -166,14 +166,32 @@ namespace Riptide.Toolkit
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
+        /// Adds <see cref="NetworkMessage{TMessage}.MessageID"/> to a given <paramref name="message"/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message AddID<T>(this Message message) where T : NetworkMessage<T>, new()
+        {
+            return message.AddVarULong(NetworkMessage<T>.MessageID);
+        }
+
+        /// <summary>
+        /// Adds MessageID to a given <paramref name="message"/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Message AddID(this Message message, uint messageID)
+        {
+            return message.AddVarULong(messageID);
+        }
+
+        /// <summary>
         /// Destructively (using <see cref="Message.GetBits(int, out byte)"/>) reads <see cref="SystemMessageID"/>.
         /// </summary>
         /// <param name="message"><see cref="Message"/> to read.</param>
-        /// <param name="id"><see cref="SystemMessageID"/> retrieved from <paramref name="message"/>.</param>
-        public static Message GetSystemMessageID(this Message message, out SystemMessageID id)
+        /// <param name="ID"><see cref="SystemMessageID"/> retrieved from <paramref name="message"/>.</param>
+        public static Message GetSystemMessageID(this Message message, out SystemMessageID ID)
         {
             message.GetBits(SystemMessaging.SystemMessageIDBits, out byte bits);
-            id = (SystemMessageID)bits;
+            ID = (SystemMessageID)bits;
             return message;
         }
 
@@ -181,11 +199,11 @@ namespace Riptide.Toolkit
         /// Non-destructively (using <see cref="Message.PeekBits(int, int, out byte)"/>) peeks <see cref="SystemMessageID"/>.
         /// </summary>
         /// <param name="message"><see cref="Message"/> to read.</param>
-        /// <param name="id"><see cref="SystemMessageID"/> peaked in <paramref name="message"/>.</param>
-        public static Message PeekSystemMessageID(this Message message, out SystemMessageID id)
+        /// <param name="ID"><see cref="SystemMessageID"/> peaked in <paramref name="message"/>.</param>
+        public static Message PeekSystemMessageID(this Message message, out SystemMessageID ID)
         {
             message.PeekBits(SystemMessaging.SystemMessageIDBits, 0, out byte bits);
-            id = (SystemMessageID)bits;
+            ID = (SystemMessageID)bits;
             return message;
         }
 
@@ -193,22 +211,22 @@ namespace Riptide.Toolkit
         /// Adds given <see cref="SystemMessageID"/> (using <see cref="Message.AddBits(byte, int)"/>) to a <paramref name="message"/>
         /// </summary>
         /// <param name="message"><see cref="Message"/> to be modified.</param>
-        /// <param name="id"><see cref="SystemMessageID"/> to set in a <paramref name="message"/>.</param>
+        /// <param name="ID"><see cref="SystemMessageID"/> to set in a <paramref name="message"/>.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message AddSystemMessageID(this Message message, SystemMessageID id = SystemMessageID.Regular)
+        public static Message AddSystemMessageID(this Message message, SystemMessageID ID = SystemMessageID.Regular)
         {
-            return message.AddBits((byte)id, SystemMessaging.SystemMessageIDBits);
+            return message.AddBits((byte)ID, SystemMessaging.SystemMessageIDBits);
         }
 
         /// <summary>
         /// Sets <see cref="SystemMessageID"/> (using <see cref="Message.SetBits(ulong, int, int)"/>) in a <paramref name="message"/>.
         /// </summary>
         /// <param name="message"><see cref="Message"/> to be modified.</param>
-        /// <param name="id"><see cref="SystemMessageID"/> to set in a <paramref name="message"/>.</param>
+        /// <param name="ID"><see cref="SystemMessageID"/> to set in a <paramref name="message"/>.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message SetSystemMessageID(this Message message, SystemMessageID id = SystemMessageID.Regular)
+        public static Message SetSystemMessageID(this Message message, SystemMessageID ID = SystemMessageID.Regular)
         {
-            return message.SetBits((byte)id, SystemMessaging.SystemMessageIDBits, 0);
+            return message.SetBits((byte)ID, SystemMessaging.SystemMessageIDBits, 0);
         }
 
         /// <summary>
@@ -216,9 +234,9 @@ namespace Riptide.Toolkit
         /// (<see cref="SystemMessageID"/> and all <see cref="CustomHeader{T}"/> definitions will be skipped)
         /// </summary>
         /// <seealso cref="CustomHeader{T}"/>
-        public static Message SkipHeaders(this Message message, SystemMessageID id = SystemMessageID.Regular)
+        public static Message SkipHeaders(this Message message, SystemMessageID ID = SystemMessageID.Regular)
         {
-            int skip = NetHeaders.GetCustomHeaderLength(id) + SystemMessaging.SystemMessageIDBits;
+            int skip = NetHeaders.GetCustomHeaderLength(ID) + SystemMessaging.SystemMessageIDBits;
             int read = message.ReadBits;
             return message.SkipBits(skip - read);
         }
@@ -227,9 +245,9 @@ namespace Riptide.Toolkit
         /// Moves head of a message writer to a position/index, after BOTH internal and custom headers.
         /// (reserves space for <see cref="SystemMessageID"/> and all <see cref="CustomHeader{T}"/> definitions)
         /// </summary>
-        public static Message ReserveHeaders(this Message message, SystemMessageID id = SystemMessageID.Regular)
+        public static Message ReserveHeaders(this Message message, SystemMessageID ID = SystemMessageID.Regular)
         {
-            int skip = NetHeaders.GetCustomHeaderLength(id) + SystemMessaging.SystemMessageIDBits;
+            int skip = NetHeaders.GetCustomHeaderLength(ID) + SystemMessaging.SystemMessageIDBits;
             int write = message.WrittenBits;
             return message.ReserveBits(skip - write);
         }
