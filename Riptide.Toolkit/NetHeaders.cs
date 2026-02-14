@@ -11,6 +11,7 @@
 
 using Riptide.Transports;
 using System;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace Riptide.Toolkit
@@ -36,18 +37,20 @@ namespace Riptide.Toolkit
             return (byte)((uint)header | ((uint)id << SystemMessaging.SystemMessageIDOffset));
         }
 
-        /// <inheritdoc cref="GetNetMessageBase(MessageSendMode)"/>
+        /// <inheritdoc cref="GetHeaderSize(MessageSendMode)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetNetMessageBase(Message message) => GetNetMessageBase(message.SendMode);
+        public static int GetHeaderSize(Message message) => GetHeaderSize(message.SendMode);
 
         /// <summary>
-        /// Retrieves position in a message data where message content starts.
+        /// Retrieves bit position in a message data where message content starts.
         /// </summary>
         /// <remarks>
         /// Needed because <see cref="Toolkit"/> uses some of the first bits to encode system message IDs and such.
+        /// Thus assumes that you are using messages created with <see cref="NetMessage"/>.
         /// </remarks>
+        /// <returns>Size of a header in bits.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetNetMessageBase(MessageSendMode mode)
+        public static int GetHeaderSize(MessageSendMode mode)
         {
             switch (mode)
             {
@@ -55,6 +58,30 @@ namespace Riptide.Toolkit
                 case MessageSendMode.Unreliable: return SystemMessaging.UnreliableHeaderBits;
                 case MessageSendMode.Reliable: return SystemMessaging.ReliableHeaderBits;
                 default: throw new NotSupportedException($"Cannot retrieve header base for {nameof(MessageSendMode)} of ({mode})!");
+            }
+        }
+
+        /// <summary>
+        /// Retrieves bit position in a message data where message content starts.
+        /// </summary>
+        /// <remarks>
+        /// Needed because <see cref="Toolkit"/> uses some of the first bits to encode system message IDs and such.
+        /// Thus assumes that you are using messages created with <see cref="NetMessage"/>.
+        /// </remarks>
+        /// <returns>Size of a header in bits.</returns>
+        public static int GetHeaderSize(MessageHeader header)
+        {
+            if (header == MessageHeader.Notify)
+            {
+                return SystemMessaging.NotifyHeaderBits;
+            }
+            else if (header > MessageHeader.Notify)
+            {
+                return SystemMessaging.ReliableHeaderBits;
+            }
+            else
+            {
+                return SystemMessaging.UnreliableHeaderBits;
             }
         }
 
