@@ -17,7 +17,7 @@ namespace Riptide.Toolkit.Handlers
     /// <summary>
     /// Collection of all client-side message handlers for specific handler GroupID.
     /// </summary>
-    public readonly struct ClientHandlers
+    public readonly struct ServerMessageHandlers
     {
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===<![CDATA[
         /// .
@@ -34,7 +34,7 @@ namespace Riptide.Toolkit.Handlers
         /// .                                                Constructors
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        public ClientHandlers(IReadOnlyGroupMessageIndexer indexer) => Group = indexer;
+        public ServerMessageHandlers(IReadOnlyGroupMessageIndexer indexer) => Group = indexer;
 
 
 
@@ -45,11 +45,11 @@ namespace Riptide.Toolkit.Handlers
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Retrieves data, needed for clients to easily fire client-side message handlers.
+        /// Retrieves data, needed for clients to easily fire server-side message handlers.
         /// </summary>
         /// <param name="groupID">GroupID to use for a client.</param>
         /// <returns>Struct, which has plenty of useful methods and shortcuts.</returns>
-        public static ClientHandlers Create(byte groupID) => new ClientHandlers(NetworkIndex.GetGroup(groupID));
+        public static ServerMessageHandlers Create(byte groupID) => new ServerMessageHandlers(NetworkIndex.GetGroup(groupID));
 
 
 
@@ -65,15 +65,15 @@ namespace Riptide.Toolkit.Handlers
         /// <remarks>
         /// Doesn't release <paramref name="message"/> automatically.
         /// </remarks>
-        /// <param name="client">(WIP) Will be used to send responses for messages which support it.</param>
+        /// <param name="server">(WIP) Will be used to send responses for messages which support it.</param>
         /// <param name="messageID">ID of a message handler.</param>
         /// <param name="message">Message to read.</param>
         /// <returns><c>false</c> if there is no handler under given <paramref name="messageID"/> registered. <c>true</c> otherwise.</returns>
-        public bool TryFire(AdvancedClient client, uint messageID, Message message)
+        public bool TryFire(AdvancedServer server, uint messageID, ushort clientID, Message message)
         {
-            if (Group.HasClient(messageID))
+            if (Group.HasServer(messageID))
             {
-                Fire(client, messageID, message);
+                Fire(server, messageID, clientID, message);
                 return true;
             }
 
@@ -81,25 +81,27 @@ namespace Riptide.Toolkit.Handlers
         }
 
         /// <summary>
-        /// Fires handler with specified ID client-side.
+        /// Fires handler to a client under given <paramref name="clientID"/> with specified <paramref name="messageID"/> server-side.
         /// </summary>
         /// <remarks>
         /// Throws if handler wasn't found.
         /// Doesn't release <paramref name="message"/> automatically.
         /// </remarks>
-        /// <param name="client">(WIP) Will be used to send responses for messages which support it.</param>
+        /// <param name="server">(WIP) Will be used to send responses for messages which support it.</param>
         /// <param name="messageID">ID of a message handler.</param>
+        /// <param name="clientID">Riptide ID of a client which sent the message.</param>
         /// <param name="message">Message to read.</param>
-        public void Fire(AdvancedClient client, uint messageID, Message message)
+        public void Fire(AdvancedServer server, uint messageID, ushort clientID, Message message)
         {
-            MessageHandlerInfo info = NetworkIndex.RawClientHandlers.Get(messageID);
+            MessageHandlerInfo info = NetworkIndex.RawServerHandlers.Get(messageID);
             if (info.MessageType is null) throw new System.Exception("This");
-            object[] args = new object[1];
+            object[] args = new object[2];
+            args[0] = clientID;
 
             object result;
             if (info.MessageType == typeof(Message))
             {
-                args[0] = message;
+                args[1] = message;
                 result = info.Method.Invoke(null, args);
 
                 // Message is released by Riptide itself. No need for this code.
@@ -109,22 +111,23 @@ namespace Riptide.Toolkit.Handlers
             {
                 NetworkMessage container = (NetworkMessage)MessagePools.Retrieve(info.MessageType);
                 container.Read(message);
-                args[0] = container;
+                args[1] = container;
                 result = info.Method.Invoke(null, args);
+
+                // Automatically releases if requested.
                 if (info.Release) container.Release();
             }
 
-            // Note: untested.
             switch (result)
             {
                 // If you return regular message - it will immediately send its contents as a response.
                 // TODO: Make sure that FlagMessages will also be supported.
-                //case Message msg: client.SendResponse(msg); break;
+                //case Message msg: server.SendResponse(msg, clientID); break;
 
                 // Automatically packs and sends response message.
                 // TODO: Make sure that MessageID is read correctly.
-                //case NetworkMessage net: client.SendResponse(net.Write(message)); break;
-                default: return; // WIP: While responses is not supported - response handlers are commented-out.
+                //case NetworkMessage net: server.SendResponse(net.Write(message), clientID); break;
+                default: break; // WIP: While responses is not supported - response handlers are commented-out.
             }
         }
     }

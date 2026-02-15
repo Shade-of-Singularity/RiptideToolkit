@@ -44,7 +44,7 @@ namespace Riptide.Toolkit.Settings
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
         /// <summary>
-        /// Type of optimization <see cref="Handlers.ClientHandlers"/> and <see cref="Handlers.ServerHandlers"/> will use.
+        /// Type of optimization <see cref="Handlers.ClientMessageHandlers"/> and <see cref="Handlers.ServerMessageHandlers"/> will use.
         /// </summary>
         /// <remarks>
         /// <para>With <see cref="PerformanceType.OptimizeCPU"/> - adds ~4MB of RAM overhead. Internal list access takes '1.477 ns'.</para>

@@ -149,8 +149,8 @@ namespace Riptide.Toolkit
         /// Invalidates initialization of the network handlers, forcing game to reload all message handlers before the next network call.
         /// All message IDs should stay the same, as long as client and server had same Assemblies loaded in the same order upon reloading.
         /// You should run <see cref="Initialize"/> immediate after <see cref="Invalidate"/> to be certain when initialization happens.
-        /// This is important, because re-initialization happens ONLY when someone uses <see cref="ClientHandlers"/>
-        /// or <see cref="ServerHandlers"/>.
+        /// This is important, because re-initialization happens ONLY when someone uses <see cref="ClientMessageHandlers"/>
+        /// or <see cref="ServerMessageHandlers"/>.
         /// </summary>
         /// <remarks>
         /// Using this method outside of initialization sequence is dangerous.

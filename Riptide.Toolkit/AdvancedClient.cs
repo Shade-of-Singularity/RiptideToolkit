@@ -44,7 +44,7 @@ namespace Riptide.Toolkit
         /// .                                               Private Fields
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        private ClientHandlers m_MessageHandlers;
+        private ClientMessageHandlers m_MessageHandlers;
 
 
 
@@ -76,7 +76,7 @@ namespace Riptide.Toolkit
         /// .                                              Implementations
         /// .
         /// ===     ===     ===     ===    ===  == =  -                        -  = ==  ===    ===     ===     ===     ===]]>
-        protected override void CreateMessageHandlersDictionary(byte groupID) => m_MessageHandlers = ClientHandlers.Create(groupID);
+        protected override void CreateMessageHandlersDictionary(byte groupID) => m_MessageHandlers = ClientMessageHandlers.Create(groupID);
         protected override void OnMessageReceived(Message message)
         {
             message.GetSystemMessageID(out SystemMessageID systemMessageID);

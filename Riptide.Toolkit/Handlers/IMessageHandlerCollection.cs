@@ -14,7 +14,7 @@ using Riptide.Toolkit.Extensions;
 namespace Riptide.Toolkit.Handlers
 {
     /// <summary>
-    /// Interface for <see cref="ClientHandlers"/> and <see cref="ServerHandlers"/> to implement.
+    /// Interface for <see cref="ClientMessageHandlers"/> and <see cref="ServerMessageHandlers"/> to implement.
     /// Specifies API for <see cref="MessageHandlerCollection{THandler}"/>.
     /// </summary>
     public interface IMessageHandlerCollection<THandler> : IReadOnlyMessageHandlerCollection<THandler>
