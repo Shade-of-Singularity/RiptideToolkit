@@ -152,7 +152,7 @@ namespace Riptide.Toolkit
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Message Notify<TMessage, TProfile>(SystemMessageID ID = SystemMessageID.Regular) where TMessage : NetworkMessage<TMessage>, new()
+        public static Message Notify<TMessage>(SystemMessageID ID = SystemMessageID.Regular) where TMessage : NetworkMessage<TMessage>, new()
         {
             return Create<TMessage>(MessageSendMode.Notify, ID);
         }
