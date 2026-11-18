@@ -118,7 +118,7 @@ namespace Riptide.Toolkit
 
         private static class HeaderDefinition<T> where T : CustomHeader<T>, new()
         {
-            public static bool IsDefined;
+            internal static bool IsDefined;
         }
     }
 }
